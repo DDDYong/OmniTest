@@ -13,9 +13,9 @@ import os
 import time
 from typing import Optional, Dict, Any, List
 
-from config.config import config
 from locust import HttpUser, TaskSet, between, events
 
+from config.config_manager import config
 from utils.common_util import CommonUtils
 from utils.file_util import DataHandler
 from utils.logger_util import logger

@@ -88,7 +88,7 @@ class PerformanceUtils:
             # 延迟导入获取配置值
             data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
             try:
-                from config import config
+                from config.config_manager import config
                 data_dir = config.DATA_DIR
             except ImportError:
                 logger.warning("无法导入config模块，使用默认数据目录")

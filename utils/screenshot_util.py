@@ -22,7 +22,7 @@ class ScreenshotUtils:
     def __init__(self):
         """初始化截图工具"""
         # 延迟导入避免循环依赖
-        from config import config
+        from config.config_manager import config
         # 确保截图目录存在
         utils.ensure_folder_exists(config.SCREENSHOT_DIR)
 
@@ -47,7 +47,7 @@ class ScreenshotUtils:
             name = f"{name}.png"
 
         # 延迟导入避免循环依赖
-        from config import config
+        from config.config_manager import config
         # 生成截图路径
         screenshot_path = os.path.join(config.SCREENSHOT_DIR, name)
 
@@ -113,7 +113,7 @@ class ScreenshotUtils:
             name = f"{name}.html"
 
         # 延迟导入避免循环依赖
-        from config import config
+        from config.config_manager import config
         # 生成文件路径
         source_path = os.path.join(config.SCREENSHOT_DIR, name)
 

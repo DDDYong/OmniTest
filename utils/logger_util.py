@@ -30,8 +30,9 @@ class Logger:
         """
         self.logger = logging.getLogger(logger_name)
 
-        # 动态导入配置以避免循环导入
+        # 注意：使用延迟导入避免循环依赖
         try:
+            # 仅在需要时导入配置
             from config.config_manager import config
             log_level = getattr(logging, config.LOG_LEVEL, getattr(logging, DEFAULT_LOG_LEVEL))
             log_dir = config.LOG_DIR
@@ -104,5 +105,22 @@ class Logger:
         self.logger.exception(message)
 
 
-# 创建全局日志实例
-logger = Logger().get_logger()
+# 懒加载logger实例，避免循环依赖
+logger = None
+
+
+def get_logger():
+    """
+    获取或创建logger实例（懒加载模式）
+    
+    Returns:
+        logger: 日志记录器实例
+    """
+    global logger
+    if logger is None:
+        logger = Logger().get_logger()
+    return logger
+
+
+# 向后兼容：确保直接导入logger时可用
+logger = get_logger()

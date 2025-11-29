@@ -9,7 +9,6 @@ Web测试样例 - 百度搜索功能测试
 演示如何使用Web工具类进行页面操作、元素交互和结果验证
 -------------------------------------------------
 """
-import json
 import os
 # 添加项目根目录到Python路径
 import sys
@@ -18,9 +17,11 @@ import pytest
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
+from utils import FileHandler
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from config import config
+from config.config_manager import config
 from utils.logger_util import logger
 from utils.screenshot_util import ScreenshotUtils
 from cases.web.pages.baidu_home_page import BaiduHomePage
@@ -114,12 +115,12 @@ class TestBaiduSearch:
         self.test_data_path = os.path.join(
             config.DATA_DIR,
             "test_data",
-            "web_test_data.json"
+            "web_test_data.yaml"
         )
 
         try:
             with open(self.test_data_path, 'r', encoding = 'utf-8') as f:
-                self.test_data = json.load(f)
+                self.test_data = FileHandler.read_yaml(f)
             logger.info(f"成功加载测试数据: {self.test_data_path}")
         except Exception as e:
             logger.error(f"加载测试数据失败: {str(e)}")

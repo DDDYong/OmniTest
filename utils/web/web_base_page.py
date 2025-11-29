@@ -19,9 +19,6 @@ from utils.screenshot_util import ScreenshotUtils
 from utils.web.element_handler import ElementHandler
 
 
-# 导入移至函数内部避免循环依赖
-
-
 class WebBasePage:
     """
     Web自动化页面基类
@@ -43,7 +40,7 @@ class WebBasePage:
         default_timeout = 30
         if base_url is None or timeout is None:
             try:
-                from config import config
+                from config.config_manager import config
                 if base_url is None:
                     default_base_url = config.WEB_BASE_URL
                 if timeout is None:

@@ -17,7 +17,7 @@ import pytest
 # 添加项目根目录到Python路径
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from config import config
+from config.config_manager import config
 from utils.logger_util import logger
 from utils.common_util import CommonUtils
 from utils.file_util import DataHandler

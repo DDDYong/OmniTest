@@ -23,7 +23,6 @@ try:
 
     ssh_enabled = True
 except ImportError:
-    logger = logging.getLogger(__name__)
     logger.warning("未安装paramiko库,SSH隧道功能将不可用。请使用 'pip install paramiko' 安装。")
 
 

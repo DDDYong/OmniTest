@@ -37,7 +37,7 @@ class ApiClient:
             timeout: 请求超时时间（秒）,默认为配置文件中的DEFAULT_TIMEOUT
         """
         # 延迟导入避免循环依赖
-        from config import config
+        from config.config_manager import config
 
         # 使用默认值避免依赖不存在的配置属性
         self.base_url = base_url or getattr(config, 'API_BASE_URL', 'http://localhost:8000')
@@ -55,7 +55,7 @@ class ApiClient:
             requests.Session: 配置好的会话对象
         """
         # 延迟导入避免循环依赖
-        from config import config
+        from config.config_manager import config
         session = requests.Session()
 
         # 配置重试策略，使用默认值避免依赖不存在的配置属性
@@ -183,7 +183,7 @@ class ApiClient:
         logger.info(f"准备发送{method}请求到 {url}")
 
         # 延迟导入获取实际配置值并记录日志
-        from config import config
+        from config.config_manager import config
         logger.debug(f"请求使用重试配置: max_retries={config.DEFAULT_RETRY_COUNT}, delay={config.RETRY_INTERVAL}")
 
         # 准备请求参数

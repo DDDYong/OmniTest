@@ -9,7 +9,6 @@ Description:
 用于Web测试样例中的百度搜索功能测试
 -------------------------------------------------
 """
-# 添加项目根目录到Python路径
 import os
 import sys
 from typing import Optional, List, Any
@@ -36,8 +35,8 @@ class BaiduHomePage(WebBasePage):
     """
 
     # 页面元素定位器
-    SEARCH_BOX = (By.ID, "kw")  # 搜索框
-    SEARCH_BUTTON = (By.ID, "su")  # 搜索按钮
+    SEARCH_BOX = (By.ID, "chat-input-area")  # 搜索框
+    SEARCH_BUTTON = (By.ID, "chat-submit-button")  # 搜索按钮
     RESULT_COUNT = (By.XPATH, "//div[@class='result-stats']")  # 搜索结果数量
     RESULT_ITEMS = (By.XPATH, "//div[contains(@class, 'result')]")  # 搜索结果项
     NAVIGATION_LINKS = (By.XPATH, "//div[@id='s-top-left']/a")  # 顶部导航链接

@@ -49,7 +49,7 @@ class ElementHandler:
         default_timeout = 30
         if timeout is None:
             try:
-                from config import config
+                from config.config_manager import config
                 default_timeout = config.DEFAULT_TIMEOUT
             except ImportError:
                 logger.warning("无法导入config模块，使用默认超时时间")
@@ -224,7 +224,7 @@ class ElementHandler:
             return element
         except TimeoutException:
             logger.error(f"超时: 元素不可点击 - {by}={value}")
-            screenshot_utils.take_screenshot(self.driver, "element_not_clickable")
+            ScreenshotUtils().take_screenshot(self.driver, "element_not_clickable")
             raise
 
     def wait_for_element_invisible(self, locator: Union[str, Tuple[str, str]]) -> bool:
@@ -244,7 +244,7 @@ class ElementHandler:
             return result
         except TimeoutException:
             logger.error(f"超时: 元素仍然可见 - {by}={value}")
-            screenshot_utils.take_screenshot(self.driver, "element_still_visible")
+            ScreenshotUtils().take_screenshot(self.driver, "element_still_visible")
             raise
 
     @timing

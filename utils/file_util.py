@@ -47,10 +47,9 @@ class FileHandler:
             json.JSONDecodeError: JSON格式错误
         """
         # 延迟导入避免循环依赖
-        from config.config import config
         # 处理相对路径
         if not os.path.isabs(file_path):
-            file_path = os.path.join(config.DATA_DIR, file_path)
+            file_path = os.path.join(config_manager.DATA_DIR, file_path)
 
         logger.debug(f"读取JSON文件: {file_path}")
         try:
@@ -74,10 +73,9 @@ class FileHandler:
             indent: 缩进空格数
         """
         # 延迟导入避免循环依赖
-        from config.config import config
         # 处理相对路径
         if not os.path.isabs(file_path):
-            file_path = os.path.join(config.DATA_DIR, file_path)
+            file_path = os.path.join(config_manager.DATA_DIR, file_path)
 
         # 确保目录存在
         os.makedirs(os.path.dirname(file_path), exist_ok = True)
@@ -102,10 +100,9 @@ class FileHandler:
             dict/list: 解析后的YAML数据
         """
         # 延迟导入避免循环依赖
-        from config.config import config
         # 处理相对路径
         if not os.path.isabs(file_path):
-            file_path = os.path.join(config.DATA_DIR, file_path)
+            file_path = os.path.join(config_manager.DATA_DIR, file_path)
 
         logger.debug(f"读取YAML文件: {file_path}")
         try:
@@ -129,7 +126,7 @@ class FileHandler:
         """
         # 处理相对路径
         if not os.path.isabs(file_path):
-            file_path = os.path.join(config.DATA_DIR, file_path)
+            file_path = os.path.join(config_manager.DATA_DIR, file_path)
 
         # 确保目录存在
         os.makedirs(os.path.dirname(file_path), exist_ok = True)
@@ -153,9 +150,10 @@ class FileHandler:
         Returns:
             list: CSV数据列表
         """
+        # 延迟导入避免循环依赖
         # 处理相对路径
         if not os.path.isabs(file_path):
-            file_path = os.path.join(config.DATA_DIR, file_path)
+            file_path = os.path.join(config_manager.DATA_DIR, file_path)
 
         logger.debug(f"读取CSV文件: {file_path}")
         try:
@@ -186,7 +184,7 @@ class FileHandler:
         """
         # 处理相对路径
         if not os.path.isabs(file_path):
-            file_path = os.path.join(config.DATA_DIR, file_path)
+            file_path = os.path.join(config_manager.DATA_DIR, file_path)
 
         logger.debug(f"读取Excel文件: {file_path}")
         try:
@@ -296,9 +294,9 @@ class FileHandler:
         """
         # 处理相对路径
         if not os.path.isabs(src_path):
-            src_path = os.path.join(config.DATA_DIR, src_path)
+            src_path = os.path.join(config_manager.DATA_DIR, src_path)
         if not os.path.isabs(dst_path):
-            dst_path = os.path.join(config.DATA_DIR, dst_path)
+            dst_path = os.path.join(config_manager.DATA_DIR, dst_path)
 
         logger.debug(f"复制文件: {src_path} -> {dst_path}")
         try:
@@ -324,9 +322,9 @@ class FileHandler:
         """
         # 处理相对路径
         if not os.path.isabs(src_path):
-            src_path = os.path.join(config.DATA_DIR, src_path)
+            src_path = os.path.join(config_manager.DATA_DIR, src_path)
         if not os.path.isabs(dst_path):
-            dst_path = os.path.join(config.DATA_DIR, dst_path)
+            dst_path = os.path.join(config_manager.DATA_DIR, dst_path)
 
         logger.debug(f"移动文件: {src_path} -> {dst_path}")
         try:
@@ -352,7 +350,7 @@ class FileHandler:
         """
         # 处理相对路径
         if not os.path.isabs(file_path):
-            file_path = os.path.join(config.DATA_DIR, file_path)
+            file_path = os.path.join(config_manager.DATA_DIR, file_path)
 
         # 获取目录路径
         dir_path = os.path.dirname(file_path)
@@ -379,7 +377,7 @@ class FileHandler:
         """
         # 处理相对路径
         if not os.path.isabs(file_path):
-            file_path = os.path.join(config.DATA_DIR, file_path)
+            file_path = os.path.join(config_manager.DATA_DIR, file_path)
 
         logger.debug(f"删除文件: {file_path}")
         try:
@@ -402,7 +400,7 @@ class FileHandler:
         """
         # 处理相对路径
         if not os.path.isabs(dir_path):
-            dir_path = os.path.join(config.DATA_DIR, dir_path)
+            dir_path = os.path.join(config_manager.DATA_DIR, dir_path)
 
         logger.debug(f"创建目录: {dir_path}")
         try:
@@ -425,7 +423,7 @@ class FileHandler:
         """
         # 处理相对路径
         if not os.path.isabs(dir_path):
-            dir_path = os.path.join(config.DATA_DIR, dir_path)
+            dir_path = os.path.join(config_manager.DATA_DIR, dir_path)
 
         logger.debug(f"列出目录内容: {dir_path}")
         try:
@@ -461,7 +459,7 @@ class FileHandler:
         """
         # 处理相对路径
         if not os.path.isabs(dir_path):
-            dir_path = os.path.join(config.DATA_DIR, dir_path)
+            dir_path = os.path.join(config_manager.DATA_DIR, dir_path)
 
         logger.debug(f"删除目录: {dir_path}, 递归: {recursive}")
         try:
@@ -492,9 +490,9 @@ class FileHandler:
         """
         # 处理相对路径
         if not os.path.isabs(src_path):
-            src_path = os.path.join(config.DATA_DIR, src_path)
+            src_path = os.path.join(config_manager.DATA_DIR, src_path)
         if not os.path.isabs(dst_path):
-            dst_path = os.path.join(config.DATA_DIR, dst_path)
+            dst_path = os.path.join(config_manager.DATA_DIR, dst_path)
 
         logger.debug(f"复制目录: {src_path} -> {dst_path}")
         try:
@@ -521,9 +519,9 @@ class FileHandler:
         """
         # 处理相对路径
         if not os.path.isabs(src_path):
-            src_path = os.path.join(config.DATA_DIR, src_path)
+            src_path = os.path.join(config_manager.DATA_DIR, src_path)
         if not os.path.isabs(dst_path):
-            dst_path = os.path.join(config.DATA_DIR, dst_path)
+            dst_path = os.path.join(config_manager.DATA_DIR, dst_path)
 
         logger.debug(f"移动目录: {src_path} -> {dst_path}")
         try:
@@ -552,7 +550,7 @@ class FileHandler:
         """
         # 处理相对路径
         if not os.path.isabs(file_path):
-            file_path = os.path.join(config.DATA_DIR, file_path)
+            file_path = os.path.join(config_manager.DATA_DIR, file_path)
 
         logger.debug(f"读取文本文件: {file_path}")
         try:
@@ -582,7 +580,7 @@ class FileHandler:
         """
         # 处理相对路径
         if not os.path.isabs(file_path):
-            file_path = os.path.join(config.DATA_DIR, file_path)
+            file_path = os.path.join(config_manager.DATA_DIR, file_path)
 
         # 确保目录存在
         os.makedirs(os.path.dirname(file_path), exist_ok = True)
@@ -609,7 +607,7 @@ class FileHandler:
         """
         # 处理相对路径
         if not os.path.isabs(file_path):
-            file_path = os.path.join(config.DATA_DIR, file_path)
+            file_path = os.path.join(config_manager.DATA_DIR, file_path)
 
         # 确保目录存在
         os.makedirs(os.path.dirname(file_path), exist_ok = True)
@@ -642,7 +640,7 @@ class FileHandler:
         """
         # 处理相对路径
         if not os.path.isabs(file_path):
-            file_path = os.path.join(config.DATA_DIR, file_path)
+            file_path = os.path.join(config_manager.DATA_DIR, file_path)
 
         logger.debug(f"按行读取文本文件: {file_path}")
         try:
@@ -677,7 +675,7 @@ class FileHandler:
         """
         # 处理相对路径
         if not os.path.isabs(file_path):
-            file_path = os.path.join(config.DATA_DIR, file_path)
+            file_path = os.path.join(config_manager.DATA_DIR, file_path)
 
         logger.debug(f"获取文件大小: {file_path}")
         try:
@@ -731,7 +729,7 @@ class FileHandler:
         """
         # 处理相对路径
         if not os.path.isabs(file_path):
-            file_path = os.path.join(config.DATA_DIR, file_path)
+            file_path = os.path.join(config_manager.DATA_DIR, file_path)
 
         logger.debug(f"获取文件信息: {file_path}")
         try:
@@ -777,7 +775,7 @@ class FileHandler:
         """
         # 处理相对路径
         if not os.path.isabs(file_path):
-            file_path = os.path.join(config.DATA_DIR, file_path)
+            file_path = os.path.join(config_manager.DATA_DIR, file_path)
 
         exists = os.path.exists(file_path)
         logger.debug(f"检查文件/目录是否存在: {file_path}, 结果: {exists}")
@@ -813,7 +811,7 @@ class FileHandler:
         """
         # 处理相对路径
         if not os.path.isabs(file_path):
-            file_path = os.path.join(config.DATA_DIR, file_path)
+            file_path = os.path.join(config_manager.DATA_DIR, file_path)
 
         logger.debug(f"计算文件哈希值: {file_path}, 算法: {algorithm}")
         try:
@@ -916,7 +914,7 @@ class FileHandler:
         """
         # 处理相对路径
         if not os.path.isabs(file_path):
-            file_path = os.path.join(config.DATA_DIR, file_path)
+            file_path = os.path.join(config_manager.DATA_DIR, file_path)
 
         logger.debug(f"读取二进制文件: {file_path}")
         try:
@@ -942,7 +940,7 @@ class FileHandler:
         """
         # 处理相对路径
         if not os.path.isabs(file_path):
-            file_path = os.path.join(config.DATA_DIR, file_path)
+            file_path = os.path.join(config_manager.DATA_DIR, file_path)
 
         # 确保目录存在
         os.makedirs(os.path.dirname(file_path), exist_ok = True)
@@ -967,7 +965,7 @@ class FileHandler:
         """
         # 处理相对路径
         if not os.path.isabs(file_path):
-            file_path = os.path.join(config.DATA_DIR, file_path)
+            file_path = os.path.join(config_manager.DATA_DIR, file_path)
 
         # 确保目录存在
         os.makedirs(os.path.dirname(file_path), exist_ok = True)
@@ -993,7 +991,7 @@ class FileHandler:
         """
         # 处理相对路径
         if not os.path.isabs(file_path):
-            file_path = os.path.join(config.DATA_DIR, file_path)
+            file_path = os.path.join(config_manager.DATA_DIR, file_path)
 
         logger.debug(f"分块读取二进制文件: {file_path}, 块大小: {chunk_size}")
         try:
@@ -1026,7 +1024,7 @@ class FileHandler:
         """
         # 处理相对路径
         if not os.path.isabs(file_path):
-            file_path = os.path.join(config.DATA_DIR, file_path)
+            file_path = os.path.join(config_manager.DATA_DIR, file_path)
 
         # 确保目录存在
         os.makedirs(os.path.dirname(file_path), exist_ok = True)
