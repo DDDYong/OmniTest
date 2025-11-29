@@ -1,0 +1,83 @@
+# Web测试数据 - YAML格式
+# OmniTest 自动化测试框架
+
+# 百度搜索测试数据
+test_baidu_search:
+  # 搜索参数
+  search_params:
+    keyword: trae
+    timeout: 10
+    wait_interval: 2
+  
+  # 预期结果
+  expected:
+    title: 百度一下,你就知道
+    search_box_placeholder: 在百度搜索
+    result_title_contains: trae
+    result_count_min: 1
+    error_messages:
+      page_load_failed: 页面加载失败
+      element_not_found: 未找到搜索框元素
+      no_results: 未找到搜索结果
+  
+  # 浏览器配置
+  browser_config:
+    chrome:
+      headless: false
+      window_size:
+        width: 1920
+        height: 1080
+      implicit_wait: 5
+    firefox:
+      headless: false
+      window_size:
+        width: 1920
+        height: 1080
+      implicit_wait: 5
+  
+  # 测试场景列表
+  test_scenarios:
+    - name: standard_search
+      description: 标准搜索流程,使用默认参数
+      keyword: trae
+      validate_results: true
+    - name: empty_search
+      description: 空搜索测试
+      keyword: ""
+      validate_results: false
+    - name: special_characters
+      description: 特殊字符搜索测试
+      keyword: "trae!@#$%^&*()"
+      validate_results: true
+
+# 百度高级搜索测试数据
+test_baidu_advanced_search:
+  # 高级搜索参数
+  advanced_params:
+    keyword: trae
+    site: ""
+    file_type: ""
+    date_range: ""
+    language: zh
+  
+  # 预期结果
+  expected:
+    advanced_search_title: 百度高级搜索
+    filter_options_count: 4
+
+# 百度导航测试数据
+test_baidu_navigation:
+  # 导航链接列表
+  navigation_links:
+    - name: 新闻
+      link_text: 新闻
+      expected_title: 百度新闻
+    - name: 图片
+      link_text: 图片
+      expected_title: 百度图片
+    - name: 视频
+      link_text: 视频
+      expected_title: 百度视频
+    - name: 贴吧
+      link_text: 贴吧
+      expected_title: 百度贴吧

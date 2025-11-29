@@ -1,0 +1,73 @@
+# OmniTest 默认配置文件
+# 所有环境共享的基础配置项
+
+# 日志配置
+log:
+  dir: ./logs
+  level: DEBUG
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file_max_bytes: 10485760
+  file_backup_count: 5
+
+# 报告配置
+report:
+  dir: ./reports
+  allure_report_dir: ./reports/allure-report
+  allure_result_dir: ./reports/allure-results
+
+# 超时配置
+timeout:
+  page_load: 60
+  implicitly_wait: 10
+
+# 重试配置
+retry:
+  default_count: 3
+  interval: 2
+
+# 截图配置
+screenshot:
+  dir: ./reports/screenshots
+
+# MySQL默认配置
+mysql:
+  default:
+    host: localhost
+    port: 3306
+    user: root
+    password: ""
+    db: test
+    charset: utf8mb4
+    autocommit: true
+    pool_size: 10
+    max_overflow: 20
+    pool_recycle: 3600
+
+# Redis默认配置
+redis:
+  default:
+    host: localhost
+    port: 6379
+    db: 0
+    password: null
+    decode_responses: true
+    socket_connect_timeout: 5
+    socket_timeout: 5
+
+# SSH默认配置
+ssh:
+  default:
+    ssh_host: localhost
+    ssh_port: 22
+    ssh_username: root
+    ssh_password: null
+    ssh_key_file: null
+    local_bind_address: 127.0.0.1
+    local_bind_port: null
+    local_mysql_port: 3307
+    local_redis_port: 6380
+    use_ssh: false
+
+# 环境配置
+env:
+  default: test  # 默认测试环境

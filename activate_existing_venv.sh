@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# 用于激活已有的虚拟环境
+
+# 虚拟环境路径
+VENV_PATH="/Users/apple/duanyang/PyProduct/.venv"
+
+# 检查虚拟环境是否存在
+if [ -d "$VENV_PATH" ] && [ -f "$VENV_PATH/bin/activate" ]; then
+    echo "找到虚拟环境: $VENV_PATH"
+    echo "正在激活虚拟环境..."
+    echo ""
+    echo "请在终端中执行以下命令:"
+    echo "source /Users/apple/duanyang/PyProduct/.venv/bin/activate"
+    echo ""
+    echo "激活后,可以通过以下命令验证:"
+    echo "which python"
+    echo "python --version"
+else
+    echo "错误: 找不到虚拟环境或激活脚本"
+    echo "请检查路径: $VENV_PATH"
+fi

@@ -1,0 +1,65 @@
+# 测试环境配置文件
+# OmniTest 自动化测试框架配置
+# 此文件仅包含测试环境特定的配置,基础配置请参考default.yaml
+
+# 基本配置
+env: test
+name: 测试环境
+
+# API配置 - 测试环境特定配置
+api:
+  # API基础URL
+  base_url: http://test-api.example.com
+  # API请求超时时间（秒）
+  timeout: 10
+
+# Web配置 - 测试环境特定配置
+web:
+  # Web应用基础URL
+  base_url: http://test-web.example.com
+  # 浏览器类型：chrome, firefox, edge, safari
+  browser: chrome
+
+# APP配置 - 测试环境特定配置
+app:
+  # Android应用包名
+  package: com.example.testapp
+  # Android应用主Activity
+  activity: com.example.testapp.MainActivity
+
+# 数据库配置 - 测试环境特定配置
+mysql:
+  default:
+    host: test-db.example.com
+    user: test_user
+    password: test_password
+    db: test_db
+
+# SSH配置 - 测试环境特定配置
+ssh:
+  default:
+    ssh_host: test-ssh.example.com
+    ssh_username: test_ssh_user
+    ssh_password: test_ssh_password
+    use_ssh: true
+
+# 日志配置 - 测试环境特定配置
+log:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - [TEST] %(message)s"
+  file_pattern: test_%Y%m%d.log
+
+# 报告配置 - 测试环境特定配置
+report:
+  auto_open: true
+
+# 性能测试配置 - 测试环境特定配置
+performance:
+  users: 100
+  spawn_rate: 10
+  run_time: 5m
+  report_dir: ./reports/performance
+
+# 超时配置 - 测试环境特定配置
+timeout:
+  api: 10

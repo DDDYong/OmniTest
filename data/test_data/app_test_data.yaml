@@ -1,0 +1,140 @@
+# APP测试数据 - YAML格式
+# OmniTest 自动化测试框架
+
+# Android应用测试配置
+android_app_test:
+  # 设备能力配置
+  device_capabilities:
+    platformName: Android
+    platformVersion: "13"
+    deviceName: Android Device
+    automationName: UiAutomator2
+    noReset: false
+    fullReset: false
+    newCommandTimeout: 60
+    unicodeKeyboard: true
+    resetKeyboard: true
+    appActivity: com.example.app.MainActivity
+    appPackage: com.example.app
+    appWaitActivity: com.example.app.SplashActivity
+    systemPort: 8200
+    adbPort: 5037
+  
+  # Appium服务器配置
+  appium_server:
+    host: 127.0.0.1
+    port: 4723
+    timeout: 60
+  
+  # 等待设置
+  wait_settings:
+    implicit_wait: 10
+    explicit_wait: 20
+    polling_interval: 0.5
+  
+  # 应用路径
+  app_paths:
+    local_app_path: /path/to/local/app.apk
+    remote_app_url: null
+  
+  # 预期结果
+  expected_results:
+    app_launches_successfully: true
+    login_screen_displayed: true
+    home_screen_displayed: true
+    error_messages:
+      app_not_installed: 应用未安装
+      device_not_connected: 设备未连接
+      appium_server_down: Appium服务未启动
+      app_crash: 应用崩溃
+  
+  # 测试场景列表
+  test_scenarios:
+    - name: app_launch
+      description: 启动应用并验证主界面
+      priority: high
+      steps:
+        - 连接到Appium服务器
+        - 启动安卓应用
+        - 验证应用是否正常启动
+        - 截图保存
+      expected:
+        activity: com.example.app.MainActivity
+        package: com.example.app
+        timeout: 30
+
+    - name: login_flow
+      description: 验证登录流程
+      priority: high
+      steps:
+        - 启动应用
+        - 输入用户名和密码
+        - 点击登录按钮
+        - 验证是否登录成功
+      test_data:
+        valid_username: testuser
+        valid_password: password123
+        invalid_username: wronguser
+        invalid_password: wrongpass
+      expected:
+        success_message: 登录成功
+        error_message: 用户名或密码错误
+
+    - name: navigation_test
+      description: 验证应用内导航功能
+      priority: medium
+      steps:
+        - 启动应用
+        - 导航到功能页面
+        - 返回首页
+      expected:
+        navigation_completes: true
+        back_button_works: true
+  
+  # 元素标识符
+  element_identifiers:
+    login_username_field:
+      id: com.example.app:id/username_input
+      xpath: "//android.widget.EditText[@resource-id='com.example.app:id/username_input']"
+      class: android.widget.EditText
+    
+    login_password_field:
+      id: com.example.app:id/password_input
+      xpath: "//android.widget.EditText[@resource-id='com.example.app:id/password_input']"
+      class: android.widget.EditText
+    
+    login_button:
+      id: com.example.app:id/login_button
+      xpath: "//android.widget.Button[@resource-id='com.example.app:id/login_button']"
+      class: android.widget.Button
+    
+    home_screen_title:
+      id: com.example.app:id/home_title
+      xpath: "//android.widget.TextView[@resource-id='com.example.app:id/home_title']"
+      class: android.widget.TextView
+    
+    menu_button:
+      id: com.example.app:id/menu_button
+      xpath: "//android.widget.ImageButton[@resource-id='com.example.app:id/menu_button']"
+      class: android.widget.ImageButton
+  
+  # 设备设置
+  device_setup:
+    enable_usb_debugging: true
+    unlock_device: true
+    grant_permissions: [ ACCESS_FINE_LOCATION, CAMERA, STORAGE ]
+  
+  # 日志设置
+  logging:
+    capture_screenshots: true
+    log_commands: true
+    log_performance: true
+
+# 通用测试设置
+generic_test_settings:
+  retry_count: 2
+  test_timeout: 120
+  screenshot_dir: /logs/screenshots/app
+  video_recording: false
+  save_device_logs: true
+  performance_monitoring: false
