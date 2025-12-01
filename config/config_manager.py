@@ -492,6 +492,8 @@ class ConfigManager:
                 # 对于特殊路径的支持
                 special_mappings = {
                     'LOG_DIR': 'log.dir',
+                    'DATA_DIR': 'data.dir',
+                    'TEST_DATA_DIR': 'data.test_data_dir',
                     'REPORT_DIR': 'report.dir',
                     'ALLURE_REPORT_DIR': 'report.allure_report_dir',
                     'ALLURE_RESULT_DIR': 'report.allure_result_dir',
@@ -501,9 +503,22 @@ class ConfigManager:
                     'DEFAULT_RETRY_COUNT': 'retry.default_count',
                     'RETRY_INTERVAL': 'retry.interval',
                 }
+                # 路径相关的配置项
+                path_configs = {
+                    'LOG_DIR', 'DATA_DIR', 'TEST_DATA_DIR',
+                    'REPORT_DIR', 'ALLURE_REPORT_DIR',
+                    'ALLURE_RESULT_DIR', 'SCREENSHOT_DIR'
+                }
 
                 if name in special_mappings:
-                    return self.get_config_value(special_mappings[name])
+                    value = self.get_config_value(special_mappings[name])
+                    # 如果是路径配置项且值是相对路径，则转换为绝对路径
+                    if name in path_configs and isinstance(value, str) and value.startswith('./'):
+                        # 获取项目根目录（配置目录的父目录）
+                        project_root = os.path.dirname(self.config_dir)
+                        # 转换为绝对路径
+                        return os.path.abspath(os.path.join(project_root, value))
+                    return value
 
                 raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
 
@@ -540,8 +555,12 @@ def ensure_directories():
     """
     确保必要的目录存在
     """
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
     dirs_to_create = [
         config_manager.get_config_value("log.dir", "./logs"),
+        config_manager.get_config_value("data.dir", "./data"),
+        config_manager.get_config_value("data.test_data_dir", "./data/test_data"),
         config_manager.get_config_value("report.dir", "./reports"),
         config_manager.get_config_value("report.allure_report_dir", "./reports/allure-report"),
         config_manager.get_config_value("report.allure_result_dir", "./reports/allure-results"),
@@ -550,6 +569,9 @@ def ensure_directories():
 
     for dir_path in dirs_to_create:
         if dir_path:
+            # 确保路径是绝对路径，基于项目根目录
+            if not os.path.isabs(dir_path):
+                dir_path = os.path.abspath(os.path.join(project_root, dir_path))
             os.makedirs(dir_path, exist_ok = True)
 
 

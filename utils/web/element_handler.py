@@ -50,7 +50,7 @@ class ElementHandler:
         if timeout is None:
             try:
                 from config.config_manager import config
-                default_timeout = config.DEFAULT_TIMEOUT
+                default_timeout = config.timeout.implicitly_wait
             except ImportError:
                 logger.warning("无法导入config模块，使用默认超时时间")
         self.timeout = timeout or default_timeout

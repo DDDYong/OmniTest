@@ -311,6 +311,13 @@ class CommonUtils:
         Args:
             folder_path: 文件夹路径
         """
+        # 获取项目根目录（common_util.py的父目录的父目录）
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+        # 如果是相对路径，则基于项目根目录解析
+        if not os.path.isabs(folder_path):
+            folder_path = os.path.abspath(os.path.join(project_root, folder_path))
+
         os.makedirs(folder_path, exist_ok = True)
 
     @staticmethod

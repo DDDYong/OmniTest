@@ -20,6 +20,7 @@ import xlrd
 import yaml
 from openpyxl import load_workbook
 
+from config.config_manager import config_manager
 from utils.logger_util import logger
 
 

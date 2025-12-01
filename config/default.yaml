@@ -15,6 +15,11 @@ report:
   allure_report_dir: ./reports/allure-report
   allure_result_dir: ./reports/allure-results
 
+data:
+  dir: ./data
+  test_data_dir: ./data/test_data
+
+
 # 超时配置
 timeout:
   page_load: 60

@@ -14,6 +14,8 @@ from datetime import datetime
 
 import pytest
 
+from utils.screenshot_util import ScreenshotUtils
+
 # 添加项目根目录到Python路径
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -185,7 +187,7 @@ def pytest_runtest_makereport(item, call):
                     filename = f"{test_name}_{timestamp}"
 
                     # 保存截图
-                    screenshot_path = screenshot_utils.capture_screenshot(
+                    screenshot_path = ScreenshotUtils().capture_screenshot(
                         driver = driver,
                         filename = filename,
                         description = f"Failed test: {item.nodeid}"
@@ -624,3 +626,33 @@ def allure_environment(request, env, browser, device_type):
     )
 
     yield
+
+
+# 强制设置Allure报告路径的钩子函数
+@pytest.hookimpl(tryfirst = True)
+def pytest_configure(config):
+    """
+    配置pytest的钩子函数
+    强制设置Allure报告路径为项目根目录下的reports/allure-results
+    确保无论从哪个目录运行测试，报告都生成在正确位置
+    """
+    # 计算项目根目录
+    import os
+    project_root = os.path.dirname(os.path.abspath(__file__))
+    # 设置固定的Allure结果目录
+    fixed_allure_dir = os.path.join(project_root, 'reports', 'allure-results')
+
+    # 确保目录存在
+    os.makedirs(fixed_allure_dir, exist_ok = True)
+
+    # 强制设置--alluredir参数，覆盖命令行或配置文件中的设置
+    config.option.alluredir = fixed_allure_dir
+
+    # 如果有logger，记录设置信息
+    try:
+        from utils.logger_util import logger
+        logger.info(f"强制设置Allure报告路径为: {fixed_allure_dir}")
+    except ImportError:
+        # 如果无法导入logger，至少打印到控制台
+        import sys
+        print(f"强制设置Allure报告路径为: {fixed_allure_dir}", file = sys.stderr)

@@ -42,9 +42,11 @@ class WebBasePage:
             try:
                 from config.config_manager import config
                 if base_url is None:
-                    default_base_url = config.WEB_BASE_URL
+                    # 使用配置中的web.base_url，如果不存在则使用默认值
+                    default_base_url = getattr(config, 'web', {}).get('base_url', "http://localhost")
                 if timeout is None:
-                    default_timeout = config.DEFAULT_TIMEOUT
+                    # 使用配置中的timeout.implicitly_wait
+                    default_timeout = getattr(config, 'timeout', {}).get('implicitly_wait', 30)
             except ImportError:
                 logger.warning("无法导入config模块，使用默认配置")
 
@@ -65,8 +67,11 @@ class WebBasePage:
             WebBasePage: 页面实例（用于链式调用）
         """
         if url:
-            full_url = url if url.startswith(('http://',
-                                              'https://')) else f"{self.base_url.rstrip('/')}/{url.lstrip('/')}"
+            # 确保完整URL处理正确
+            if url.startswith(('http://', 'https://')):
+                full_url = url
+            else:
+                full_url = f"{self.base_url.rstrip('/')}/{url.lstrip('/')}"
         else:
             full_url = self.base_url
 

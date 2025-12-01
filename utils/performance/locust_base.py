@@ -89,7 +89,7 @@ class PerformanceBaseTaskSet(TaskSet):
         try:
             # 生成结果文件路径
             timestamp = self.utils.get_timestamp()
-            results_dir = os.path.join(config.REPORTS_DIR, "performance_results")
+            results_dir = os.path.join(config.REPORT_DIR, "performance_results")
             os.makedirs(results_dir, exist_ok = True)
 
             # 保存结果
@@ -636,7 +636,7 @@ class PerformanceTestListener:
         """
         try:
             # 创建报告目录
-            report_dir = os.path.join(config.REPORTS_DIR, "performance")
+            report_dir = os.path.join(config.REPORT_DIR, "performance")
             os.makedirs(report_dir, exist_ok = True)
 
             # 生成报告文件名

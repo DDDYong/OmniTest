@@ -11,6 +11,7 @@ Description:
 """
 import os
 import sys
+import time
 from typing import Optional, List, Any
 
 from selenium.webdriver.common.by import By
@@ -23,9 +24,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 from utils.web.web_base_page import WebBasePage
 from utils.web.element_handler import ElementHandler
 from utils.logger_util import logger
-import pytest
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 
 
 class BaiduHomePage(WebBasePage):
@@ -35,8 +33,8 @@ class BaiduHomePage(WebBasePage):
     """
 
     # 页面元素定位器
-    SEARCH_BOX = (By.ID, "chat-input-area")  # 搜索框
-    SEARCH_BUTTON = (By.ID, "chat-submit-button")  # 搜索按钮
+    SEARCH_BOX = (By.ID, "kw")  # 搜索框
+    SEARCH_BUTTON = (By.ID, "su")  # 搜索按钮
     RESULT_COUNT = (By.XPATH, "//div[@class='result-stats']")  # 搜索结果数量
     RESULT_ITEMS = (By.XPATH, "//div[contains(@class, 'result')]")  # 搜索结果项
     NAVIGATION_LINKS = (By.XPATH, "//div[@id='s-top-left']/a")  # 顶部导航链接
@@ -70,7 +68,8 @@ class BaiduHomePage(WebBasePage):
         logger.info(f"打开百度首页: {url}")
 
         try:
-            self.open_page(url)
+            self.open(url)
+            time.sleep(2)
             # 验证页面标题
             expected_title = "百度一下,你就知道"
             actual_title = self.get_page_title()
@@ -331,57 +330,6 @@ class BaiduHomePage(WebBasePage):
 
         logger.warning(f"没有结果包含关键词 '{keyword}'")
         return False
-
-
-@pytest.fixture(scope = "function")
-def web_driver(browser):
-    """
-    WebDriver的fixture实现
-    
-    Args:
-        browser: 浏览器类型,来自conftest.py中的fixture
-        
-    Yields:
-        WebDriver: 浏览器驱动实例
-    """
-    driver = None
-    try:
-        if browser.lower() == "chrome":
-            options = Options()
-            # 添加一些常用的Chrome选项
-            options.add_argument("--start-maximized")
-            options.add_argument("--disable-extensions")
-            options.add_argument("--disable-gpu")
-            # 在无头模式下运行（可选）
-            # options.add_argument("--headless")
-
-            # 使用webdriver-manager自动管理Chrome驱动
-            from webdriver_manager.chrome import ChromeDriverManager
-            driver = webdriver.Chrome(options = options)
-        elif browser.lower() == "firefox":
-            from selenium.webdriver.firefox.options import Options as FirefoxOptions
-            options = FirefoxOptions()
-            options.add_argument("--start-maximized")
-            driver = webdriver.Firefox(options = options)
-        elif browser.lower() == "edge":
-            from selenium.webdriver.edge.options import Options as EdgeOptions
-            options = EdgeOptions()
-            options.add_argument("--start-maximized")
-            driver = webdriver.Edge(options = options)
-        elif browser.lower() == "safari":
-            driver = webdriver.Safari()
-        else:
-            raise ValueError(f"不支持的浏览器类型: {browser}")
-
-        logger.info(f"{browser}浏览器驱动初始化完成")
-        yield driver
-    except Exception as e:
-        logger.error(f"初始化浏览器驱动时出错: {e}")
-        raise
-    finally:
-        if driver:
-            driver.quit()
-            logger.info(f"{browser}浏览器驱动已关闭")
 
     def click_navigation_link(self, link_text: str, timeout: Optional[int] = None) -> bool:
         """

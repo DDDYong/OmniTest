@@ -240,7 +240,7 @@ class PerformanceUtils:
 
         # 确定输出目录
         if not output_dir:
-            output_dir = os.path.join(config.REPORTS_DIR, "performance_analysis")
+            output_dir = os.path.join(config.REPORT_DIR, "performance_analysis")
         os.makedirs(output_dir, exist_ok = True)
 
         # 分析结果
@@ -513,7 +513,7 @@ class PerformanceUtils:
         if not output_file:
             timestamp = self.utils.get_timestamp()
             output_file = os.path.join(
-                config.REPORTS_DIR,
+                config.REPORT_DIR,
                 f"performance_report_{timestamp}.html"
             )
 
@@ -988,7 +988,7 @@ class PerformanceUtils:
             # 自动生成文件名
             timestamp = self.utils.get_timestamp()
             output_file = os.path.join(
-                config.REPORTS_DIR,
+                config.REPORT_DIR,
                 f"performance_comparison_{timestamp}.html"
             )
 

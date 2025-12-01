@@ -10,21 +10,16 @@ Web测试样例 - 百度搜索功能测试
 -------------------------------------------------
 """
 import os
-# 添加项目根目录到Python路径
-import sys
 
 import pytest
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
-from utils import FileHandler
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
+from cases.web.pages.baidu_home_page import BaiduHomePage
 from config.config_manager import config
+from utils.file_util import DataHandler
 from utils.logger_util import logger
 from utils.screenshot_util import ScreenshotUtils
-from cases.web.pages.baidu_home_page import BaiduHomePage
 
 
 # WebDriver夹具,用于提供WebDriver实例
@@ -34,7 +29,7 @@ def web_driver():
     WebDriver夹具
     创建ChromeDriver实例并在测试完成后清理
     使用try-except来处理不同的WebDriver创建方式
-    
+
     Yields:
         WebDriver: WebDriver实例
     """
@@ -42,29 +37,39 @@ def web_driver():
     driver = None
 
     try:
-        # 方式1: 尝试使用webdriver-manager自动管理ChromeDriver
-        try:
-            from webdriver_manager.chrome import ChromeDriverManager
+        # 方式1: 直接指定ChromeDriver路径（推荐）
+        chrome_options = Options()
+        chrome_options.add_argument("--window-size=1920,1080")
+        chrome_options.add_argument("--disable-gpu")
+
+        # 直接指定ChromeDriver路径
+        chromedriver_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+            "utils", "drivers", "chromedriver-mac-arm64", "chromedriver"
+        )
+
+        if os.path.exists(chromedriver_path):
+            logger.info(f"使用指定路径的ChromeDriver: {chromedriver_path}")
             from selenium.webdriver.chrome.service import Service
-
-            logger.info("使用webdriver-manager自动管理ChromeDriver")
-            # 创建ChromeOptions对象
-            chrome_options = Options()
-            chrome_options.add_argument("--window-size=1920,1080")
-            chrome_options.add_argument("--disable-gpu")
-
-            # 使用webdriver-manager创建Service
-            service = Service(ChromeDriverManager().install())
+            service = Service(chromedriver_path)
             driver = webdriver.Chrome(service = service, options = chrome_options)
-        except ImportError:
-            # 如果webdriver-manager未安装,尝试直接使用webdriver.Chrome
-            logger.warning("webdriver-manager未安装,尝试直接使用ChromeDriver")
-            chrome_options = Options()
-            chrome_options.add_argument("--window-size=1920,1080")
-            chrome_options.add_argument("--disable-gpu")
-            driver = webdriver.Chrome(options = chrome_options)
+        else:
+            logger.warning(f"未找到ChromeDriver: {chromedriver_path}, 尝试使用webdriver-manager")
+            # 方式2: 尝试使用webdriver-manager自动管理ChromeDriver
+            try:
+                from webdriver_manager.chrome import ChromeDriverManager
+                from selenium.webdriver.chrome.service import Service
 
-        driver.implicitly_wait(config.DEFAULT_TIMEOUT)
+                logger.info("使用webdriver-manager自动管理ChromeDriver")
+                # 使用webdriver-manager创建Service
+                service = Service(ChromeDriverManager().install())
+                driver = webdriver.Chrome(service = service, options = chrome_options)
+            except ImportError:
+                # 如果webdriver-manager未安装,尝试直接使用webdriver.Chrome
+                logger.warning("webdriver-manager未安装,尝试直接使用ChromeDriver")
+                driver = webdriver.Chrome(options = chrome_options)
+
+        driver.implicitly_wait(config.timeout.implicitly_wait)
         logger.info("WebDriver初始化完成")
         yield driver
     except Exception as e:
@@ -88,7 +93,7 @@ class TestBaiduSearch:
     """
 
     @pytest.fixture(scope = "class", autouse = True)
-    def setup_class(self, web_driver):
+    def setup(self, web_driver):
         """
         测试类级别的初始化
         设置WebDriver和页面对象
@@ -110,6 +115,7 @@ class TestBaiduSearch:
 
         # 初始化百度首页页面类
         self.baidu_home_page = BaiduHomePage(web_driver)
+        logger.info(self.baidu_home_page)
 
         # 加载测试数据
         self.test_data_path = os.path.join(
@@ -119,8 +125,7 @@ class TestBaiduSearch:
         )
 
         try:
-            with open(self.test_data_path, 'r', encoding = 'utf-8') as f:
-                self.test_data = FileHandler.read_yaml(f)
+            self.test_data = DataHandler.read_yaml(self.test_data_path)
             logger.info(f"成功加载测试数据: {self.test_data_path}")
         except Exception as e:
             logger.error(f"加载测试数据失败: {str(e)}")
@@ -133,12 +138,12 @@ class TestBaiduSearch:
         self.test_scenarios = self.search_data["test_scenarios"]
 
         # 测试环境信息
-        logger.info(f"当前测试环境: {config.ENV}")
+        # logger.info(f"当前测试环境: {config.ENV}")
         try:
             logger.info(f"浏览器类型: {web_driver.name}")
         except AttributeError:
             logger.warning("无法获取浏览器类型")
-        logger.info(f"默认超时时间: {config.DEFAULT_TIMEOUT}秒")
+        logger.info(f"默认超时时间: {config.timeout.implicitly_wait}秒")
 
         yield
 
@@ -147,7 +152,7 @@ class TestBaiduSearch:
         logger.info("=" * 60)
 
     @pytest.fixture(autouse = True)
-    def setup_test(self, request):
+    def setup_class(self, request, setup):
         """
         每个测试用例执行前的设置
         确保每次测试都从百度首页开始
@@ -155,7 +160,7 @@ class TestBaiduSearch:
         # 获取当前测试名称
         test_name = request.node.name if hasattr(request, 'node') else "unknown_test"
 
-        logger.info("\n" + "-" * 50)
+        logger.info("-" * 50)
         logger.info(f"开始执行测试用例: {test_name}")
 
         # 打开百度首页
@@ -201,8 +206,7 @@ class TestBaiduSearch:
         # 截图保存
         ScreenshotUtils().capture_screenshot(
             driver = self.driver,
-            filename = "baidu_homepage_loaded",
-            description = "百度首页加载成功截图"
+            name = "百度首页加载成功截图"
         )
 
         logger.info("百度首页加载测试通过")
@@ -239,8 +243,7 @@ class TestBaiduSearch:
         # 截图保存搜索结果页面
         ScreenshotUtils().capture_screenshot(
             driver = self.driver,
-            filename = f"baidu_search_results_{keyword}",
-            description = f"搜索关键词 '{keyword}' 结果截图"
+            name = f"搜索关键词 '{keyword}' 结果截图"
         )
 
         # 获取并验证搜索结果数量
@@ -269,7 +272,7 @@ class TestBaiduSearch:
         logger.info("百度搜索'trae'关键字测试通过")
 
     @pytest.mark.web
-    def test_baidu_search_scenarios(self, web_driver):
+    def test_baidu_search_scenarios(self):
         """
         测试不同的搜索场景
         通过手动遍历测试不同的搜索关键词和配置
@@ -285,39 +288,38 @@ class TestBaiduSearch:
             logger.info(f"执行搜索场景测试: {scenario_name} - {scenario_desc}")
             logger.info(f"使用关键词: '{keyword}'")
 
-        # 执行搜索
-        search_success = self.baidu_home_page.perform_search(
-            keyword = keyword,
-            use_enter = True,  # 使用回车键搜索
-            timeout = self.search_params["timeout"]
-        )
+            # 执行搜索
+            search_success = self.baidu_home_page.perform_search(
+                keyword = keyword,
+                use_enter = True,  # 使用回车键搜索
+                timeout = self.search_params["timeout"]
+            )
 
-        # 验证搜索操作是否成功
-        assert search_success, f"场景 '{scenario_name}' 搜索操作执行失败"
+            # 验证搜索操作是否成功
+            assert search_success, f"场景 '{scenario_name}' 搜索操作执行失败"
 
-        # 如果需要验证结果
-        if validate_results:
-            # 等待搜索结果加载
-            results_loaded = self.baidu_home_page.wait_for_search_results()
-            assert results_loaded, "搜索结果加载失败"
+            # 如果需要验证结果
+            if validate_results:
+                # 等待搜索结果加载
+                results_loaded = self.baidu_home_page.wait_for_search_results()
+                assert results_loaded, "搜索结果加载失败"
 
-            # 验证结果是否包含关键词
-            if keyword:
-                results_contain_keyword = self.baidu_home_page.check_results_contain_keyword(keyword)
-                assert results_contain_keyword, f"结果中未找到关键词 '{keyword}'"
-        else:
-            # 对于空搜索等场景,验证是否有相应提示
-            logger.info(f"场景 '{scenario_name}' 不需要验证搜索结果")
+                # 验证结果是否包含关键词
+                if keyword:
+                    results_contain_keyword = self.baidu_home_page.check_results_contain_keyword(keyword)
+                    assert results_contain_keyword, f"结果中未找到关键词 '{keyword}'"
+            else:
+                # 对于空搜索等场景,验证是否有相应提示
+                logger.info(f"场景 '{scenario_name}' 不需要验证搜索结果")
 
-        # 截图保存测试场景结果
-        scenario_filename = f"baidu_search_{scenario_name}"
-        ScreenshotUtils().capture_screenshot(
-            driver = self.driver,
-            filename = scenario_filename,
-            description = f"搜索场景 '{scenario_name}' 结果截图"
-        )
+            # 截图保存测试场景结果
+            scenario_filename = f"baidu_search_{scenario_name}"
+            ScreenshotUtils().capture_screenshot(
+                driver = self.driver,
+                name = f"搜索场景 '{scenario_name}' 结果截图"
+            )
 
-        logger.info(f"搜索场景测试 '{scenario_name}' 通过")
+            logger.info(f"搜索场景测试 '{scenario_name}' 通过")
 
     @pytest.mark.web
     def test_baidu_search_no_keyword(self):
@@ -369,25 +371,14 @@ class TestBaiduSearch:
 
         logger.info("搜索按钮属性验证通过")
 
-    def teardown_method(self):
+    def teardown_test(self):
         """
         每个测试方法执行后的清理
         可以在这里添加错误截图等操作
         """
-        # 获取当前测试状态
-        current_test = pytest.current_test
-
-        # 如果测试失败,捕获截图
-        if hasattr(current_test, "rep_call") and current_test.rep_call.failed:
-            logger.error(f"测试用例 {current_test.name} 失败")
-
-            # 捕获失败截图
-            ScreenshotUtils().capture_screenshot(
-                driver = self.driver,
-                filename = f"failed_{current_test.name}",
-                description = f"测试用例 {current_test.name} 失败截图"
-            )
-            logger.error("已捕获失败截图")
+        import inspect
+        test_method_name = inspect.currentframe().f_code.co_name
+        logger.info(f"测试方法 {test_method_name} 执行完成")
 
 
 # 为了支持参数化测试,需要在类级别访问test_scenarios
