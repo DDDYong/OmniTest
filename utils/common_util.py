@@ -393,4 +393,4 @@ class CommonUtils:
 
 
 # 创建工具类实例
-utils = CommonUtils()
+util = CommonUtils()

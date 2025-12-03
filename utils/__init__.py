@@ -17,7 +17,7 @@ from . import db
 # from . import performance
 from . import web
 # 导入通用工具
-from .common_util import CommonUtils, utils
+from .common_util import CommonUtils, util
 # 导入数据库客户端
 from .db.mysql_client import MySQLClient
 # 导入Redis客户端
@@ -42,7 +42,7 @@ __all__ = [
     'FileHandler',
 
     # 通用工具
-    'CommonUtils', 'utils',
+    'CommonUtils', 'util',
 
     # 截图工具
     'ScreenshotUtils',
