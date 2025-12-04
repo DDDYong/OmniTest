@@ -189,8 +189,7 @@ def pytest_runtest_makereport(item, call):
                     # 保存截图
                     screenshot_path = ScreenshotUtils().capture_screenshot(
                         driver = driver,
-                        filename = filename,
-                        description = f"Failed test: {item.nodeid}"
+                        name = filename
                     )
 
                     # 将截图路径添加到allure报告中
@@ -648,11 +647,3 @@ def pytest_configure(config):
     # 强制设置--alluredir参数，覆盖命令行或配置文件中的设置
     config.option.alluredir = fixed_allure_dir
 
-    # 如果有logger，记录设置信息
-    try:
-        from utils.logger_util import logger
-        logger.info(f"强制设置Allure报告路径为: {fixed_allure_dir}")
-    except ImportError:
-        # 如果无法导入logger，至少打印到控制台
-        import sys
-        print(f"强制设置Allure报告路径为: {fixed_allure_dir}", file = sys.stderr)
