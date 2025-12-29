@@ -57,7 +57,15 @@ def retry(max_retries = None, delay = None, exceptions = (Exception,)):
                     return func(*args, **kwargs)
                 except Exception as e:
                     last_exception = e
-                    logger.info(f"函数 {func.__name__} 尝试 {attempt + 1}/{actual_max_retries} 失败: {str(e)}")
+                    error_str = str(e)
+
+                    # 检查是否包含502错误信息，如果是则直接终止进程
+                    if "502" in error_str or "too many 502 error responses" in error_str:
+                        logger.error(f"检测到502错误，服务不可用，直接终止进程: {error_str}")
+                        import sys
+                        sys.exit(1)
+
+                    logger.info(f"函数 {func.__name__} 尝试 {attempt + 1}/{actual_max_retries} 失败: {error_str}")
                     if attempt < actual_max_retries - 1:
                         logger.info(f"{actual_delay}秒后重试...")
                         time.sleep(actual_delay)

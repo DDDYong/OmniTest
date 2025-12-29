@@ -11,7 +11,8 @@ Description:
 import os
 from datetime import datetime
 
-from utils.common_util import utils
+from config import config
+from utils.common_util import CommonUtils
 # 导入移至函数内部避免循环依赖
 from utils.logger_util import logger
 
@@ -24,7 +25,7 @@ class ScreenshotUtils:
         # 延迟导入避免循环依赖
         from config.config_manager import config
         # 确保截图目录存在
-        utils.ensure_folder_exists(config.SCREENSHOT_DIR)
+        CommonUtils.ensure_folder_exists(config.SCREENSHOT_DIR)
 
     def capture_screenshot(self, driver, name = None):
         """

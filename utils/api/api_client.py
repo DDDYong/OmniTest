@@ -40,7 +40,7 @@ class ApiClient:
         from config.config_manager import config
 
         # 使用默认值避免依赖不存在的配置属性
-        self.base_url = base_url or getattr(config, 'API_BASE_URL', 'http://localhost:8000')
+        self.base_url = base_url or getattr(config, 'API_BASE_URL', 'http://test.api.whwxkj.cn')
         self.timeout = timeout or getattr(config, 'DEFAULT_TIMEOUT', 30)
         self.session = self._create_session()
         self.headers = {}

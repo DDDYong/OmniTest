@@ -37,11 +37,11 @@ screenshot:
 # MySQL默认配置
 mysql:
   default:
-    host: localhost
+    host: rm-bp1ai194f94sqa7k2.mysql.rds.aliyuncs.com
     port: 3306
-    user: root
-    password: ""
-    db: test
+    user: test_develop_new
+    password: pMFFi9O6be4QdEi4
+    db: kong_test
     charset: utf8mb4
     autocommit: true
     pool_size: 10
@@ -51,10 +51,10 @@ mysql:
 # Redis默认配置
 redis:
   default:
-    host: localhost
+    host: r-bp1uoq552569qq93wc.redis.rds.aliyuncs.com
     port: 6379
     db: 0
-    password: null
+    password: RT(#h88&6CZE7K=6$2TVy86%*Dk^
     decode_responses: true
     socket_connect_timeout: 5
     socket_timeout: 5

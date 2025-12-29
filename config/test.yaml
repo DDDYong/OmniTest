@@ -9,14 +9,14 @@ name: 测试环境
 # API配置 - 测试环境特定配置
 api:
   # API基础URL
-  base_url: http://test-api.example.com
+  base_url: http://test.api.whwxkj.cn
   # API请求超时时间（秒）
   timeout: 10
 
 # Web配置 - 测试环境特定配置
 web:
   # Web应用基础URL
-  base_url: http://test-web.example.com
+  base_url: http://test.box.whwxkj.cn
   # 浏览器类型：chrome, firefox, edge, safari
   browser: chrome
 
@@ -30,17 +30,17 @@ app:
 # 数据库配置 - 测试环境特定配置
 mysql:
   default:
-    host: test-db.example.com
-    user: test_user
-    password: test_password
-    db: test_db
+    host: rm-bp1ai194f94sqa7k2.mysql.rds.aliyuncs.com
+    user: test_develop_new
+    password: pMFFi9O6be4QdEi4
+    db: kong_test
 
 # SSH配置 - 测试环境特定配置
 ssh:
   default:
-    ssh_host: test-ssh.example.com
-    ssh_username: test_ssh_user
-    ssh_password: test_ssh_password
+    ssh_host: 121.199.40.243
+    ssh_username: root
+    ssh_password: p*cB1GGXGn.pKO3R
     use_ssh: true
 
 # 日志配置 - 测试环境特定配置
