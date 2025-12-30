@@ -245,8 +245,8 @@ class ChristmasLotteryProbabilityValidator:
                     material_name = material_info['name']
 
                     self.db.execute_update(
-                        "INSERT INTO `kong_test`.`activity_material_count` (materialId, userId, totalCount, usedCount, created, updated) VALUES (%s, %s, %s, %s, %s, %s)",
-                        (material_id, self.user_id, self.total, 0, datetime.datetime.now(), datetime.datetime.now()),
+                        "INSERT INTO `kong_test`.`activity_material_count` (materialId, userId, totalCount, usedCount, type, created, updated) VALUES (%s, %s, %s, %s, %s, %s)",
+                        (material_id, self.user_id, self.total, 0, 8, datetime.datetime.now(), datetime.datetime.now()),
                     )
                     self.logger.info(f"[创建] 已为 {material_name} 创建记录, 初始数量: {self.total}")
 
@@ -464,12 +464,12 @@ def main(args = None):
 if __name__ == "__main__":
     class Args:
         def __init__(self):
-            self.mobile = "17370000004"
+            self.mobile = "17370000003"
             self.password = "123456"
             self.activity_number = 1054
             self.activity_type = 10
-            self.total = 2000
-            self.times = 50
+            self.total = 20
+            self.times = 10
             self.threshold = 100
             self.deviation = 0.01
 
