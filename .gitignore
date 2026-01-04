@@ -189,3 +189,4 @@ Desktop.ini
 # Package managers lock files (if you don't want to track them)
 # package-lock.json
 # yarn.lock
+/examples/exp.py

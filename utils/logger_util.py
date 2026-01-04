@@ -60,9 +60,8 @@ class Logger:
         """
         self.logger = logging.getLogger(logger_name)
 
-        # 注意：使用延迟导入避免循环依赖
+        # 直接导入配置，使用懒加载代理
         try:
-            # 仅在需要时导入配置
             from config.config_manager import config
             log_level = getattr(logging, config.LOG_LEVEL, getattr(logging, DEFAULT_LOG_LEVEL))
             log_dir = config.LOG_DIR

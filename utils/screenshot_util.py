@@ -11,6 +11,7 @@ Description:
 import os
 from datetime import datetime
 
+from config.config_manager import config
 from utils.common_util import CommonUtils
 from utils.logger_util import logger
 
@@ -20,8 +21,7 @@ class ScreenshotUtils:
 
     def __init__(self):
         """初始化截图工具"""
-        # 延迟导入避免循环依赖
-        from config.config_manager import config
+        # 直接使用已导入的config
         # 确保截图目录存在
         CommonUtils.ensure_folder_exists(config.SCREENSHOT_DIR)
 
@@ -45,8 +45,7 @@ class ScreenshotUtils:
         if not name.endswith('.png'):
             name = f"{name}.png"
 
-        # 延迟导入避免循环依赖
-        from config.config_manager import config
+        # 直接使用已导入的config
         # 生成截图路径
         screenshot_path = os.path.join(config.SCREENSHOT_DIR, name)
 
@@ -79,8 +78,7 @@ class ScreenshotUtils:
         if not name.endswith('.png'):
             name = f"{name}.png"
 
-        # 延迟导入避免循环依赖
-        from config.config_manager import config
+        # 直接使用已导入的config
         # 生成截图路径
         screenshot_path = os.path.join(config.SCREENSHOT_DIR, name)
 
@@ -113,8 +111,7 @@ class ScreenshotUtils:
         if not name.endswith('.html'):
             name = f"{name}.html"
 
-        # 延迟导入避免循环依赖
-        from config.config_manager import config
+        # 直接使用已导入的config
         # 生成文件路径
         source_path = os.path.join(config.SCREENSHOT_DIR, name)
 

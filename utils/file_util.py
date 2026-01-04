@@ -20,6 +20,7 @@ import xlrd
 import yaml
 from openpyxl import load_workbook
 
+from config.config_manager import config_manager
 from utils.logger_util import logger
 
 
@@ -27,12 +28,6 @@ class FileHandler:
     """
     通用文件和数据处理类,用于文件和数据的全面操作和管理。
     """
-
-    @staticmethod
-    def _get_config_manager():
-        """延迟导入config_manager避免循环依赖"""
-        from config.config_manager import config_manager
-        return config_manager
 
     @staticmethod
     def read_json(file_path):
@@ -49,8 +44,7 @@ class FileHandler:
             FileNotFoundError: 文件不存在
             json.JSONDecodeError: JSON格式错误
         """
-        # 延迟导入避免循环依赖
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
 
         # 处理相对路径
         if not os.path.isabs(file_path):
@@ -77,8 +71,7 @@ class FileHandler:
             data: 要写入的数据
             indent: 缩进空格数
         """
-        # 延迟导入避免循环依赖
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
 
         # 处理相对路径
         if not os.path.isabs(file_path):
@@ -106,8 +99,7 @@ class FileHandler:
         Returns:
             dict/list: 解析后的YAML数据
         """
-        # 延迟导入避免循环依赖
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
 
         # 处理相对路径
         if not os.path.isabs(file_path):
@@ -133,8 +125,7 @@ class FileHandler:
             file_path: YAML文件路径,可以是相对路径或绝对路径
             data: 要写入的数据
         """
-        # 延迟导入避免循环依赖
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
 
         # 处理相对路径
         if not os.path.isabs(file_path):
@@ -162,8 +153,7 @@ class FileHandler:
         Returns:
             list: CSV数据列表
         """
-        # 延迟导入避免循环依赖
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
 
         # 处理相对路径
         if not os.path.isabs(file_path):
@@ -196,8 +186,7 @@ class FileHandler:
         Returns:
             list: Excel数据列表
         """
-        # 延迟导入避免循环依赖
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
 
         # 处理相对路径
         if not os.path.isabs(file_path):
@@ -264,13 +253,13 @@ class FileHandler:
         ext = os.path.splitext(data_file)[1].lower()
 
         if ext == '.json':
-            data = DataHandler.read_json(data_file)
+            data = FileHandler.read_json(data_file)
         elif ext in ('.yaml', '.yml'):
-            data = DataHandler.read_yaml(data_file)
+            data = FileHandler.read_yaml(data_file)
         elif ext == '.csv':
-            data = DataHandler.read_csv(data_file)
+            data = FileHandler.read_csv(data_file)
         elif ext in ('.xlsx', '.xls'):
-            data = DataHandler.read_excel(data_file)
+            data = FileHandler.read_excel(data_file)
         else:
             raise ValueError(f"不支持的数据文件格式: {ext}")
 
@@ -298,7 +287,7 @@ class FileHandler:
             src_path: 源文件路径
             dst_path: 目标文件路径
         """
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
         # 处理相对路径
         if not os.path.isabs(src_path):
             src_path = os.path.join(config_manager.DATA_DIR, src_path)
@@ -327,7 +316,7 @@ class FileHandler:
             src_path: 源文件路径
             dst_path: 目标文件路径
         """
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
         # 处理相对路径
         if not os.path.isabs(src_path):
             src_path = os.path.join(config_manager.DATA_DIR, src_path)
@@ -356,7 +345,7 @@ class FileHandler:
             file_path: 原文件路径
             new_name: 新文件名（不含路径）
         """
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
         if not os.path.isabs(file_path):
             file_path = os.path.join(config_manager.DATA_DIR, file_path)
 
@@ -383,7 +372,7 @@ class FileHandler:
         Args:
             file_path: 文件路径
         """
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
         # 处理相对路径
         if not os.path.isabs(file_path):
             file_path = os.path.join(config_manager.DATA_DIR, file_path)
@@ -407,7 +396,7 @@ class FileHandler:
         Args:
             dir_path: 目录路径
         """
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
         # 处理相对路径
         if not os.path.isabs(dir_path):
             dir_path = os.path.join(config_manager.DATA_DIR, dir_path)
@@ -431,7 +420,7 @@ class FileHandler:
         Returns:
             dict: 包含文件列表和目录列表
         """
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
         # 处理相对路径
         if not os.path.isabs(dir_path):
             dir_path = os.path.join(config_manager.DATA_DIR, dir_path)
@@ -468,7 +457,7 @@ class FileHandler:
             dir_path: 目录路径
             recursive: 是否递归删除,True表示删除目录及其所有内容
         """
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
         # 处理相对路径
         if not os.path.isabs(dir_path):
             dir_path = os.path.join(config_manager.DATA_DIR, dir_path)
@@ -500,7 +489,7 @@ class FileHandler:
             src_path: 源目录路径
             dst_path: 目标目录路径
         """
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
         # 处理相对路径
         if not os.path.isabs(src_path):
             src_path = os.path.join(config_manager.DATA_DIR, src_path)
@@ -530,7 +519,7 @@ class FileHandler:
             src_path: 源目录路径
             dst_path: 目标目录路径
         """
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
         # 处理相对路径
         if not os.path.isabs(src_path):
             src_path = os.path.join(config_manager.DATA_DIR, src_path)
@@ -562,7 +551,7 @@ class FileHandler:
         Returns:
             str: 文件内容
         """
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
         # 处理相对路径
         if not os.path.isabs(file_path):
             file_path = os.path.join(config_manager.DATA_DIR, file_path)
@@ -593,7 +582,7 @@ class FileHandler:
             content: 要写入的内容
             encoding: 文件编码,默认为utf-8
         """
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
         # 处理相对路径
         if not os.path.isabs(file_path):
             file_path = os.path.join(config_manager.DATA_DIR, file_path)
@@ -621,7 +610,7 @@ class FileHandler:
             encoding: 文件编码,默认为utf-8
             newline: 换行符,默认为'\n'
         """
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
         # 处理相对路径
         if not os.path.isabs(file_path):
             file_path = os.path.join(config_manager.DATA_DIR, file_path)
@@ -655,7 +644,7 @@ class FileHandler:
         Returns:
             list: 包含每行内容的列表
         """
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
         # 处理相对路径
         if not os.path.isabs(file_path):
             file_path = os.path.join(config_manager.DATA_DIR, file_path)
@@ -691,7 +680,7 @@ class FileHandler:
         Returns:
             int: 文件大小（字节）
         """
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
         if not os.path.isabs(file_path):
             file_path = os.path.join(config_manager.DATA_DIR, file_path)
 
@@ -745,7 +734,7 @@ class FileHandler:
         Returns:
             dict: 文件信息字典,包含大小、创建时间、修改时间等
         """
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
         # 处理相对路径
         if not os.path.isabs(file_path):
             file_path = os.path.join(config_manager.DATA_DIR, file_path)
@@ -759,7 +748,7 @@ class FileHandler:
             file_info = {
                 'path': file_path,
                 'size': stat_info.st_size,
-                'size_formatted': DataHandler.format_size(stat_info.st_size),
+                'size_formatted': FileHandler.format_size(stat_info.st_size),
                 'created_time': stat_info.st_ctime,
                 'created_time_str': time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(stat_info.st_ctime)),
                 'modified_time': stat_info.st_mtime,
@@ -792,7 +781,7 @@ class FileHandler:
         Returns:
             bool: 存在返回True,否则返回False
         """
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
         # 处理相对路径
         if not os.path.isabs(file_path):
             file_path = os.path.join(config_manager.DATA_DIR, file_path)
@@ -829,7 +818,7 @@ class FileHandler:
         Returns:
             str: 文件哈希值（十六进制字符串）
         """
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
         # 处理相对路径
         if not os.path.isabs(file_path):
             file_path = os.path.join(config_manager.DATA_DIR, file_path)
@@ -874,7 +863,7 @@ class FileHandler:
         Returns:
             str: MD5哈希值
         """
-        return DataHandler.calculate_file_hash(file_path, algorithm = 'md5', chunk_size = chunk_size)
+        return FileHandler.calculate_file_hash(file_path, algorithm = 'md5', chunk_size = chunk_size)
 
     @staticmethod
     def calculate_file_sha1(file_path, chunk_size = 8192):
@@ -888,7 +877,7 @@ class FileHandler:
         Returns:
             str: SHA1哈希值
         """
-        return DataHandler.calculate_file_hash(file_path, algorithm = 'sha1', chunk_size = chunk_size)
+        return FileHandler.calculate_file_hash(file_path, algorithm = 'sha1', chunk_size = chunk_size)
 
     @staticmethod
     def calculate_file_sha256(file_path, chunk_size = 8192):
@@ -902,7 +891,7 @@ class FileHandler:
         Returns:
             str: SHA256哈希值
         """
-        return DataHandler.calculate_file_hash(file_path, algorithm = 'sha256', chunk_size = chunk_size)
+        return FileHandler.calculate_file_hash(file_path, algorithm = 'sha256', chunk_size = chunk_size)
 
     @staticmethod
     def compare_file_hash(file_path, expected_hash, algorithm = 'md5'):
@@ -917,7 +906,7 @@ class FileHandler:
         Returns:
             bool: 哈希值匹配返回True,否则返回False
         """
-        actual_hash = DataHandler.calculate_file_hash(file_path, algorithm = algorithm)
+        actual_hash = FileHandler.calculate_file_hash(file_path, algorithm = algorithm)
         result = actual_hash.lower() == expected_hash.lower()
         logger.debug(f"文件哈希值比较结果: {file_path}, 匹配: {result}")
         return result
@@ -933,7 +922,7 @@ class FileHandler:
         Returns:
             bytes: 二进制数据
         """
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
         # 处理相对路径
         if not os.path.isabs(file_path):
             file_path = os.path.join(config_manager.DATA_DIR, file_path)
@@ -960,7 +949,7 @@ class FileHandler:
             file_path: 文件路径
             data: 二进制数据（bytes类型）
         """
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
         # 处理相对路径
         if not os.path.isabs(file_path):
             file_path = os.path.join(config_manager.DATA_DIR, file_path)
@@ -986,7 +975,7 @@ class FileHandler:
             file_path: 文件路径
             data: 二进制数据（bytes类型）
         """
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
         # 处理相对路径
         if not os.path.isabs(file_path):
             file_path = os.path.join(config_manager.DATA_DIR, file_path)
@@ -1013,7 +1002,7 @@ class FileHandler:
             chunk_size: 块大小
             callback: 可选的回调函数,接收块数据和块索引
         """
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
         # 处理相对路径
         if not os.path.isabs(file_path):
             file_path = os.path.join(config_manager.DATA_DIR, file_path)
@@ -1047,7 +1036,7 @@ class FileHandler:
             chunks: 包含二进制数据的可迭代对象
             chunk_size: 块大小（用于日志记录）
         """
-        config_manager = FileHandler._get_config_manager()
+        # 直接使用已导入的config_manager
         # 处理相对路径
         if not os.path.isabs(file_path):
             file_path = os.path.join(config_manager.DATA_DIR, file_path)

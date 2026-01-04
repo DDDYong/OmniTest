@@ -11,21 +11,9 @@ Description:
 """
 from typing import Any, Optional, Union
 
-# 延迟导入避免循环依赖
-logger = None  # 延迟导入logger_util
-ScreenshotUtils = None  # 延迟导入screenshot_util
-
-
-def _lazy_imports():
-    """延迟导入模块，避免循环依赖"""
-    global logger, ScreenshotUtils
-    if logger is None or ScreenshotUtils is None:
-        try:
-            from utils.logger_util import logger
-            from utils.screenshot_util import ScreenshotUtils
-        except ImportError as e:
-            # 如果导入失败，使用简单的print替代
-            print(f"警告：无法导入依赖模块 - {e}")
+# 直接导入依赖模块
+from utils.logger_util import logger
+from utils.screenshot_util import ScreenshotUtils
 
 
 class AssertUtil:
@@ -41,7 +29,6 @@ class AssertUtil:
         Args:
             driver: WebDriver或AppiumDriver实例，用于截图功能
         """
-        _lazy_imports()
         self.driver = driver
 
     def _log_assertion(self, condition: bool, message: str, details: Optional[str] = None) -> None:

@@ -9,9 +9,13 @@ Description:
 -------------------------------------------------
 """
 import os
+import sys
 from typing import Dict, Any
 
 import yaml
+
+# 直接导入依赖模块
+from utils.logger_util import logger
 
 
 class ConfigDict(dict):
@@ -110,8 +114,6 @@ class ConfigManager:
         Returns:
             Dict[str, Any]: 加载的配置字典
         """
-        from utils.logger_util import logger
-
         # 检查缓存
         if env in self.config_cache:
             return self.config_cache[env].copy()
@@ -278,8 +280,6 @@ class ConfigManager:
         Returns:
             Any: 配置值,如果不存在则返回默认值
         """
-        from utils.logger_util import logger
-
         keys = key_path.split(".")
         current = self._config
 
@@ -313,8 +313,6 @@ class ConfigManager:
         Returns:
             bool: 是否保存成功
         """
-        from utils.logger_util import logger
-
         if config is None:
             config = self._config
 
@@ -546,8 +544,22 @@ class ConfigManager:
         return f"ConfigManager(env='{self.env}', config_keys={list(self._config.keys())})"
 
 
-# 创建全局配置管理器实例
-config_manager = ConfigManager()
+# 实际的配置管理器实例（私有变量）
+_actual_config_manager = None
+
+
+# 懒加载配置管理器实例
+def get_config_manager():
+    """
+    懒加载获取配置管理器实例
+    
+    Returns:
+        ConfigManager: 配置管理器实例
+    """
+    global _actual_config_manager
+    if _actual_config_manager is None:
+        _actual_config_manager = ConfigManager()
+    return _actual_config_manager
 
 
 # 确保必要的目录存在
@@ -555,16 +567,18 @@ def ensure_directories():
     """
     确保必要的目录存在
     """
+    # 懒加载获取配置管理器实例
+    cm = get_config_manager()
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     dirs_to_create = [
-        config_manager.get_config_value("log.dir", "./logs"),
-        config_manager.get_config_value("data.dir", "./data"),
-        config_manager.get_config_value("data.test_data_dir", "./data/test_data"),
-        config_manager.get_config_value("report.dir", "./reports"),
-        config_manager.get_config_value("report.allure_report_dir", "./reports/allure-report"),
-        config_manager.get_config_value("report.allure_result_dir", "./reports/allure-results"),
-        config_manager.get_config_value("screenshot.dir", "./reports/screenshots"),
+        cm.get_config_value("log.dir", "./logs"),
+        cm.get_config_value("data.dir", "./data"),
+        cm.get_config_value("data.test_data_dir", "./data/test_data"),
+        cm.get_config_value("report.dir", "./reports"),
+        cm.get_config_value("report.allure_report_dir", "./reports/allure-report"),
+        cm.get_config_value("report.allure_result_dir", "./reports/allure-results"),
+        cm.get_config_value("screenshot.dir", "./reports/screenshots"),
     ]
 
     for dir_path in dirs_to_create:
@@ -575,8 +589,57 @@ def ensure_directories():
             os.makedirs(dir_path, exist_ok = True)
 
 
-# 初始化时确保目录存在
-ensure_directories()
+# 向后兼容：创建config实例（懒加载）
+class LazyConfigProxy:
+    """懒加载配置代理类"""
 
-# 向后兼容：创建config实例
-config = config_manager
+    def __getattr__(self, name):
+        """获取属性时懒加载配置管理器实例"""
+        cm = get_config_manager()
+        return getattr(cm, name)
+
+    def __getitem__(self, key):
+        """获取项时懒加载配置管理器实例"""
+        cm = get_config_manager()
+        return cm[key]
+
+    def __call__(self):
+        """调用时返回配置管理器实例"""
+        return get_config_manager()
+
+
+# 创建懒加载配置实例
+config = LazyConfigProxy()
+
+# 全局配置管理器实例（懒加载）
+# 直接使用ConfigManager实例，不再使用LazyConfigManager包装
+config_manager = None
+
+
+# 确保在第一次访问时初始化
+class LazyConfigManagerProxy:
+    """懒加载配置管理器代理类"""
+
+    def __getattr__(self, name):
+        """获取属性时懒加载配置管理器实例"""
+        # 获取配置管理器实例
+        cm = get_config_manager()
+        # 返回实例的属性
+        return getattr(cm, name)
+
+    def __call__(self):
+        """调用时返回配置管理器实例"""
+        return get_config_manager()
+
+
+# 替换全局配置管理器实例为代理对象
+config_manager = LazyConfigManagerProxy()
+
+# 在模块加载完成后，延迟调用ensure_directories
+try:
+    # 仅在主线程中调用，避免在导入时执行
+    if __name__ == '__main__' or not hasattr(sys, 'argv'):
+        ensure_directories()
+except:
+    # 如果在导入时调用失败，忽略错误，稍后在实际使用时再调用
+    pass
