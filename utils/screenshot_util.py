@@ -11,9 +11,7 @@ Description:
 import os
 from datetime import datetime
 
-from config import config
 from utils.common_util import CommonUtils
-# 导入移至函数内部避免循环依赖
 from utils.logger_util import logger
 
 
@@ -81,6 +79,8 @@ class ScreenshotUtils:
         if not name.endswith('.png'):
             name = f"{name}.png"
 
+        # 延迟导入避免循环依赖
+        from config.config_manager import config
         # 生成截图路径
         screenshot_path = os.path.join(config.SCREENSHOT_DIR, name)
 

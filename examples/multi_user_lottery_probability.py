@@ -15,13 +15,14 @@ import sys
 import time
 from typing import Dict, List, Optional, Tuple
 
-# 添加项目根目录到Python路径
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from utils.logger_util import logger
+from config.config_manager import config_manager
+from utils import FileHandler
 from utils.api.api_client import ApiClient
 from utils.db.mysql_client import MySQLClient
-from config.config_manager import config_manager
+from utils.logger_util import logger
+
+# 添加项目根目录到Python路径
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 class MultiUserLotteryProbabilityValidator:
@@ -38,11 +39,12 @@ class MultiUserLotteryProbabilityValidator:
             lottery_api: str = "/api/activity/20251223/buildTree",
             threshold: int = 40,
             times_options: List[int] = None,
-            times: int = 1,
             total_times: int = 100,
-            activity_number: int = 1053,
+            activity_number: int = 1054,
             activity_type: int = 10,
             user_times_range: List[int] = None,
+            validation_mode: str = "BOTH",
+
     ):
         """
         初始化验证器
@@ -54,11 +56,11 @@ class MultiUserLotteryProbabilityValidator:
             lottery_api: 抽奖接口URL，默认为"/api/activity/lottery/start"
             threshold: 抽奖次数阈值，低于此值跳过概率校验，默认为50
             times_options: 抽奖次数选项列表，默认为[1, 10, 50]
-            times: 每次抽奖的次数，[1, 10, 50]
             total_times: 抽奖总次数，默认为100
             activity_number: 活动编号，默认为1053
             activity_type: 活动类型，默认为10, 101
             user_times_range: 每个用户抽奖次数范围，默认为[10, 100]
+            validation_mode: 验证模式，"BOTH"表示全服+个人，"SERVER"表示仅全服，"PERSONAL"表示仅个人，默认为"BOTH"
         """
         self.accounts = accounts
         self.prize_probabilities = prize_probabilities
@@ -66,11 +68,11 @@ class MultiUserLotteryProbabilityValidator:
         self.lottery_api = lottery_api
         self.threshold = threshold
         self.times_options = times_options if times_options is not None else [1, 10, 50]
-        self.times = times
         self.total_times = total_times
         self.activity_number = activity_number
         self.activity_type = activity_type
         self.user_times_range = user_times_range
+        self.validation_mode = validation_mode
         self.logger = logger
 
         # 用户信息存储
@@ -180,8 +182,8 @@ class MultiUserLotteryProbabilityValidator:
             self.logger.info("无登录用户，抽奖次数分配结果为空")
             return {}
 
-        min_user_times = max(self.user_times_range)
-        max_user_times = min(self.user_times_range)
+        min_user_times = min(self.user_times_range)
+        max_user_times = max(self.user_times_range)
 
         # 校验总次数是否满足用户抽奖次数范围要求
         min_required_total = user_count * min_user_times
@@ -201,10 +203,6 @@ class MultiUserLotteryProbabilityValidator:
         # 基础分配，每人先给最小次数
         user_times = {user_id: min_user_times for user_id in user_ids}
         remaining_times = self.total_times - min_required_total
-        self.logger.info(
-            f"初始化分配完成 | 用户数: {user_count} | 每人基础次数: {min_user_times} | "
-            f"已分配总额: {min_required_total} | 剩余待分配次数: {remaining_times}"
-        )
 
         # 继续分配剩余次数
         if remaining_times > 0:
@@ -224,7 +222,7 @@ class MultiUserLotteryProbabilityValidator:
                 user_times[selected_user] += add_num
                 remaining_times -= add_num
 
-        self.logger.info(f"抽奖次数最终分配结果(总次数: {self.total_times}):")
+        self.logger.info(f"抽奖次数分配结果(总次数: {self.total_times}):")
         for user_id, times in sorted(user_times.items()):
             self.logger.info(f"用户 {user_id}: {times} 次")
         self.logger.info("=" * 60)
@@ -234,10 +232,10 @@ class MultiUserLotteryProbabilityValidator:
     def check_and_update_user_lottery_times(self, user_times: dict[str, int]) -> bool:
         """
         检查并更新用户的抽奖次数是否足够
-    
+
         Args:
             user_times: 用户ID到需要的抽奖次数的映射
-    
+
         Returns:
             bool: 抽奖次数是否足够
         """
@@ -265,8 +263,8 @@ class MultiUserLotteryProbabilityValidator:
 
                 # 查询用户所有抽奖材料数量
                 placeholders = ','.join(['%s'] * len(material_id_list))
-                query = f"SELECT materialId, totalCount, usedCount FROM `kong_test`.`activity_material_count` WHERE materialId IN ({placeholders}) AND userId = %s"
-                params = material_id_list + [user_id]
+                query = f"SELECT materialId, totalCount, usedCount FROM `kong_test`.`activity_material_count` WHERE materialId IN ({placeholders}) and  userId = %s"
+                params = tuple(material_id_list) + (user_id,)
 
                 count = self.db.execute_query(query, params)
 
@@ -316,8 +314,7 @@ class MultiUserLotteryProbabilityValidator:
                             self.logger.info(f"[调整] {material_name} 数量不足, 需要增加 {need_add} 个")
 
                     if all_sufficient:
-                        self.logger.info(f"[通过] 用户 {user_id} 所有好运卡都足够")
-                        return True
+                        self.logger.info(f"[通过] 用户 {user_id} 所有抽奖材料都足够, 可以直接抽奖")
                     else:
                         # 更新不足的抽奖材料数量
                         for material_info in need_update_materials:
@@ -349,8 +346,7 @@ class MultiUserLotteryProbabilityValidator:
                                     self.logger.error(f"[失败] {material_name} 增加后仍不足, 当前剩余: {remaining_count}, 需要: {required_times}")
 
                             if all_updated_sufficient:
-                                self.logger.info(f"[通过] 用户 {user_id} 所有抽奖材料已增加, 现在足够抽奖")
-                                return True
+                                self.logger.info(f"[通过] 用户 {user_id} 所有抽奖材料已增加, 可以进行抽奖")
                             else:
                                 self.logger.error(f"[失败] 用户 {user_id} 部分抽奖材料增加后仍不足")
                                 return False
@@ -358,7 +354,6 @@ class MultiUserLotteryProbabilityValidator:
                             self.logger.error(f"[失败] 用户 {user_id} 抽奖材料更新后查询失败")
                             return False
 
-                self.logger.info(f"[通过] 用户 {user_id} 所有抽奖材料已准备就绪")
             return True
 
         except Exception as e:
@@ -376,15 +371,20 @@ class MultiUserLotteryProbabilityValidator:
             return self.prize_probabilities
 
         self.logger.info(f"正在获取的奖品概率配置")
-        self.prize_probabilities = {
-            "新年大礼包": 0.005,
-            "锦鲤聚宝盆礼物": 0.02,
-            "招财金蟾礼物": 0.04,
-            "闪闪金币礼物": 0.22,
-            "锦鲤送福进场特效": 0.155,
-            "新年云间星梦头像框": 0.26,
-            "新年幻彩星翼头像框": 0.30
-        }
+        # self.prize_probabilities = {
+        #     "新年大礼包": 0.005,
+        #     "锦鲤聚宝盆礼物": 0.02,
+        #     "招财金蟾礼物": 0.04,
+        #     "闪闪金币礼物": 0.22,
+        #     "锦鲤送福进场特效": 0.155,
+        #     "新年云间星梦头像框": 0.26,
+        #     "新年幻彩星翼头像框": 0.30
+        # }
+        prize = self.db.execute_query(
+            "SELECT name, prob FROM kong_test.activity_material WHERE activityNumber = %s AND activityType = 101",
+            (self.activity_number,)
+        )
+        self.prize_probabilities = {item.get("name"): float(item.get("prob")) for item in prize}
         return self.prize_probabilities
 
     def call_lottery_api(self, user_id: str, times: int) -> Dict[str, int]:
@@ -432,7 +432,7 @@ class MultiUserLotteryProbabilityValidator:
                     return lottery_result
                 else:
                     # 抽奖失败
-                    error_msg = response_json.get("msg", "未知错误")
+                    error_msg = response_json.get("err", "未知错误")
                     error_code = response_json.get("code", "未知错误")
                     self.logger.error(f"[失败] 用户 {user_id} 抽奖失败, 错误信息: {error_code}, {error_msg}")
                     return {}
@@ -448,10 +448,10 @@ class MultiUserLotteryProbabilityValidator:
         """
         执行抽奖轮次
         支持随机抽奖次数选择，智能处理用户剩余次数不足的情况
-    
+
         Args:
             user_times: 用户抽奖次数分配
-    
+
         Returns:
             Tuple: (个人抽奖结果, 全服抽奖结果)
         """
@@ -482,33 +482,32 @@ class MultiUserLotteryProbabilityValidator:
         completed_rounds = 0
         total_completed_times = 0
 
-        def get_optimal_times(user_id: str) -> int:
+        def get_optimal_times(userid: str) -> int:
             """
-            智能选择最优抽奖次数，减少API调用次数
-    
+            选择最优抽奖次数
+
             Args:
-                user_id: 用户ID
-    
+                userid: 用户ID
+
             Returns:
                 int: 最优抽奖次数
             """
-            remaining = user_remaining_times[user_id]
-            total_remaining = sum(user_remaining_times.values())
+            user_remaining = user_remaining_times[userid]  # 重命名变量
 
             # 只剩1次
-            if remaining <= 1:
-                return remaining
+            if user_remaining <= 1:
+                return user_remaining
 
             # 从times_options中选择不超过用户剩余次数的最大值
-            available_times_options = [t for t in self.times_options if t <= remaining]
+            available_times_options = [t for t in self.times_options if t <= user_remaining]
             if not available_times_options:
-                return remaining
+                return user_remaining
 
             # 优先选择较大的抽奖次数，减少API调用
             max_option = max(available_times_options)
 
             # 如果选择最大选项后，剩余次数还能被其他选项整除，则选择最大选项
-            remaining_after_max = remaining - max_option
+            remaining_after_max = user_remaining - max_option
             if remaining_after_max == 0:
                 return max_option
 
@@ -520,7 +519,7 @@ class MultiUserLotteryProbabilityValidator:
             # 如果选择最大选项会导致剩余次数难以分配，尝试次大选项
             if len(available_times_options) > 1:
                 second_max = sorted(available_times_options, reverse = True)[1]
-                remaining_after_second = remaining - second_max
+                remaining_after_second = user_remaining - second_max
                 if remaining_after_second == 0:
                     return second_max
                 for option in sorted(available_times_options, reverse = True):
@@ -650,8 +649,8 @@ class MultiUserLotteryProbabilityValidator:
 
         return probabilities
 
-    def validate_probabilities(self, actual_probabilities: Dict[str, float], expected_probabilities: Dict[
-        str, float], total_times: int) -> bool:
+    def validate_probabilities(self, actual_probabilities: Dict[str, float],
+                               expected_probabilities: Dict[str, float], total_times: int) -> str:
         """
         验证概率偏差是否在允许范围内
 
@@ -661,31 +660,28 @@ class MultiUserLotteryProbabilityValidator:
             total_times: 总抽奖次数
 
         Returns:
-            bool: 是否验证通过
+            str: 是否验证通过
         """
+        result = "PASSED"
         if total_times < self.threshold:
-            self.logger.info(f"抽奖次数 {total_times} 低于阈值 {self.threshold}, 跳过概率验证")
-            return True
-
-        self.logger.info("开始概率验证...")
-        all_valid = True
+            result = "SKIPPED"
+            return result
 
         for prize, expected_prob in expected_probabilities.items():
             actual_prob = actual_probabilities.get(prize, 0.0)
-            deviation = abs(actual_prob - expected_prob)
+            deviation = abs(actual_prob - float(expected_prob))
 
             if deviation > self.allowed_deviation:
-                self.logger.error(f"[失败] {prize}: 实际概率 {actual_prob:.4f}, 预期概率 {expected_prob:.4f}, 偏差 {deviation:.4f} > 允许偏差 {self.allowed_deviation}")
-                all_valid = False
+                self.logger.error(f"[失败] {prize}: 实际 {actual_prob:.2%} → 预期 {expected_prob:.2%} (偏差: {deviation:.2%} > 允许偏差: {self.allowed_deviation:.2%})")
+                result = "FAILED"
             else:
-                self.logger.info(f"[通过] {prize}: 实际概率 {actual_prob:.4f}, 预期概率 {expected_prob:.4f}, 偏差 {deviation:.4f}")
-
-        # 验证未知奖品概率(应该接近0)
+                self.logger.info(f"[通过] {prize}: 实际 {actual_prob:.2%} → 预期 {expected_prob:.2%} (偏差: {deviation:.2%}<= 允许偏差: {self.allowed_deviation:.2%})")
+        # 验证未知奖品概率
         unknown_prob = actual_probabilities.get("未知奖品", 0.0)
-        if unknown_prob > 0.01:  # 未知奖品概率不应超过1%
-            self.logger.warning(f"未知奖品概率较高: {unknown_prob:.4f}")
+        if unknown_prob > 0.01:
+            self.logger.warning(f"未知奖品概率较高: {unknown_prob:.2%}")
 
-        return all_valid
+        return result
 
     def validate(self) -> bool:
         """
@@ -696,56 +692,86 @@ class MultiUserLotteryProbabilityValidator:
         """
         self.logger.info("开始多用户抽奖概率验证")
 
-        # 1. 登录所有用户
+        # 登录所有用户
         if not self.login_all_users():
-            self.logger.error("所有用户登录失败，退出验证")
+            self.logger.error("所有用户登录失败，无法继续验证")
             return False
 
-        # 2. 分配抽奖次数
+        # 分配抽奖次数
         user_times = self.distribute_lottery_times()
         if not user_times:
             self.logger.error("抽奖次数分配失败，无法继续验证")
             return False
 
-        # 3. 检查抽奖次数
+        # 检查抽奖次数
         check = self.check_and_update_user_lottery_times(user_times)
         if not check:
             self.logger.error("抽奖次数不满足要求，无法继续验证")
             return False
 
-        # 4. 执行抽奖
+        # 执行抽奖
         personal_results, server_results = self.execute_lottery_rounds(user_times)
 
         total_server_times = sum(server_results.values())
         if total_server_times == 0:
             self.logger.error("抽奖执行失败，没有有效的抽奖结果")
             return False
+        else:
+            self.logger.info(f"=== 最终抽奖结果 ===")
+            if self.validation_mode in ["BOTH", "SERVER"]:
+                self.logger.info(f"全服:{server_results}")
+            if self.validation_mode in ["BOTH", "PERSONAL"] and personal_results:
+                for user_id, user_results in personal_results.items():
+                    self.logger.info(f"用户{user_id}:{user_results}")
 
-        # 5. 计算概率
+        # 计算概率
         expected_probabilities = self.get_prize_probabilities()
         actual_server_probabilities = self.calculate_probabilities(server_results, total_server_times)
 
-        # 6. 验证全服概率
-        self.logger.info("=== 全服概率验证 ===")
-        server_valid = self.validate_probabilities(actual_server_probabilities, expected_probabilities, total_server_times)
-
-        # 7. 验证个人概率
-        self.logger.info("=== 个人概率验证 ===")
-        personal_valid = True
-        for user_id, user_results in personal_results.items():
-            user_total_times = sum(user_results.values())
-            if user_total_times > 0:
-                user_probabilities = self.calculate_probabilities(user_results, user_total_times)
-                user_valid = self.validate_probabilities(user_probabilities, expected_probabilities, user_total_times)
-                if not user_valid:
-                    personal_valid = False
-                    self.logger.error(f"用户 {user_id} 个人概率验证失败")
+        # 验证全服概率
+        if self.validation_mode in ["BOTH", "SERVER"]:
+            self.logger.info("=== 全服概率验证 ===")
+            server_valid = True
+            result = self.validate_probabilities(actual_server_probabilities, expected_probabilities, total_server_times)
+            if result == "FAILED":
+                server_valid = False
+                self.logger.error("❌ 全服概率验证失败")
+            elif result == "PASSED":
+                self.logger.info("✅ 全服概率验证通过")
             else:
-                self.logger.warning(f"用户 {user_id} 没有有效的抽奖结果，跳过个人概率验证")
+                server_valid = False
+                self.logger.warning("⚠️ 总抽奖次数低于阈值，跳过全服概率验证")
 
-        # 8. 输出验证结果
-        self.logger.info("=== 验证结果 ===")
-        if server_valid and personal_valid:
+        # 验证个人概率
+        if self.validation_mode in ["BOTH", "PERSONAL"]:
+            self.logger.info("=== 个人概率验证 ===")
+            personal_valid = True
+            for user_id, user_results in personal_results.items():
+                user_total_times = sum(user_results.values())
+                if user_total_times > 0:
+                    self.logger.info(f"开始验证用户 {user_id} 个人概率...")
+                    user_probabilities = self.calculate_probabilities(user_results, user_total_times)
+                    user_valid = self.validate_probabilities(user_probabilities, expected_probabilities, user_total_times)
+                    if user_valid == "FAILED":
+                        personal_valid = False
+                        self.logger.error(f"❌ 用户 {user_id} 个人概率验证失败")
+                    elif user_valid == "PASSED":
+                        self.logger.info(f"✅ 用户 {user_id} 个人概率验证通过")
+                    else:
+                        self.logger.warning(f"⚠️ 用户 {user_id} 个人概率验证跳过")
+                else:
+                    self.logger.warning(f"⚠️ 用户 {user_id} 没有有效的抽奖结果，跳过个人概率验证")
+
+        # 验证结果
+        self.logger.info("=== 最终验证结果 ===")
+        if self.validation_mode == "SERVER":
+            final_valid = server_valid
+        elif self.validation_mode == "PERSONAL":
+            final_valid = personal_valid
+        else:
+            final_valid = server_valid and personal_valid
+
+        if final_valid:
             self.logger.info("✅ 概率验证通过!")
             return True
         else:
@@ -756,21 +782,24 @@ class MultiUserLotteryProbabilityValidator:
 def main():
     """主函数"""
     # 测试账号
-    accounts = [
-        # {"mobile": "17370000001", "password": "123456"},
-        {"mobile": "17370000002", "password": "123456"},
-        {"mobile": "17370000003", "password": "123456"},
-        {"mobile": "17370000004", "password": "123456"},
-        # {"mobile": "17370000005", "password": "123456"},
-    ]
+    # accounts = [
+    #     {"mobile": "17370000002", "password": "123456"},
+    #     {"mobile": "17370000003", "password": "123456"},
+    #     {"mobile": "17370000004", "password": "123456"},
+    # ]
+    test_user_account = FileHandler().read_yaml("test_data/test_user_account.yaml")
+    accounts = test_user_account[1:4]
 
     # 创建验证器实例
     validator = MultiUserLotteryProbabilityValidator(
+        activity_number = 1054,
         lottery_api = "/api/activity/20251223/buildTree",
         accounts = accounts,
-        total_times = 50,  # 总抽奖次数
-        user_times_range = [10, 30],  # 每个用户抽奖次数范围
-        times_options = [1, 10, 50]  # 抽奖次数选项
+        total_times = 50,
+        user_times_range = [10, 30],
+        times_options = [1, 10, 50],
+        allowed_deviation = 0.05,
+        threshold = 20
     )
 
     # 执行验证
