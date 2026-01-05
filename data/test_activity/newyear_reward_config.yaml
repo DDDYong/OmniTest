@@ -12,12 +12,12 @@
           reward_desc: 锦鲤冠军称号
         - rewardType: 2
           rewardType_name: 头像框
-          rewardId: 20250101
+          rewardId: 2600
           valid_days: 5
           reward_desc: 元旦专属头像框
         - rewardType: 10
           rewardType_name: 主页特效
-          rewardId: 301001
+          rewardId: 2604
           valid_days: 5
           reward_desc: 锦鲤主题主页特效
     - rank: 2  # 第2名奖励组合
@@ -29,12 +29,12 @@
           reward_desc: 锦鲤亚军称号
         - rewardType: 2
           rewardType_name: 头像框
-          rewardId: 20250101
+          rewardId: 2601
           valid_days: 3
           reward_desc: 元旦专属头像框
         - rewardType: 10
           rewardType_name: 主页特效
-          rewardId: 301001
+          rewardId: 2604
           valid_days: 3
           reward_desc: 锦鲤主题主页特效
     - rank: 3  # 第3名奖励组合
@@ -46,12 +46,12 @@
           reward_desc: 锦鲤季军称号
         - rewardType: 2
           rewardType_name: 头像框
-          rewardId: 20250101
+          rewardId: 2602
           valid_days: 2
           reward_desc: 元旦专属头像框
         - rewardType: 10
           rewardType_name: 主页特效
-          rewardId: 301001
+          rewardId: 2604
           valid_days: 2
           reward_desc: 锦鲤主题主页特效
     - rank: 4  # 第4名奖励组合
@@ -63,12 +63,12 @@
           reward_desc: 锦鲤新秀称号
         - rewardType: 2
           rewardType_name: 头像框
-          rewardId: 20250101
+          rewardId: 2603
           valid_days: 1
           reward_desc: 元旦专属头像框
         - rewardType: 10
           rewardType_name: 主页特效
-          rewardId: 301001
+          rewardId: 2604
           valid_days: 1
           reward_desc: 锦鲤主题主页特效
     - rank: 5  # 第5名奖励组合
@@ -80,12 +80,12 @@
           reward_desc: 锦鲤新秀称号
         - rewardType: 2
           rewardType_name: 头像框
-          rewardId: 20250101
+          rewardId: 2603
           valid_days: 1
           reward_desc: 元旦专属头像框
         - rewardType: 10
           rewardType_name: 主页特效
-          rewardId: 301001
+          rewardId: 2604
           valid_days: 1
           reward_desc: 锦鲤主题主页特效
 
@@ -102,12 +102,12 @@
           reward_desc: 抱抱冠军称号
         - rewardType: 2
           rewardType_name: 头像框
-          rewardId: 20250102
+          rewardId: 2606
           valid_days: 5
           reward_desc: 抱抱专属头像框
         - rewardType: 10
           rewardType_name: 主页特效
-          rewardId: 301002
+          rewardId: 2605
           valid_days: 5
           reward_desc: 抱抱温暖主题特效
     - rank: 2
@@ -119,12 +119,12 @@
           reward_desc: 抱抱亚军称号
         - rewardType: 2
           rewardType_name: 头像框
-          rewardId: 20250102
+          rewardId: 2606
           valid_days: 3
           reward_desc: 抱抱专属头像框
         - rewardType: 10
           rewardType_name: 主页特效
-          rewardId: 301002
+          rewardId: 2605
           valid_days: 3
           reward_desc: 抱抱温暖主题特效
     - rank: 3
@@ -136,11 +136,11 @@
           reward_desc: 抱抱季军称号
         - rewardType: 2
           rewardType_name: 头像框
-          rewardId: 20250102
+          rewardId: 2606
           valid_days: 2
           reward_desc: 抱抱专属头像框
         - rewardType: 10
           rewardType_name: 主页特效
-          rewardId: 301002
+          rewardId: 2605
           valid_days: 2
           reward_desc: 抱抱温暖主题特效

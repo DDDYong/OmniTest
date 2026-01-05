@@ -1,0 +1,446 @@
+# 圣诞活动榜单奖励配置
+- activityType: 81
+  activityType_name: 圣诞日榜
+  rank_coverage: 3  # 前3名获奖
+  reward_details:
+    - rank: 1  # 日榜冠军
+      rewards:
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2563
+          valid_days: 7
+          reward_desc: 圣诞豪车座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2564
+          valid_days: 7
+          reward_desc: 圣诞日榜冠军头像框
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 7
+          reward_desc: 超级会员
+    - rank: 2  # 日榜亚军
+      rewards:
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2565
+          valid_days: 3
+          reward_desc: 麋鹿敞篷座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2566
+          valid_days: 3
+          reward_desc: 圣诞日榜亚军头像框
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 3
+          reward_desc: 超级会员
+    - rank: 3  # 日榜季军
+      rewards:
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2567
+          valid_days: 1
+          reward_desc: 雪地摩托座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2568
+          valid_days: 1
+          reward_desc: 圣诞日榜季军头像框
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 1
+          reward_desc: 超级会员
+
+- activityType: 82
+  activityType_name: 圣诞总榜
+  rank_coverage: 10  # 前10名获奖（1-3名单独配置，4-10名拆分为独立配置）
+  reward_details:
+    - rank: 1  # 总榜冠军
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 617
+          valid_days: -1
+          reward_desc: 圣诞总榜冠军勋章
+        - rewardType: 16
+          rewardType_name: DUKE_NOBLE
+          rewardId: 0  # 体验卡无具体资源ID，填0占位
+          valid_days: 30
+          reward_desc: 公爵贵族体验卡
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 90
+          reward_desc: 超级会员
+        - rewardType: 6
+          rewardType_name: BRIGHT_NUMBER
+          rewardId: 746
+          valid_days: -1
+          reward_desc: 五位自选靓号
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2569
+          valid_days: 30
+          reward_desc: 鎏金电龙座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2570
+          valid_days: 30
+          reward_desc: 圣诞总榜冠军头像框
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2571
+          valid_days: 30
+          reward_desc: 圣诞总榜冠军房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2572
+          valid_days: 30
+          reward_desc: 圣诞总榜冠军私聊气泡
+    - rank: 2  # 总榜亚军
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 618
+          valid_days: -1
+          reward_desc: 圣诞总榜亚军勋章
+        - rewardType: 16
+          rewardType_name: DUKE_NOBLE
+          rewardId: 0
+          valid_days: 15
+          reward_desc: 公爵贵族体验卡
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 30
+          reward_desc: 超级会员
+        - rewardType: 6
+          rewardType_name: BRIGHT_NUMBER
+          rewardId: 1357
+          valid_days: -1
+          reward_desc: 六位自选靓号
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2573
+          valid_days: 15
+          reward_desc: 炽电金狮座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2574
+          valid_days: 15
+          reward_desc: 圣诞总榜亚军头像框
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2575
+          valid_days: 15
+          reward_desc: 圣诞总榜亚军房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2576
+          valid_days: 15
+          reward_desc: 圣诞总榜亚军私聊气泡
+    - rank: 3  # 总榜季军
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 619
+          valid_days: -1
+          reward_desc: 圣诞总榜季军勋章
+        - rewardType: 16
+          rewardType_name: DUKE_NOBLE
+          rewardId: 0
+          valid_days: 7
+          reward_desc: 公爵贵族体验卡
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 15
+          reward_desc: 超级会员
+        - rewardType: 6
+          rewardType_name: BRIGHT_NUMBER
+          rewardId: 1001620
+          valid_days: -1
+          reward_desc: 七位自选靓号
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2577
+          valid_days: 15
+          reward_desc: 雷电白虎座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2578
+          valid_days: 15
+          reward_desc: 圣诞总榜季军头像框
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2579
+          valid_days: 15
+          reward_desc: 圣诞总榜季军房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2580
+          valid_days: 15
+          reward_desc: 圣诞总榜季军私聊气泡
+    - rank: 4  # 总榜第4名
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 620
+          valid_days: -1
+          reward_desc: 圣诞总榜十强勋章
+        - rewardType: 16
+          rewardType_name: DUKE_NOBLE
+          rewardId: 0
+          valid_days: 3
+          reward_desc: 公爵贵族体验卡
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 7
+          reward_desc: 超级会员
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2581
+          valid_days: 7
+          reward_desc: 机翼猎豹座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2582
+          valid_days: 7
+          reward_desc: 圣诞总榜十强头像框
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2583
+          valid_days: 7
+          reward_desc: 圣诞总榜十强房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2584
+          valid_days: 7
+          reward_desc: 圣诞总榜十强私聊气泡
+    - rank: 5  # 总榜第5名
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 620
+          valid_days: -1
+          reward_desc: 圣诞总榜十强勋章
+        - rewardType: 16
+          rewardType_name: DUKE_NOBLE
+          rewardId: 0
+          valid_days: 3
+          reward_desc: 公爵贵族体验卡
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 7
+          reward_desc: 超级会员
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2581
+          valid_days: 7
+          reward_desc: 机翼猎豹座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2582
+          valid_days: 7
+          reward_desc: 圣诞总榜十强头像框
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2583
+          valid_days: 7
+          reward_desc: 圣诞总榜十强房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2584
+          valid_days: 7
+          reward_desc: 圣诞总榜十强私聊气泡
+    - rank: 6  # 总榜第6名
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 620
+          valid_days: -1
+          reward_desc: 圣诞总榜十强勋章
+        - rewardType: 16
+          rewardType_name: DUKE_NOBLE
+          rewardId: 0
+          valid_days: 3
+          reward_desc: 公爵贵族体验卡
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 7
+          reward_desc: 超级会员
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2581
+          valid_days: 7
+          reward_desc: 机翼猎豹座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2582
+          valid_days: 7
+          reward_desc: 圣诞总榜十强头像框
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2583
+          valid_days: 7
+          reward_desc: 圣诞总榜十强房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2584
+          valid_days: 7
+          reward_desc: 圣诞总榜十强私聊气泡
+    - rank: 7  # 总榜第7名
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 620
+          valid_days: -1
+          reward_desc: 圣诞总榜十强勋章
+        - rewardType: 16
+          rewardType_name: DUKE_NOBLE
+          rewardId: 0
+          valid_days: 3
+          reward_desc: 公爵贵族体验卡
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 7
+          reward_desc: 超级会员
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2581
+          valid_days: 7
+          reward_desc: 机翼猎豹座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2582
+          valid_days: 7
+          reward_desc: 圣诞总榜十强头像框
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2583
+          valid_days: 7
+          reward_desc: 圣诞总榜十强房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2584
+          valid_days: 7
+          reward_desc: 圣诞总榜十强私聊气泡
+    - rank: 8  # 总榜第8名
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 620
+          valid_days: -1
+          reward_desc: 圣诞总榜十强勋章
+        - rewardType: 16
+          rewardType_name: DUKE_NOBLE
+          rewardId: 0
+          valid_days: 3
+          reward_desc: 公爵贵族体验卡
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 7
+          reward_desc: 超级会员
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2581
+          valid_days: 7
+          reward_desc: 机翼猎豹座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2582
+          valid_days: 7
+          reward_desc: 圣诞总榜十强头像框
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2583
+          valid_days: 7
+          reward_desc: 圣诞总榜十强房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2584
+          valid_days: 7
+          reward_desc: 圣诞总榜十强私聊气泡
+    - rank: 9  # 总榜第9名
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 620
+          valid_days: -1
+          reward_desc: 圣诞总榜十强勋章
+        - rewardType: 16
+          rewardType_name: DUKE_NOBLE
+          rewardId: 0
+          valid_days: 3
+          reward_desc: 公爵贵族体验卡
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 7
+          reward_desc: 超级会员
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2581
+          valid_days: 7
+          reward_desc: 机翼猎豹座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2582
+          valid_days: 7
+          reward_desc: 圣诞总榜十强头像框
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2583
+          valid_days: 7
+          reward_desc: 圣诞总榜十强房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2584
+          valid_days: 7
+          reward_desc: 圣诞总榜十强私聊气泡
+    - rank: 10  # 总榜第10名
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 620
+          valid_days: -1
+          reward_desc: 圣诞总榜十强勋章
+        - rewardType: 16
+          rewardType_name: DUKE_NOBLE
+          rewardId: 0
+          valid_days: 3
+          reward_desc: 公爵贵族体验卡
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 7
+          reward_desc: 超级会员
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2581
+          valid_days: 7
+          reward_desc: 机翼猎豹座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2582
+          valid_days: 7
+          reward_desc: 圣诞总榜十强头像框
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2583
+          valid_days: 7
+          reward_desc: 圣诞总榜十强房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2584
+          valid_days: 7
+          reward_desc: 圣诞总榜十强私聊气泡
