@@ -13,7 +13,7 @@ from typing import Any, Optional, Dict, List, Union
 
 import redis
 
-from config.config_manager import ConfigManager as Config
+from config.config_manager import config_manager
 from ..logger_util import logger
 
 # 尝试导入paramiko库以支持SSH隧道
@@ -23,7 +23,6 @@ try:
 
     ssh_enabled = True
 except ImportError:
-    logger = logging.getLogger(__name__)
     logger.warning("未安装paramiko库,SSH隧道功能将不可用。请使用 'pip install paramiko' 安装。")
 
 
@@ -38,7 +37,7 @@ class RedisClient:
             config: Redis配置,如果不提供则使用默认配置
         """
         # 创建配置实例
-        config_instance = Config()
+        config_instance = config_manager
 
         # 获取Redis配置
         self.config = config_instance.get_redis_config(config)

@@ -86,8 +86,12 @@ class TestRunner:
         if markers:
             cmd.extend(['-m', markers])
 
-        # 添加通用参数
-        cmd.extend(['-v', '--alluredir', path_util.get_allure_results_dir()])
+        # 添加通用参数 - 使用绝对路径指定Allure报告目录
+        allure_dir = path_util.get_allure_results_dir()
+        # 确保使用绝对路径
+        allure_dir = os.path.abspath(allure_dir)
+        cmd.extend(['-v', '--alluredir', allure_dir])
+        logger.info(f"Allure报告结果目录设置为: {allure_dir}")
 
         # 执行测试
         try:

@@ -55,7 +55,7 @@ class AppiumManager:
             bool: 是否启动成功
         """
         # 延迟导入避免循环依赖
-        from config import config
+        from config.config_manager import config
 
         # 如果没有指定日志文件,使用配置文件中的路径
         if log_file is None:
@@ -150,7 +150,7 @@ class AppiumManager:
             AppiumDriver: Appium驱动实例
         """
         # 延迟导入避免循环依赖
-        from config import config
+        from config.config_manager import config
 
         # 记录实际使用的重试配置
         logger.debug(f"驱动创建使用重试配置: max_retries={config.DEFAULT_RETRY_COUNT}, delay={config.RETRY_INTERVAL}")
