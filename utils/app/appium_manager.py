@@ -21,9 +21,6 @@ from utils.decorator_util import retry
 from utils.logger_util import logger
 
 
-# 导入移至函数内部避免循环依赖
-
-
 class AppiumManager:
     """
     Appium管理器类

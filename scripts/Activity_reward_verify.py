@@ -12,13 +12,15 @@ import os
 import sys
 from typing import Dict, List, Any
 
-# 添加项目根目录到Python路径
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from config.config_manager import config_manager
 from utils import logger, util
+from utils.api import ApiClient
 from utils.db.mysql_client import MySQLClient
+from utils.decorator_util import wait_with_jitter
 from utils.file_util import FileHandler
+
+# 添加项目根目录到Python路径
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 class RewardTypeMapper:
@@ -74,7 +76,7 @@ class ActivityRewardVerification:
     活动奖励验证模块
     """
 
-    def __init__(self, activity_number: int, activity_config_path: str, scheduled_tasks: List[Dict[str, Any]]):
+    def __init__(self, activity_number: int, activity_config_path: str):
         """
         初始化活动奖励验证模块
 
@@ -84,11 +86,10 @@ class ActivityRewardVerification:
         """
         self.activity_number = activity_number
         self.activity_config_path = activity_config_path
-        self.scheduled_tasks = scheduled_tasks
-        self.top_n = None
 
         self.logger = logger
         self.filehandler = FileHandler()
+        self.api_client = ApiClient()
         self.db = MySQLClient(config_manager.get_mysql_config())
         self.reward_mapper = RewardTypeMapper()
 
@@ -234,9 +235,9 @@ class ActivityRewardVerification:
                     # self.logger.info(f"跳过有效期验证 - 奖励: {doc_info["rewardType_desc_doc"]} (Type={rewardType_db}) | 榜单: {doc_info['activityType_name_doc']} | 排名: {rankNumber_db} | 文档有效期: {doc_info['valid_days_doc']} | 数据库数量: {rewardCount_db}个")
                     continue
                 else:
-                    self.logger.error(f"奖励数量错误: {doc_info["rewardType_desc_doc"]} (Type={rewardType_db}) | 榜单: {doc_info['activityType_name_doc']} | 排名: {rankNumber_db} | 数据库数量: {rewardCount_db}个")
+                    self.logger.error(f"奖励数量错误: {doc_info["rewardType_desc_doc"]} (Type={rewardType_db}) | 榜单: {doc_info['activityType_name_doc']} | 排名: {rankNumber_db} | 奖励rewardId: {rewardId_db} | 数据库数量: {rewardCount_db}个")
                     differences["reward_count_error"].append({
-                        "shared_info": {
+                        "common_info": {
                             "activityType": activityType_db,
                             "activityType_name_doc": doc_info["activityType_name_doc"],
                             "rank": rankNumber_db,
@@ -245,6 +246,7 @@ class ActivityRewardVerification:
                             "rewardType_desc_db": rewardType_desc_db,
                             "rewardType_desc_doc": doc_info["rewardType_desc_doc"],
                         },
+                        "rewardId_db": rewardId_db,
                         "rewardCount_db": rewardCount_db,
                         "reason": "永久奖励数量错误(应为1个)"
                     })
@@ -260,6 +262,7 @@ class ActivityRewardVerification:
                         "rewardType_desc_db": rewardType_desc_db,
                         "rewardType_desc_doc": doc_info["rewardType_desc_doc"],
                     },
+                    "rewardId_db": rewardId_db,
                     "valid_days_doc (文档有效期)": doc_info["valid_days_doc"],
                     "rewardCount_db (数据库有效期)": rewardCount_db,
                     "reason": "奖励有效期不一致"
@@ -285,15 +288,15 @@ class ActivityRewardVerification:
         if differences["reward_count_error"]:
             self.logger.info(f"[差异: 永久奖励数量错误] 共{len(differences['reward_count_error'])}条")
             for item in differences["reward_count_error"]:
-                common = item["shared_info"]
-                self.logger.error(f"榜单: {common['activityType_name_doc']} (Type={common['activityType']}) | 排名: {common['rank']} | 奖励类型: {common['rewardType_desc_doc']} (Type={common['rewardType']}) | 数据库数量: {item['rewardCount_db']}个 | 原因: {item['reason']}")
+                common = item["common_info"]
+                self.logger.error(f"榜单: {common['activityType_name_doc']} (Type={common['activityType']}) | 排名: {common['rank']} | 奖励类型: {common['rewardType_desc_doc']} (Type={common['rewardType']}) | 奖励rewardId: {item['rewardId_db']} | 数据库数量: {item['rewardCount_db']}个 | 原因: {item['reason']}")
 
         # 有效期不匹配
         if differences["valid_days_mismatch"]:
             self.logger.info(f"[差异: 有效期不匹配] 共{len(differences['valid_days_mismatch'])}条")
             for item in differences["valid_days_mismatch"]:
                 common = item["common_info"]
-                self.logger.info(f"榜单: {common['activityType_name_doc']} (Type={common['activityType']}) | 排名: {common['rank']} | 奖励类型: {common['rewardType_desc_doc']} (Type={common['rewardType']}) | 文档有效期: {item['valid_days_doc (文档有效期)']}天 | 数据库有效期: {item['rewardCount_db (数据库有效期)']}天")
+                self.logger.info(f"榜单: {common['activityType_name_doc']} (Type={common['activityType']}) | 排名: {common['rank']} | 奖励类型: {common['rewardType_desc_doc']} (Type={common['rewardType']}) | 奖励rewardId: {item['rewardId_db']} | 文档有效期: {item['valid_days_doc (文档有效期)']}天 | 数据库有效期: {item['rewardCount_db (数据库有效期)']}天")
 
         # 数据库配置与文档一致
         if not any(differences.values()):
@@ -572,15 +575,63 @@ class ActivityRewardVerification:
             """
             self.db.execute_update(nice_query, (user_id,))
 
-    def execute_scheduled_tasks(self, scheduled_tasks: List[Dict[str, Any]]):
+    def get_scheduled_tasks(self) -> List[Dict]:
         """
-        执行定时任务
+        获取活动定时任务配置
 
-        Args:
-            scheduled_tasks: 计划任务列表
+        Returns:
+            List[Dict]: 定时任务配置列表
         """
-        pass
+        activity_name = self.db.get_one("select activityName from `kong_test`.`activity_gift_medal` where id = %s", (
+            self.activity_number,)
+        )
+        # 【2025圣诞】活动配置删除了，使用指定配置
+        if self.activity_number == 1053:
+            self.logger.info(f"{activity_name['activityName']} 使用指定定时任务配置")
+            scheduled_tasks = [
+                {"taskId": "Activity1223Job@ACTIVITY_COUNTDOWN_12_HOURS",
+                 "taskName": "【2025年圣诞】活动12小时倒计时"},
+                {"taskId": "Activity1223Job@ACTIVITY_DAY_END", "taskName": "【2025年圣诞】日榜结束"},
+                {"taskId": "Activity1223Job@ACTIVITY_END", "taskName": "【2025年圣诞】活动结束"},
+                {"taskId": "Activity1223Job@ACTIVITY_START", "taskName": "【2025年圣诞】活动开始"},
+            ]
+        else:
+            # 根据活动名称获取定时任务ID，并对ID进行处理
+            scheduled_tasks = self.db.execute_query("select job_desc as taskName, REPLACE(executor_handler, '#', '@') AS taskId from `xxl_job`.`xxl_job_info` where WHERE SUBSTRING_INDEX(SUBSTRING_INDEX(job_desc, '【', -1), '】', 1) = %s", (
+                activity_name['activityName'],)
+            )
+            if not scheduled_tasks:
+                self.logger.warning(f"活动: {activity_name['activityName']} 未配置定时任务")
+                return []
+            self.logger.info(f"活动: {activity_name['activityName']} 已配置 {len(scheduled_tasks)} 个定时任务")
 
+        return scheduled_tasks
+
+    def execute_scheduled_task(self, task: Dict[str, Any]) -> bool:
+        """
+        执行定时任务下发榜单奖励
+
+        Returns:
+            bool: 是否执行成功
+        """
+        params = {
+            "expression": task['taskId']
+        }
+        response = self.api_client.get(url = "/api/xxl-job/execute", params = params)
+        try:
+            resp = response.json()
+            if resp.get('code') == 200:
+                self.logger.info(f"定时任务 {task['taskName']} 执行成功")
+            else:
+                self.logger.error(f"定时任务 {task['taskName']} 执行失败: {resp.get('err')}")
+                return False
+        except Exception as e:
+            self.logger.error(f"定时任务 {task['taskName']} 执行异常: {str(e)}")
+            return False
+
+        return True
+
+    @wait_with_jitter(base_delay = 2, jitter_factor = 0.3)
     def validate_reward_distribution(self, ranking_data: List[Dict], activity_reward_config: List[Dict]) -> Dict[
                                                                                                             str:str,
                                                                                                             Any]:
@@ -665,12 +716,16 @@ class ActivityRewardVerification:
             # # 5、清除下发奖励前已有的装扮、荣誉称号、勋章、贵族、会员/超级会员、靓号
             # self.clear_user_rewards(ranking_data, activity_reward_config_doc)
             #
-            # # 6、执行定时任务 - 奖励下发
-            # self.execute_scheduled_tasks(self.scheduled_tasks)
-            #
-            # # 7、判断用户所有奖励是否下发, 下发时长是否正确
-            # if ranking_data:
-            #     self.logger.info("榜单数据示例: %s", ranking_data[0] if len(ranking_data) > 0 else "无数据")
+            # 6、获取活动定时任务
+            scheduled_tasks = self.get_scheduled_tasks()
+            # 7、开始执行定时任务, 下发奖励
+            for task in scheduled_tasks:
+                if not self.execute_scheduled_task(task):
+                    continue
+                # # 8、定时任务执行成功判断用户所有奖励是否下发, 下发时长是否正确
+                # if ranking_data:
+                #     validation_result = self.validate_reward_distribution(ranking_data, activity_reward_config_doc)
+                #     self.logger.info("榜单数据示例: %s", ranking_data[0] if len(ranking_data) > 0 else "无数据")
 
             return True
 
@@ -686,7 +741,6 @@ def main():
     validator = ActivityRewardVerification(
         activity_number = 1053,
         activity_config_path = 'test_activity/christmas_reward_config.yaml',
-        scheduled_tasks = []
     )
 
     # 执行验证

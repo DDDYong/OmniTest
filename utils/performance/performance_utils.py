@@ -25,9 +25,6 @@ from utils.file_util import DataHandler
 from utils.logger_util import logger
 
 
-# 导入移至函数内部避免循环依赖
-
-
 class PerformanceUtils:
     """
     性能测试工具类
