@@ -19,7 +19,7 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from config import config
+from config.config_manager import config
 from utils.logger_util import logger
 from utils.screenshot_util import ScreenshotUtils
 from utils.app.appium_manager import AppiumManager

@@ -47,7 +47,12 @@ class AppBasePage:
         """
         self.driver = driver
         self.utils = CommonUtils()
-        self.screenshot_utils = screenshot_utils
+        # 延迟导入避免循环依赖
+        from utils.screenshot_util import ScreenshotUtils
+        self.screenshot_utils = ScreenshotUtils()
+        # 延迟导入配置
+        from config.config_manager import config
+        self.default_timeout = config.DEFAULT_TIMEOUT
 
     # 元素定位相关方法
     def find_element(self, by: str, value: str, timeout: Optional[int] = None) -> Any:
@@ -62,7 +67,7 @@ class AppBasePage:
         Returns:
             Any: 找到的元素
         """
-        timeout = timeout or config.DEFAULT_TIMEOUT
+        timeout = timeout or self.default_timeout
         logger.info(f"查找元素: {by}={value}, 超时时间: {timeout}秒")
 
         try:
@@ -96,7 +101,7 @@ class AppBasePage:
         Returns:
             List[Any]: 找到的元素列表
         """
-        timeout = timeout or config.DEFAULT_TIMEOUT
+        timeout = timeout or self.default_timeout
         logger.info(f"查找多个元素: {by}={value}, 超时时间: {timeout}秒")
 
         try:
@@ -192,7 +197,7 @@ class AppBasePage:
 
         try:
             # 确保元素可见
-            WebDriverWait(self.driver, config.DEFAULT_TIMEOUT).until(
+            WebDriverWait(self.driver, self.default_timeout).until(
                 EC.element_to_be_clickable(element)
             )
 
@@ -232,7 +237,7 @@ class AppBasePage:
 
         try:
             # 确保元素可见且可交互
-            WebDriverWait(self.driver, config.DEFAULT_TIMEOUT).until(
+            WebDriverWait(self.driver, self.default_timeout).until(
                 EC.visibility_of(element)
             )
 
@@ -293,7 +298,7 @@ class AppBasePage:
         Returns:
             bool: 元素是否可见
         """
-        timeout = timeout or config.DEFAULT_TIMEOUT
+        timeout = timeout or self.default_timeout
         logger.info(f"检查元素是否可见: {by}={value}")
 
         try:
@@ -555,7 +560,7 @@ class AppBasePage:
         Returns:
             bool: 是否在超时时间内出现
         """
-        timeout = timeout or config.DEFAULT_TIMEOUT
+        timeout = timeout or self.default_timeout
         logger.info(f"等待元素出现: {by}={value}, 超时时间: {timeout}秒")
 
         try:
@@ -580,7 +585,7 @@ class AppBasePage:
         Returns:
             bool: 是否在超时时间内消失
         """
-        timeout = timeout or config.DEFAULT_TIMEOUT
+        timeout = timeout or self.default_timeout
         logger.info(f"等待元素消失: {by}={value}, 超时时间: {timeout}秒")
 
         try:

@@ -1,0 +1,146 @@
+# 榜单奖励配置
+- activityType: 83
+  activityType_name: 锦鲤送福榜
+  rank_coverage: 5  # 前5名获奖
+  reward_details:
+    - rank: 1  # 第1名奖励组合
+      rewards:
+        - rewardType: 15
+          rewardType_name: 称号
+          rewardId: 104485
+          valid_days: 5
+          reward_desc: 锦鲤冠军称号
+        - rewardType: 2
+          rewardType_name: 头像框
+          rewardId: 2600
+          valid_days: 5
+          reward_desc: 元旦专属头像框
+        - rewardType: 10
+          rewardType_name: 主页特效
+          rewardId: 2604
+          valid_days: 5
+          reward_desc: 锦鲤主题主页特效
+    - rank: 2  # 第2名奖励组合
+      rewards:
+        - rewardType: 15
+          rewardType_name: 称号
+          rewardId: 104486
+          valid_days: 3
+          reward_desc: 锦鲤亚军称号
+        - rewardType: 2
+          rewardType_name: 头像框
+          rewardId: 2601
+          valid_days: 3
+          reward_desc: 元旦专属头像框
+        - rewardType: 10
+          rewardType_name: 主页特效
+          rewardId: 2604
+          valid_days: 3
+          reward_desc: 锦鲤主题主页特效
+    - rank: 3  # 第3名奖励组合
+      rewards:
+        - rewardType: 15
+          rewardType_name: 称号
+          rewardId: 104487
+          valid_days: 2
+          reward_desc: 锦鲤季军称号
+        - rewardType: 2
+          rewardType_name: 头像框
+          rewardId: 2602
+          valid_days: 2
+          reward_desc: 元旦专属头像框
+        - rewardType: 10
+          rewardType_name: 主页特效
+          rewardId: 2604
+          valid_days: 2
+          reward_desc: 锦鲤主题主页特效
+    - rank: 4  # 第4名奖励组合
+      rewards:
+        - rewardType: 15
+          rewardType_name: 称号
+          rewardId: 104488
+          valid_days: 1
+          reward_desc: 锦鲤新秀称号
+        - rewardType: 2
+          rewardType_name: 头像框
+          rewardId: 2603
+          valid_days: 1
+          reward_desc: 元旦专属头像框
+        - rewardType: 10
+          rewardType_name: 主页特效
+          rewardId: 2604
+          valid_days: 1
+          reward_desc: 锦鲤主题主页特效
+    - rank: 5  # 第5名奖励组合
+      rewards:
+        - rewardType: 15
+          rewardType_name: 称号
+          rewardId: 104488
+          valid_days: 1
+          reward_desc: 锦鲤新秀称号
+        - rewardType: 2
+          rewardType_name: 头像框
+          rewardId: 2603
+          valid_days: 1
+          reward_desc: 元旦专属头像框
+        - rewardType: 10
+          rewardType_name: 主页特效
+          rewardId: 2604
+          valid_days: 1
+          reward_desc: 锦鲤主题主页特效
+
+- activityType: 84
+  activityType_name: 抱抱温暖榜/抱抱人气榜
+  rank_coverage: 3  # 前3名获奖
+  reward_details:
+    - rank: 1
+      rewards:
+        - rewardType: 15
+          rewardType_name: 称号
+          rewardId: 104489
+          valid_days: 5
+          reward_desc: 抱抱冠军称号
+        - rewardType: 2
+          rewardType_name: 头像框
+          rewardId: 2606
+          valid_days: 5
+          reward_desc: 抱抱专属头像框
+        - rewardType: 10
+          rewardType_name: 主页特效
+          rewardId: 2605
+          valid_days: 5
+          reward_desc: 抱抱温暖主题特效
+    - rank: 2
+      rewards:
+        - rewardType: 15
+          rewardType_name: 称号
+          rewardId: 104490
+          valid_days: 3
+          reward_desc: 抱抱亚军称号
+        - rewardType: 2
+          rewardType_name: 头像框
+          rewardId: 2606
+          valid_days: 3
+          reward_desc: 抱抱专属头像框
+        - rewardType: 10
+          rewardType_name: 主页特效
+          rewardId: 2605
+          valid_days: 3
+          reward_desc: 抱抱温暖主题特效
+    - rank: 3
+      rewards:
+        - rewardType: 15
+          rewardType_name: 称号
+          rewardId: 104491
+          valid_days: 2
+          reward_desc: 抱抱季军称号
+        - rewardType: 2
+          rewardType_name: 头像框
+          rewardId: 2606
+          valid_days: 2
+          reward_desc: 抱抱专属头像框
+        - rewardType: 10
+          rewardType_name: 主页特效
+          rewardId: 2605
+          valid_days: 2
+          reward_desc: 抱抱温暖主题特效

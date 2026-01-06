@@ -227,7 +227,7 @@ omni_test.report()
 详细的使用示例请查看 `examples/usage_example.py` 文件。
 
 ```bash
-python examples/usage_example.py
+python scripts/usage_example.py
 ```
 
 ## 与命令行接口的关系
