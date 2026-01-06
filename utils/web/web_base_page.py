@@ -8,18 +8,11 @@ Description:
 Web自动化基础页面类,实现POM模式中的页面基类功能,提供页面交互的通用方法
 -------------------------------------------------
 """
-from typing import Optional, Dict, Any, Union
+from typing import Optional, Dict, Union
 
-from selenium import webdriver
 from selenium.webdriver.remote.webdriver import WebDriver
 
-from utils.decorator_util import retry, timing
 from utils.logger_util import logger
-from utils.screenshot_util import ScreenshotUtils
-from utils.web.element_handler import ElementHandler
-
-
-# 导入移至函数内部避免循环依赖
 
 
 class WebBasePage:
@@ -37,26 +30,9 @@ class WebBasePage:
             timeout: 超时时间（秒）
         """
         self.driver = driver
+        self.base_url = base_url or "https://www.baidu.com"
+        self.timeout = timeout or 10
 
-        # 延迟导入获取配置值
-        default_base_url = "http://localhost"
-        default_timeout = 30
-        if base_url is None or timeout is None:
-            try:
-                from config import config
-                if base_url is None:
-                    default_base_url = config.WEB_BASE_URL
-                if timeout is None:
-                    default_timeout = config.DEFAULT_TIMEOUT
-            except ImportError:
-                logger.warning("无法导入config模块，使用默认配置")
-
-        self.base_url = base_url or default_base_url
-        self.timeout = timeout or default_timeout
-        self.element_handler = ElementHandler(driver, timeout)
-        self.wait = None  # 将在ElementHandler中使用
-
-    @timing
     def open(self, url: Optional[str] = None) -> 'WebBasePage':
         """
         打开页面
@@ -68,8 +44,7 @@ class WebBasePage:
             WebBasePage: 页面实例（用于链式调用）
         """
         if url:
-            full_url = url if url.startswith(('http://',
-                                              'https://')) else f"{self.base_url.rstrip('/')}/{url.lstrip('/')}"
+            full_url = url
         else:
             full_url = self.base_url
 
@@ -77,7 +52,28 @@ class WebBasePage:
         self.driver.get(full_url)
         return self
 
-    @timing
+    def max_window(self) -> 'WebBasePage':
+        """
+        最大化窗口
+
+        Returns:
+            WebBasePage: 页面实例（用于链式调用）
+        """
+        logger.info("最大化窗口")
+        self.driver.maximize_window()
+        return self
+
+    def back(self) -> 'WebBasePage':
+        """
+        返回上一页
+
+        Returns:
+            WebBasePage: 页面实例（用于链式调用）
+        """
+        logger.info("返回上一页")
+        self.driver.back()
+        return self
+
     def refresh(self) -> 'WebBasePage':
         """
         刷新当前页面
@@ -141,31 +137,6 @@ class WebBasePage:
         logger.info(f"标题包含检查: '{text}' {'在' if contains else '不在'} 标题中")
         return contains
 
-    def take_screenshot(self, name: str = None) -> str:
-        """
-        截取当前页面截图
-        
-        Args:
-            name: 截图名称
-            
-        Returns:
-            str: 截图保存路径
-        """
-        return ScreenshotUtils().take_screenshot(self.driver, name)
-
-    def save_page_source(self, name: str = None) -> str:
-        """
-        保存页面源码
-        
-        Args:
-            name: 文件名
-            
-        Returns:
-            str: 保存路径
-        """
-        return ScreenshotUtils().save_page_source(self.driver, name)
-
-    @retry(max_retries = 3, delay = 1)  # 使用默认值避免循环依赖
     def wait_for_page_loaded(self, timeout: Optional[int] = None) -> bool:
         """
         等待页面加载完成
@@ -193,183 +164,7 @@ class WebBasePage:
             return True
         except TimeoutException:
             logger.error(f"页面加载超时: {timeout}秒")
-            self.take_screenshot("page_load_timeout")
             return False
-
-    def wait_for_ajax_complete(self, timeout: Optional[int] = None) -> bool:
-        """
-        等待AJAX请求完成
-        
-        Args:
-            timeout: 超时时间（秒）
-            
-        Returns:
-            bool: AJAX请求是否完成
-        """
-        timeout = timeout or self.timeout
-        logger.info(f"等待AJAX请求完成,超时时间: {timeout}秒")
-
-        def ajax_complete(driver: WebDriver) -> bool:
-            """检查AJAX请求是否完成"""
-            try:
-                return driver.execute_script("return jQuery.active == 0")
-            except:
-                try:
-                    return driver.execute_script("return XMLHttpRequest.active == 0")
-                except:
-                    return True  # 无法判断时默认返回True
-
-        # 等待AJAX请求完成
-        from selenium.webdriver.support.ui import WebDriverWait
-        from selenium.common.exceptions import TimeoutException
-
-        try:
-            WebDriverWait(self.driver, timeout).until(ajax_complete)
-            logger.info("AJAX请求完成")
-            return True
-        except TimeoutException:
-            logger.error(f"AJAX请求超时: {timeout}秒")
-            return False
-
-    def execute_javascript(self, script: str, *args) -> Any:
-        """
-        执行JavaScript代码
-        
-        Args:
-            script: JavaScript代码
-            *args: 传递给JavaScript的参数
-            
-        Returns:
-            Any: JavaScript执行结果
-        """
-        logger.info(f"执行JavaScript: {script}")
-        result = self.driver.execute_script(script, *args)
-        return result
-
-    def scroll_to_element(self, locator: Union[str, tuple]) -> 'WebBasePage':
-        """
-        滚动到元素可见位置
-        
-        Args:
-            locator: 元素定位器
-            
-        Returns:
-            WebBasePage: 页面实例（用于链式调用）
-        """
-        self.element_handler.scroll_to_element(locator)
-        return self
-
-    def scroll_to_top(self) -> 'WebBasePage':
-        """
-        滚动到页面顶部
-        
-        Returns:
-            WebBasePage: 页面实例（用于链式调用）
-        """
-        self.element_handler.scroll_to_top()
-        return self
-
-    def scroll_to_bottom(self) -> 'WebBasePage':
-        """
-        滚动到页面底部
-        
-        Returns:
-            WebBasePage: 页面实例（用于链式调用）
-        """
-        self.element_handler.scroll_to_bottom()
-        return self
-
-    def maximize_window(self) -> 'WebBasePage':
-        """
-        最大化浏览器窗口
-        
-        Returns:
-            WebBasePage: 页面实例（用于链式调用）
-        """
-        logger.info("最大化浏览器窗口")
-        self.driver.maximize_window()
-        return self
-
-    def set_window_size(self, width: int, height: int) -> 'WebBasePage':
-        """
-        设置浏览器窗口大小
-        
-        Args:
-            width: 窗口宽度
-            height: 窗口高度
-            
-        Returns:
-            WebBasePage: 页面实例（用于链式调用）
-        """
-        logger.info(f"设置窗口大小: {width}x{height}")
-        self.driver.set_window_size(width, height)
-        return self
-
-    def get_window_size(self) -> Dict[str, int]:
-        """
-        获取当前窗口大小
-        
-        Returns:
-            Dict[str, int]: 包含width和height的字典
-        """
-        size = self.driver.get_window_size()
-        logger.info(f"当前窗口大小: {size['width']}x{size['height']}")
-        return size
-
-    def back(self) -> 'WebBasePage':
-        """
-        浏览器后退
-        
-        Returns:
-            WebBasePage: 页面实例（用于链式调用）
-        """
-        logger.info("浏览器后退")
-        self.driver.back()
-        return self
-
-    def forward(self) -> 'WebBasePage':
-        """
-        浏览器前进
-        
-        Returns:
-            WebBasePage: 页面实例（用于链式调用）
-        """
-        logger.info("浏览器前进")
-        self.driver.forward()
-        return self
-
-    def switch_to_frame(self, frame_reference: Union[
-        str, int, webdriver.remote.webelement.WebElement]) -> 'WebBasePage':
-        """
-        切换到iframe
-        
-        Args:
-            frame_reference: iframe的名称、ID、索引或元素对象
-            
-        Returns:
-            WebBasePage: 页面实例（用于链式调用）
-        """
-        self.element_handler.switch_to_frame(frame_reference)
-        return self
-
-    def switch_to_default_content(self) -> 'WebBasePage':
-        """
-        切换回默认的上下文
-        
-        Returns:
-            WebBasePage: 页面实例（用于链式调用）
-        """
-        self.element_handler.switch_to_default_content()
-        return self
-
-    def switch_to_parent_frame(self) -> 'WebBasePage':
-        """
-        切换到父级iframe
-        
-        Returns:
-            WebBasePage: 页面实例（用于链式调用）
-        """
-        self.element_handler.switch_to_parent_frame()
         return self
 
     def switch_to_window(self, window_index: int = 0) -> 'WebBasePage':
