@@ -86,7 +86,6 @@ class ActivityRewardVerification:
         """
         self.activity_number = activity_number
         self.activity_config_path = activity_config_path
-
         self.logger = logger
         self.filehandler = FileHandler()
         self.api_client = ApiClient()
@@ -306,64 +305,76 @@ class ActivityRewardVerification:
 
         return differences
 
-    def get_activity_ranking_data(self, ranking_category: str, ranking_day: int = -1, stage: str = util.format_time(util.get_time_delta(days = -1), format_str = "%Y%m%d"), top_n: int = 10) -> \
-            List[Dict]:
+    def get_activity_ranking_data(self) -> List[Dict]:
         """
         获取活动榜单数据 - 用户排名及对应奖励
-        Args:
-            ranking_category: 榜单分类
-            ranking_day: 榜单类型(日榜/总榜)，-1表示总榜，其他数字表示日榜
-            stage: 活动阶段(赛段/日期)，默认前一天
-            top_n: 要获取的榜单Top N用户，默认10
-
         Returns:
             List[Dict]: 格式化后的榜单数据
         """
-        self.logger.info(f"获取活动榜单数据：活动ID={self.activity_number}, 分类={ranking_category}, 类型={ranking_day}, 阶段={stage}, TopN={top_n}")
+        # 从奖励配置文档读取榜单信息
+        reward_config = self.get_activity_reward_config_doc(self.activity_config_path)
 
-        try:
-            # 按条件查询榜单数据
-            raw_data = self._query_ranking_data(ranking_category, ranking_day, stage, top_n)
+        # 遍历所有榜单配置
+        for config in reward_config:
+            rank_category = config.get('rank_category', '0')
+            activity_type_name = config.get('activityType_name', '')
+            rank_coverage = config.get('rank_coverage', 10)
 
-            # 检查数据量是否足够
-            if len(raw_data) < top_n:
-                self.logger.warning(f"现有数据不足TopN({top_n})，当前只有{len(raw_data)}条，需要补足数据")
-                missing_count = top_n - len(raw_data)
+            # 根据activityType_name判断榜单类型
+            if '日榜' in activity_type_name:
+                rank_day = util.current_day()
+                # 日榜的stage设为当前日期的前一天
+                stage = util.format_time(util.get_time_delta(days = -1), format_str = '%Y%m%d')
+            else:
+                rank_day = -1  # 总榜
+                stage = None
 
-                # 插入缺少的数据
-                inserted_count = self._insert_test_ranking_data(ranking_category, ranking_day, stage, missing_count)
+            self.logger.info(f"处理榜单配置：{activity_type_name}, 分类={rank_category}, 阶段={stage}, TopN={rank_coverage}")
 
-                if inserted_count > 0:
-                    self.logger.info(f"成功插入{inserted_count}条测试数据，重新查询榜单数据")
-                    # 重新查询数据
-                    raw_data = self._query_ranking_data(ranking_category, ranking_day, stage, top_n)
-                else:
-                    self.logger.warning("复制数据失败，使用现有数据进行处理")
+            try:
+                # 按条件查询榜单数据
+                raw_data = self._query_ranking_data(rank_category, rank_day, stage, rank_coverage)
 
-            # 处理榜单数据并计算排名
-            ranked_data = self._process_ranking_data(raw_data)
-            self.logger.info(f"成功获取到 {len(ranked_data)} 条榜单数据，排名范围: 1-{len(ranked_data)}")
+                # 检查数据量是否足够
+                if len(raw_data) < rank_coverage:
+                    self.logger.warning(f"现有数据不足TopN({rank_coverage})，当前只有{len(raw_data)}条，需要补足数据")
+                    missing_count = rank_coverage - len(raw_data)
 
-            return ranked_data
+                    # 插入缺少的数据
+                    inserted_count = self._insert_test_ranking_data(rank_category, rank_day, stage, missing_count)
 
-        except Exception as e:
-            self.logger.error(f"获取活动榜单数据失败: {str(e)}")
-            raise
+                    if inserted_count > 0:
+                        self.logger.info(f"成功插入{inserted_count}条测试数据，重新查询榜单数据")
+                        # 重新查询数据
+                        raw_data = self._query_ranking_data(rank_category, rank_day, stage, rank_coverage)
+                    else:
+                        self.logger.warning("复制数据失败，使用现有数据进行处理")
 
-    def _query_ranking_data(self, ranking_category: str, ranking_day: int, stage: str, top_n: int) -> List[Dict]:
+                # 处理榜单数据并计算排名
+                ranked_data = self._process_ranking_data(raw_data)
+                self.logger.info(f"成功获取到 {len(ranked_data)} 条榜单数据，排名范围: 1-{len(ranked_data)}")
+
+                return ranked_data
+
+            except Exception as e:
+                self.logger.error(f"获取活动榜单数据失败: {str(e)}")
+                raise
+        return []
+
+    def _query_ranking_data(self, rank_category: str, rank_day: int, stage: str, rank_coverage: int) -> List[Dict]:
         """查询榜单数据
         Args:
-            ranking_category: 榜单分类
-            ranking_day: 榜单类型(日榜/总榜)，-1表示总榜，其他数字表示日榜
+            rank_category: 榜单分类
+            rank_day: 榜单类型(日榜/总榜)，-1表示总榜，其他数字表示日榜
             stage: 活动阶段(赛段/日期)，默认前一天
-            top_n: 要获取的榜单Top N用户，默认10
+            rank_coverage: 要获取的榜单Top N用户，默认10
 
         Returns:
             List[Dict]: 格式化后的榜单数据
         """
         # 构建查询条件
-        query_conditions = [f"number = {self.activity_number}", f"category = '{ranking_category}'",
-                            f"day = {ranking_day}"]
+        query_conditions = [f"number = {self.activity_number}", f"category = '{rank_category}'",
+                            f"day = {rank_day}"]
 
         # 添加活动阶段
         if stage:
@@ -375,21 +386,21 @@ class ActivityRewardVerification:
         query = f"""
                 SELECT number, userId, intimateId, category, stage, year, month, day, value
                 FROM `kong_test`.`activity_rank` 
-                WHERE 1 = 1 {where_clause}
-                ORDER BY value DESC LIMIT {top_n}
+                WHERE 1 = 1 and {where_clause}
+                ORDER BY value DESC LIMIT {rank_coverage}
             """
 
         raw_data = self.db.execute_query(query)
         return raw_data
 
-    def _check_user_in_ranking(self, user_id: str, imtimate_id: str, ranking_category: str, ranking_day: int, stage: str) -> bool:
+    def _check_user_in_ranking(self, user_id: str, imtimate_id: str, ranking_category: str, rank_day: int, stage: str) -> bool:
         """检查用户是否已在榜单中
 
         Args:
             user_id: 用户ID
             imtimate_id: Partner用户ID
             ranking_category: 榜单分类
-            ranking_day: 榜单类型(日榜/总榜)，-1表示总榜，其他数字表示日榜
+            rank_day: 榜单类型(日榜/总榜)，-1表示总榜，其他数字表示日榜
             stage: 活动阶段(赛段/日期)，默认前一天
 
         Returns:
@@ -398,7 +409,7 @@ class ActivityRewardVerification:
         query_conditions = [
             f"number = {self.activity_number}",
             f"category = '{ranking_category}'",
-            f"day = {ranking_day}",
+            f"day = {rank_day}",
             f"userId = {user_id}",
             f"intimateId = {imtimate_id}"
         ]
@@ -417,11 +428,11 @@ class ActivityRewardVerification:
         result = self.db.get_one(query)
         return result['count'] > 0 if result else False
 
-    def _insert_test_ranking_data(self, ranking_category: str, ranking_day: int, stage: str, count: int):
+    def _insert_test_ranking_data(self, ranking_category: str, rank_day: int, stage: str, count: int):
         """插入测试榜单数据
         Args:
             ranking_category: 榜单分类
-            ranking_day: 榜单类型(日榜/总榜)，-1表示总榜，其他数字表示日榜
+            rank_day: 榜单类型(日榜/总榜)，-1表示总榜，其他数字表示日榜
             stage: 活动阶段(赛段/日期)，默认前一天
             count: 要插入的测试数据数量
         """
@@ -430,7 +441,7 @@ class ActivityRewardVerification:
                     SELECT * FROM `kong_test`.`activity_rank` 
                     WHERE number = {self.activity_number} 
                     and category = '{ranking_category}' 
-                    and day = {ranking_day}
+                    and day = {rank_day}
                     {'and stage = ' + stage if stage else ''}
                     LIMIT 1
                 """
@@ -501,7 +512,7 @@ class ActivityRewardVerification:
                 ranked_item = {
                     "number": item.get("number"),  # 活动编号
                     "category": item.get("category"),
-                    "ranking_day": item.get("day"),
+                    "rank_day": item.get("day"),
                     "stage": item.get("stage"),
                     "user_id": item.get("userId"),
                     "value": item.get("value"),
@@ -513,7 +524,7 @@ class ActivityRewardVerification:
                 ranked_item_user1 = {
                     "number": item.get("number"),
                     "category": item.get("category"),
-                    "ranking_day": item.get("day"),
+                    "rank_day": item.get("day"),
                     "stage": item.get("stage"),
                     "user_id": item.get("userId"),
                     "value": item.get("value"),
@@ -522,7 +533,7 @@ class ActivityRewardVerification:
                 ranked_item_user2 = {
                     "number": item.get("number"),
                     "category": item.get("category"),
-                    "ranking_day": item.get("day"),
+                    "rank_day": item.get("day"),
                     "stage": item.get("stage"),
                     "user_id": item.get("intimateId"),
                     "value": item.get("value"),
@@ -556,7 +567,7 @@ class ActivityRewardVerification:
                         expected_rewards.extend(reward_detail.get('rewards', []))
                         break
                 break
-
+        self.logger.info(f"获取排名 {ranking} 应下发的奖励: {expected_rewards}")
         return expected_rewards
 
     def clear_user_rewards(self, ranking_data: List[Dict], activity_reward_config: List[Dict]):
@@ -664,7 +675,7 @@ class ActivityRewardVerification:
         )
 
         # 根据活动名称获取定时任务ID，并对ID进行处理
-        scheduled_tasks = self.db.execute_query("select job_desc as taskName, REPLACE(executor_handler, '#', '@') AS taskId from `xxl_job`.`xxl_job_info` where WHERE SUBSTRING_INDEX(SUBSTRING_INDEX(job_desc, '【', -1), '】', 1) = %s", (
+        scheduled_tasks = self.db.execute_query("select job_desc as taskName, REPLACE(executor_handler, '#', '@') AS taskId from `xxl_job`.`xxl_job_info` where SUBSTRING_INDEX(SUBSTRING_INDEX(job_desc, '【', -1), '】', 1) = %s", (
             activity_name['activityName'],)
         )
         if not scheduled_tasks:
@@ -980,23 +991,27 @@ class ActivityRewardVerification:
             # 3、比较奖励配置是否一致
             differences = self.verify_db_vs_doc(activity_reward_config_doc, activity_reward_config_db)
 
-            # # 4、获取活动榜单数据 - 用户排名及对应奖励
-            # ranking_data = self.get_activity_ranking_data()
-            #
-            # # 5、清除下发奖励前已有的装扮、荣誉称号、勋章、贵族、会员/超级会员、靓号
-            # self.clear_user_rewards(ranking_data, activity_reward_config_doc)
-            #
+            # 4、获取活动榜单数据 - 用户排名及对应奖励
+            ranking_data = self.get_activity_ranking_data()
+
+            # 5、清除下发奖励前已有的装扮、荣誉称号、勋章、贵族、会员/超级会员、靓号
+            self.clear_user_rewards(ranking_data, activity_reward_config_doc)
+
             # 6、获取活动定时任务
             scheduled_tasks = self.get_scheduled_tasks()
             # 7、开始执行定时任务, 下发奖励
             for task in scheduled_tasks:
                 if not self.execute_scheduled_task(task):
                     continue
-                # # 8、定时任务执行成功判断用户所有奖励是否下发, 下发时长是否正确
-                # if ranking_data:
-                #     validation_result = self.validate_reward_distribution(ranking_data, activity_reward_config_doc)
-                #     self.logger.info("榜单数据示例: %s", ranking_data[0] if len(ranking_data) > 0 else "无数据")
-
+                # 8、定时任务执行成功判断用户所有奖励是否下发, 下发时长是否正确
+                if ranking_data:
+                    validation_result = self.validate_reward_distribution(ranking_data, activity_reward_config_doc)
+                    if validation_result.get('users_with_incorrect_rewards') != 0:
+                        self.logger.error(f"存在用户奖励下发错误: {validation_result.get('users_with_incorrect_rewards')}")
+                        return False
+                    if validation_result.get('users_without_rewards') != 0:
+                        self.logger.error(f"存在用户奖励未下发: {validation_result.get('users_without_rewards')}")
+                        return False
             return True
 
         except Exception as e:

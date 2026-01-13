@@ -15,28 +15,31 @@ import sys
 import time
 from typing import Dict, List, Optional, Tuple
 
+# 添加项目根目录到Python路径
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from config.config_manager import config_manager
+from utils import util
 from utils.api.api_client import ApiClient
 from utils.db.mysql_client import MySQLClient
 from utils.file_util import FileHandler
 from utils.logger_util import logger
 
-# 添加项目根目录到Python路径
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 
 class MultiUserLotteryProbabilityValidator:
     """
     多用户抽奖概率验证器
-    支持全服概率和个人概率计算，多用户随机抽取
+    支持两种抽奖类型：消耗抽奖材料和直接消耗抽奖次数
+    支持全服概率和个人概率计算
     """
 
     def __init__(
             self,
             accounts: List[Dict[str, str]],
+            lottery_type: str = "COUPON",  # "COUPON" 或 "MATERIAL"
             prize_probabilities: Optional[Dict[str, float]] = None,
             allowed_deviation: float = 0.05,
-            lottery_api: str = "/api/activity/20251223/buildTree",
+            lottery_api: str = "/api/activity/lottery/start",
             threshold: int = 40,
             times_options: List[int] = None,
             total_times: int = 100,
@@ -44,25 +47,26 @@ class MultiUserLotteryProbabilityValidator:
             activity_type: int = 10,
             user_times_range: List[int] = None,
             validation_mode: str = "BOTH",
-
     ):
         """
         初始化验证器
 
         Args:
             accounts: 账号信息列表，每个账号包含用户名和密码
+            lottery_type: 抽奖类型，"COUPON"表示消耗抽奖次数，"MATERIAL"表示消耗抽奖材料
             prize_probabilities: 奖品与预期概率映射，默认为None(从数据库获取)
             allowed_deviation: 允许的实际概率偏差绝对值，默认为0.5
-            lottery_api: 抽奖接口URL，默认为"/api/activity/lottery/start"
+            lottery_api: 抽奖接口URL
             threshold: 抽奖次数阈值，低于此值跳过概率校验，默认为50
             times_options: 抽奖次数选项列表，默认为[1, 10, 50]
             total_times: 抽奖总次数，默认为100
-            activity_number: 活动编号，默认为1053
-            activity_type: 活动类型，默认为10, 101
+            activity_number: 活动编号，默认为1054
+            activity_type: 活动类型，默认为10
             user_times_range: 每个用户抽奖次数范围，默认为[10, 100]
             validation_mode: 验证模式，"BOTH"表示全服+个人，"SERVER"表示仅全服，"PERSONAL"表示仅个人，默认为"BOTH"
         """
         self.accounts = accounts
+        self.lottery_type = lottery_type.upper()
         self.prize_probabilities = prize_probabilities
         self.allowed_deviation = allowed_deviation
         self.lottery_api = lottery_api
@@ -77,7 +81,6 @@ class MultiUserLotteryProbabilityValidator:
 
         # 用户信息存储
         self.users = {}  # key: user_id, value: user_info dict
-        # self.user_apis = {}  # key: user_id, value: ApiClient instance
 
         self.db = MySQLClient(config_manager.get_mysql_config())
         self.api_client = ApiClient()
@@ -170,9 +173,6 @@ class MultiUserLotteryProbabilityValidator:
 
         Returns:
             Dict[str, int]: 用户ID到抽奖次数的映射
-
-        Raises:
-            ValueError: 参数不合法或无法完成分配时抛出异常
         """
         user_ids = list(self.users.keys())
         user_count = len(user_ids)
@@ -188,6 +188,7 @@ class MultiUserLotteryProbabilityValidator:
         # 校验总次数是否满足用户抽奖次数范围要求
         min_required_total = user_count * min_user_times
         max_possible_total = user_count * max_user_times
+
         if self.total_times < min_required_total:
             self.logger.error(
                 f"总抽奖次数不足: {user_count}个用户至少需要{min_required_total}次(每人{min_user_times}次), 不满足用户抽奖次数范围要求"
@@ -231,134 +232,195 @@ class MultiUserLotteryProbabilityValidator:
 
     def check_and_update_user_lottery_times(self, user_times: dict[str, int]) -> bool:
         """
-        检查并更新用户的抽奖次数是否足够
+        检查并更新用户的抽奖次数/材料是否足够
 
+        Args:
+            user_times: 用户ID到需要的抽奖次数的映射
+
+        Returns:
+            bool: 抽奖次数/材料是否足够
+        """
+        try:
+            if self.lottery_type == "COUPON":
+                return self._check_coupon_times(user_times)
+            else:  # MATERIAL
+                return self._check_material_times(user_times)
+        except Exception as e:
+            self.logger.error(f"[失败] 检查抽奖次数/材料异常: {str(e)}")
+            return False
+
+    def _check_coupon_times(self, user_times: dict[str, int]) -> bool:
+        """
+        检查并更新抽奖次数（COUPON类型）
         Args:
             user_times: 用户ID到需要的抽奖次数的映射
 
         Returns:
             bool: 抽奖次数是否足够
         """
-        try:
-            # 获取所有抽奖材料ID
-            material = self.db.execute_query(
-                "SELECT id, name FROM kong_test.activity_material WHERE activityNumber = %s AND activityType = 10",
-                (self.activity_number,)
+        for user_id, required_times in user_times.items():
+            self.logger.info(f"正在查询用户 {user_id} 的抽奖次数")
+
+            count = self.db.get_one(
+                "SELECT totalCount, usedCount FROM `kong_test`.`activity_coupon_count` WHERE activityNumber = %s AND userId = %s",
+                (self.activity_number, user_id)
             )
 
-            if not material:
-                self.logger.error(f"[失败] 未找到活动 {self.activity_number} 的抽奖材料配置")
-                return False
+            if count:
+                total_count = count.get("totalCount", 0)
+                used_count = count.get("usedCount", 0)
+                remaining_count = total_count - used_count
 
-            # 创建抽奖材料名称映射字典和ID列表
-            material_dict = {}
-            material_id_list = []
-            for m in material:
-                material_dict[m['id']] = m['name']
-                material_id_list.append(m['id'])
+                self.logger.info(f"账号: {user_id} 当前剩余抽奖次数: {remaining_count}, 需要: {required_times}")
 
-            for user_id, required_times in user_times.items():
+                if remaining_count >= required_times:
+                    self.logger.info(f"[通过] 账号: {user_id} 抽奖次数足够, 可以直接抽奖")
+                else:
+                    # 更新抽奖次数
+                    need_add = required_times - remaining_count
+                    self.logger.info(f"[调整] 账号: {user_id} 抽奖次数不足, 需要增加 {need_add} 次")
 
-                self.logger.info(f"正在查询用户 {user_id} 的数量")
+                    self.db.execute_update(
+                        "UPDATE `kong_test`.`activity_coupon_count` SET totalCount = totalCount + %s WHERE activityNumber = %s AND userId = %s",
+                        (need_add, self.activity_number, user_id),
+                    )
 
-                # 查询用户所有抽奖材料数量
-                placeholders = ','.join(['%s'] * len(material_id_list))
-                query = f"SELECT materialId, totalCount, usedCount FROM `kong_test`.`activity_material_count` WHERE materialId IN ({placeholders}) and  userId = %s"
-                params = tuple(material_id_list) + (user_id,)
+                    # 重新查询确认
+                    updated_count = self.db.get_one(
+                        "SELECT totalCount, usedCount FROM `kong_test`.`activity_coupon_count` WHERE activityNumber = %s AND userId = %s",
+                        (self.activity_number, user_id)
+                    )
 
-                count = self.db.execute_query(query, params)
-
-                # 确保每种材料当前数量和需要的数量匹配
-                existing_material_ids = {item.get("materialId") for item in count} if count else set()
-                all_material_ids = set(material_id_list)
-                missing_material_ids = all_material_ids - existing_material_ids
-
-                # 有缺失的抽奖材料则在数据库中创建材料记录
-                if missing_material_ids:
-                    self.logger.info(f"用户 {user_id} 缺少 {len(missing_material_ids)} 种抽奖材料，正在创建...")
-                    for material_id in missing_material_ids:
-                        material_name = material_dict.get(material_id, f"未知抽奖材料({material_id})")
-                        self.db.execute_update(
-                            "INSERT INTO `kong_test`.`activity_material_count` (materialId, userId, totalCount, usedCount, type, created, updated) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                            (material_id, user_id, required_times, 0, '8', datetime.datetime.now(),
-                             datetime.datetime.now()),
-                        )
-                        self.logger.info(f"[新增] 已为用户 {user_id} 的 {material_name} 创建记录, 初始数量: {required_times}")
-
-                    # 重新查询所有抽奖材料数量
-                    count = self.db.execute_query(query, params)
-
-                # 判断每一种抽奖材料数量是否满足抽奖次数要求
-                if count:
-                    all_sufficient = True
-                    need_update_materials = []
-
-                    for item in count:
-                        material_id = item.get("materialId")
-                        material_name = material_dict.get(material_id, f"未知材料({material_id})")
-                        total_count = item.get("totalCount", 0)
-                        used_count = item.get("usedCount", 0)
-                        usable_count = total_count - used_count
-
-                        self.logger.info(f"用户 {user_id} 当前{material_name}剩余数量: {usable_count}, 需要: {required_times}")
-
-                        if usable_count < required_times:
-                            all_sufficient = False
-                            need_add = required_times - usable_count
-                            need_update_materials.append({
-                                'material_id': material_id,
-                                'material_name': material_name,
-                                'need_add': need_add,
-                                'usable_count': usable_count
-                            })
-                            self.logger.info(f"[调整] {material_name} 数量不足, 需要增加 {need_add} 个")
-
-                    if all_sufficient:
-                        self.logger.info(f"[通过] 用户 {user_id} 所有抽奖材料都足够, 可以直接抽奖")
-                    else:
-                        # 更新不足的抽奖材料数量
-                        for material_info in need_update_materials:
-                            material_id = material_info['material_id']
-                            material_name = material_info['material_name']
-                            need_add = material_info['need_add']
-
-                            self.logger.info(f"[调整] 正在为用户 {user_id} 的 {material_name} 增加 {need_add} 个")
-
-                            self.db.execute_update(
-                                "UPDATE `kong_test`.`activity_material_count` SET totalCount = totalCount + %s WHERE materialId = %s AND userId = %s",
-                                (need_add, material_id, user_id),
-                            )
-
-                        # 再次检查是否所有抽奖材料数量都满足要求
-                        updated_count = self.db.execute_query(query, params)
-
-                        if updated_count:
-                            all_updated_sufficient = True
-                            for item in updated_count:
-                                material_id = item.get("materialId")
-                                material_name = material_dict.get(material_id, f"未知材料({material_id})")
-                                total_count = item.get("totalCount", 0)
-                                used_count = item.get("usedCount", 0)
-                                remaining_count = total_count - used_count
-
-                                if remaining_count < required_times:
-                                    all_updated_sufficient = False
-                                    self.logger.error(f"[失败] {material_name} 增加后仍不足, 当前剩余: {remaining_count}, 需要: {required_times}")
-
-                            if all_updated_sufficient:
-                                self.logger.info(f"[通过] 用户 {user_id} 所有抽奖材料已增加, 可以进行抽奖")
-                            else:
-                                self.logger.error(f"[失败] 用户 {user_id} 部分抽奖材料增加后仍不足")
-                                return False
+                    if updated_count:
+                        updated_remaining = updated_count.get("totalCount", 0) - updated_count.get("usedCount", 0)
+                        if updated_remaining >= required_times:
+                            self.logger.info(f"[通过] 账号: {user_id} 抽奖次数已增加, 当前剩余: {updated_remaining}")
                         else:
-                            self.logger.error(f"[失败] 用户 {user_id} 抽奖材料更新后查询失败")
+                            self.logger.error(f"[失败] 账号: {user_id} 抽奖次数增加后仍不足")
                             return False
+                    else:
+                        self.logger.error(f"[失败] 账号: {user_id} 抽奖次数更新后查询失败")
+                        return False
+            else:
+                # 如果没有记录, 则插入记录
+                self.logger.info(f"账号: {user_id} 没有抽奖次数记录, 正在创建")
 
-            return True
+                self.db.execute_update(
+                    "INSERT INTO `kong_test`.`activity_coupon_count` (activityNumber, activityType, userId, totalCount, usedCount, created, updated) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                    (self.activity_number, str(self.activity_type), user_id, required_times, 0, util.current_time(),
+                     util.current_time()),
+                )
 
-        except Exception as e:
-            self.logger.error(f"[失败] 检查抽奖材料异常: {str(e)}")
+                self.logger.info(f"[通过] 账号: {user_id} 抽奖次数记录已创建")
+
+        return True
+
+    def _check_material_times(self, user_times: dict[str, int]) -> bool:
+        """
+        检查并更新抽奖材料（MATERIAL类型）
+        Args:
+            user_times: 用户ID到需要的抽奖材料次数的映射
+
+        Returns:
+            bool: 抽奖材料是否足够
+        """
+        # 获取所有抽奖材料ID
+        material = self.db.execute_query(
+            "SELECT id, name FROM kong_test.activity_material WHERE activityNumber = %s AND activityType = %s",
+            (self.activity_number, self.activity_type)
+        )
+
+        if not material:
+            self.logger.error(f"[失败] 未找到活动 {self.activity_number} 的抽奖材料配置")
             return False
+
+        # 创建抽奖材料名称映射字典和ID列表
+        material_dict = {}
+        material_id_list = []
+        for m in material:
+            material_dict[m['id']] = m['name']
+            material_id_list.append(m['id'])
+
+        # 构建批量查询语句
+        placeholders = ','.join(['%s'] * len(material_id_list))
+        count_query = f"SELECT materialId, totalCount, usedCount FROM `kong_test`.`activity_material_count` WHERE materialId IN ({placeholders}) and userId = %s"
+
+        # 构建插入语句
+        insert_query = "INSERT INTO `kong_test`.`activity_material_count` (materialId, userId, totalCount, usedCount, type, created, updated) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+
+        # 构建更新语句
+        update_query = "UPDATE `kong_test`.`activity_material_count` SET totalCount = totalCount + %s WHERE materialId = %s AND userId = %s"
+
+        for user_id, required_times in user_times.items():
+            self.logger.info(f"正在查询用户 {user_id} 的抽奖材料数量")
+
+            # 查询用户所有抽奖材料数量
+            params = tuple(material_id_list) + (user_id,)
+            count = self.db.execute_query(count_query, params)
+
+            # 确保每种材料当前数量和需要的数量匹配
+            existing_material_ids = {item.get("materialId") for item in count} if count else set()
+            all_material_ids = set(material_id_list)
+            missing_material_ids = all_material_ids - existing_material_ids
+
+            # 有缺失的抽奖材料则在数据库中创建材料记录
+            if missing_material_ids:
+                self.logger.info(f"用户 {user_id} 缺少 {len(missing_material_ids)} 种抽奖材料，正在创建...")
+                for material_id in missing_material_ids:
+                    material_name = material_dict.get(material_id, f"未知抽奖材料({material_id})")
+                    self.db.execute_update(
+                        insert_query,
+                        (material_id, user_id, required_times, 0, '8', datetime.datetime.now(),
+                         datetime.datetime.now()),
+                    )
+                    self.logger.info(f"[新增] 已为用户 {user_id} 的 {material_name} 创建记录, 初始数量: {required_times}")
+
+            # 直接计算需要更新的材料，不再重新查询
+            count_dict = {item.get("materialId"): item for item in count} if count else {}
+            need_update_materials = []
+
+            for material_id in all_material_ids:
+                material_name = material_dict.get(material_id, f"未知材料({material_id})")
+
+                if material_id in count_dict:
+                    # 已有记录，检查数量
+                    item = count_dict[material_id]
+                    total_count = item.get("totalCount", 0)
+                    used_count = item.get("usedCount", 0)
+                    usable_count = total_count - used_count
+                else:
+                    # 新创建的记录，数量足够
+                    usable_count = required_times
+
+                self.logger.info(f"用户 {user_id} 当前{material_name}剩余数量: {usable_count}, 需要: {required_times}")
+
+                if usable_count < required_times:
+                    need_add = required_times - usable_count
+                    need_update_materials.append({
+                        'material_id': material_id,
+                        'material_name': material_name,
+                        'need_add': need_add
+                    })
+                    self.logger.info(f"[调整] {material_name} 数量不足, 需要增加 {need_add} 个")
+
+            if not need_update_materials:
+                self.logger.info(f"[通过] 用户 {user_id} 所有抽奖材料都足够, 可以直接抽奖")
+            else:
+                # 更新不足的抽奖材料数量
+                for material_info in need_update_materials:
+                    material_id = material_info['material_id']
+                    material_name = material_info['material_name']
+                    need_add = material_info['need_add']
+
+                    self.logger.info(f"[调整] 正在为用户 {user_id} 的 {material_name} 增加 {need_add} 个")
+                    self.db.execute_update(
+                        update_query,
+                        (need_add, material_id, user_id),
+                    )
+
+                self.logger.info(f"[通过] 用户 {user_id} 所有抽奖材料已增加, 可以进行抽奖")
+
+        return True
 
     def get_prize_probabilities(self) -> Dict[str, float]:
         """
@@ -370,21 +432,42 @@ class MultiUserLotteryProbabilityValidator:
         if self.prize_probabilities:
             return self.prize_probabilities
 
-        self.logger.info(f"正在获取的奖品概率配置")
-        # self.prize_probabilities = {
-        #     "新年大礼包": 0.005,
-        #     "锦鲤聚宝盆礼物": 0.02,
-        #     "招财金蟾礼物": 0.04,
-        #     "闪闪金币礼物": 0.22,
-        #     "锦鲤送福进场特效": 0.155,
-        #     "新年云间星梦头像框": 0.26,
-        #     "新年幻彩星翼头像框": 0.30
-        # }
-        prize = self.db.execute_query(
-            "SELECT name, prob FROM kong_test.activity_material WHERE activityNumber = %s AND activityType = 101",
-            (self.activity_number,)
-        )
-        self.prize_probabilities = {item.get("name"): float(item.get("prob")) for item in prize}
+        self.logger.info(f"正在获取活动 {self.activity_number} 的奖品概率配置")
+        try:
+            # 从数据库中获取奖品概率配置
+            query = "SELECT name, prob FROM kong_test.activity_material WHERE activityNumber = %s AND activityType = %s"
+            prize = self.db.execute_query(query, (self.activity_number, self.activity_type))
+
+            if prize:
+                self.prize_probabilities = {item.get("name"): float(item.get("prob")) for item in prize}
+                self.logger.info(f"成功从数据库获取奖品概率配置: {self.prize_probabilities}")
+            else:
+                # 如果数据库中没有配置，使用默认值
+                self.logger.warning(f"未从数据库获取到活动 {self.activity_number} 的奖品概率配置，使用默认值")
+                self.prize_probabilities = {
+                    "8金币礼物": 0.030000,
+                    "88金币礼物": 0.010000,
+                    "188金币礼物": 0.005000,
+                    "进场特效进场特效": 0.125000,
+                    "头像框A头像框": 0.150000,
+                    "A房间气泡房间聊天气泡": 0.200000,
+                    "私聊气泡A私聊气泡": 0.240000,
+                    "私聊气泡B私聊气泡": 0.240000
+                }
+        except Exception as e:
+            # 如果查询数据库失败，使用默认值
+            self.logger.error(f"从数据库获取奖品概率配置失败: {str(e)}，使用默认值")
+            self.prize_probabilities = {
+                "8金币礼物": 0.030000,
+                "88金币礼物": 0.010000,
+                "188金币礼物": 0.005000,
+                "进场特效进场特效": 0.125000,
+                "头像框A头像框": 0.150000,
+                "A房间气泡房间聊天气泡": 0.200000,
+                "私聊气泡A私聊气泡": 0.240000,
+                "私聊气泡B私聊气泡": 0.240000
+            }
+
         return self.prize_probabilities
 
     def call_lottery_api(self, user_id: str, times: int) -> Dict[str, int]:
@@ -401,9 +484,16 @@ class MultiUserLotteryProbabilityValidator:
         try:
             auth_sign = self.users[user_id]["sign"]
 
-            params = {
-                "num": times,
-            }
+            # 抽奖请求参数
+            if self.lottery_type == "COUPON":
+                params = {
+                    "times": times,
+                    "number": self.activity_number,
+                }
+            else:  # MATERIAL
+                params = {
+                    "num": times,
+                }
 
             response = self.api_client.get(
                 url = self.lottery_api,
@@ -447,7 +537,7 @@ class MultiUserLotteryProbabilityValidator:
     def execute_lottery_rounds(self, user_times: Dict[str, int]) -> Tuple[Dict[str, Dict[str, int]], Dict[str, int]]:
         """
         执行抽奖轮次
-        支持随机抽奖次数选择，智能处理用户剩余次数不足的情况
+        支持随机抽奖次数选择，处理用户剩余次数不足的情况
 
         Args:
             user_times: 用户抽奖次数分配
@@ -469,9 +559,7 @@ class MultiUserLotteryProbabilityValidator:
 
         # 记录每个用户的连续失败次数
         user_fail_count = {user_id: 0 for user_id in user_times.keys()}
-        # 记录失败用户，避免重复选择
         failed_users = set()
-        # 最大连续失败次数限制
         max_consecutive_failures = 3
         # 最大循环次数限制，防止无限循环
         max_rounds = self.total_times
@@ -485,16 +573,11 @@ class MultiUserLotteryProbabilityValidator:
         def get_optimal_times(userid: str) -> int:
             """
             选择最优抽奖次数
-
-            Args:
-                userid: 用户ID
-
             Returns:
                 int: 最优抽奖次数
             """
-            user_remaining = user_remaining_times[userid]  # 重命名变量
+            user_remaining = user_remaining_times[userid]
 
-            # 只剩1次
             if user_remaining <= 1:
                 return user_remaining
 
@@ -508,6 +591,7 @@ class MultiUserLotteryProbabilityValidator:
 
             # 如果选择最大选项后，剩余次数还能被其他选项整除，则选择最大选项
             remaining_after_max = user_remaining - max_option
+
             if remaining_after_max == 0:
                 return max_option
 
@@ -526,7 +610,6 @@ class MultiUserLotteryProbabilityValidator:
                     if remaining_after_second >= option and remaining_after_second % option == 0:
                         return second_max
 
-            # 默认返回最大可用选项
             return max_option
 
         while sum(user_remaining_times.values()) > 0 and current_round < max_rounds:
@@ -537,12 +620,9 @@ class MultiUserLotteryProbabilityValidator:
                                if uid not in failed_users and user_remaining_times[uid] > 0]
 
             if not available_users:
-                # 如果所有用户都失败了，检查是否所有用户都真的无法抽奖
                 all_users_failed = True
                 for user_id, remaining in user_remaining_times.items():
                     if remaining > 0:
-                        # 不再重复检查好运卡，因为已经在抽奖前统一检查过了
-                        # 这里只检查是否因为API调用失败而导致的失败
                         if user_fail_count[user_id] < max_consecutive_failures:
                             all_users_failed = False
                             failed_users.discard(user_id)
@@ -568,7 +648,7 @@ class MultiUserLotteryProbabilityValidator:
             if remaining_times <= 0:
                 continue
 
-            # 智能选择抽奖次数
+            # 选择抽奖次数
             current_times = get_optimal_times(user_id)
             current_times = min(current_times, remaining_times)
 
@@ -612,7 +692,7 @@ class MultiUserLotteryProbabilityValidator:
                     failed_users.add(user_id)
                     self.logger.warning(f"用户 {user_id} 连续失败次数过多，暂时跳过")
 
-            # 修复: 增加延迟时间到2-2.5秒随机，避免操作太快
+            # 增加延迟时间到2-2.5秒随机，避免操作太快
             delay_time = random.uniform(2.0, 2.5)
             time.sleep(delay_time)
 
@@ -728,10 +808,13 @@ class MultiUserLotteryProbabilityValidator:
         expected_probabilities = self.get_prize_probabilities()
         actual_server_probabilities = self.calculate_probabilities(server_results, total_server_times)
 
+        # 初始验证结果
+        server_valid = True
+        personal_valid = True
+
         # 验证全服概率
         if self.validation_mode in ["BOTH", "SERVER"]:
             self.logger.info("=== 全服概率验证 ===")
-            server_valid = True
             result = self.validate_probabilities(actual_server_probabilities, expected_probabilities, total_server_times)
             if result == "FAILED":
                 server_valid = False
@@ -745,7 +828,6 @@ class MultiUserLotteryProbabilityValidator:
         # 验证个人概率
         if self.validation_mode in ["BOTH", "PERSONAL"]:
             self.logger.info("=== 个人概率验证 ===")
-            personal_valid = True
             for user_id, user_results in personal_results.items():
                 user_total_times = sum(user_results.values())
                 if user_total_times > 0:
@@ -781,25 +863,19 @@ class MultiUserLotteryProbabilityValidator:
 
 def main():
     """主函数"""
-    # 测试账号
-    # accounts = [
-    #     {"mobile": "17370000002", "password": "123456"},
-    #     {"mobile": "17370000003", "password": "123456"},
-    #     {"mobile": "17370000004", "password": "123456"},
-    # ]
     test_user_account = FileHandler().read_yaml("test_data/test_user_account.yaml")
     accounts = test_user_account[1:4]
 
-    # 创建验证器实例
     validator = MultiUserLotteryProbabilityValidator(
-        activity_number = 1054,
-        lottery_api = "/api/activity/20251223/buildTree",
+        lottery_type = "COUPON",
+        activity_number = 1055,
+        lottery_api = "/api/activity/lottery/start",
         accounts = accounts,
-        total_times = 50,
-        user_times_range = [10, 30],
+        total_times = 2000,
+        user_times_range = [500, 850],
         times_options = [1, 10, 50],
-        allowed_deviation = 0.05,
-        threshold = 20
+        allowed_deviation = 0.02,
+        threshold = 500
     )
 
     # 执行验证

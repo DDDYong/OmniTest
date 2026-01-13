@@ -47,6 +47,49 @@ class CommonUtils:
         return datetime.now().strftime(format_str)
 
     @staticmethod
+    def current_day():
+        """
+        获取当前日期（day）
+        
+        Returns:
+            int: 当前日期的天数（1-31）
+        """
+        return datetime.now().day
+
+    @staticmethod
+    def current_month():
+        """
+        获取当前月份（month）
+        
+        Returns:
+            int: 当前月份（1-12）
+        """
+        return datetime.now().month
+
+    @staticmethod
+    def current_year():
+        """
+        获取当前年份（year）
+        
+        Returns:
+            int: 当前年份
+        """
+        return datetime.now().year
+
+    @staticmethod
+    def current_date(format_str = "%Y-%m-%d"):
+        """
+        获取当前日期（不含时间）
+        
+        Args:
+            format_str: 日期格式，默认为"YYYY-MM-DD"
+            
+        Returns:
+            str: 当前日期字符串
+        """
+        return datetime.now().strftime(format_str)
+
+    @staticmethod
     def format_time(dt, format_str = "%Y-%m-%d %H:%M:%S"):
         """
         格式化时间
