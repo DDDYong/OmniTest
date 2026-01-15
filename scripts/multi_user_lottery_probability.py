@@ -12,7 +12,9 @@ import datetime
 import os
 import random
 import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List, Optional, Tuple
 
 from config.config_manager import config_manager
@@ -52,18 +54,18 @@ class MultiUserLotteryProbabilityValidator:
         初始化验证器
 
         Args:
-            accounts: 账号信息列表，每个账号包含用户名和密码
-            lottery_type: 抽奖类型，"COUPON"表示消耗抽奖次数，"MATERIAL"表示消耗抽奖材料
-            prize_probabilities: 奖品与预期概率映射，默认为None(从数据库获取)
-            allowed_deviation: 允许的实际概率偏差绝对值，默认为0.5
+            accounts: 账号信息列表, 每个账号包含用户名和密码
+            lottery_type: 抽奖类型, "COUPON"表示消耗抽奖次数, "MATERIAL"表示消耗抽奖材料
+            prize_probabilities: 奖品与预期概率映射, 默认为None(从数据库获取)
+            allowed_deviation: 允许的实际概率偏差绝对值, 默认为0.5
             lottery_api: 抽奖接口URL
-            threshold: 抽奖次数阈值，低于此值跳过概率校验，默认为50
-            times_options: 抽奖次数选项列表，默认为[1, 10, 50]
-            total_times: 抽奖总次数，默认为100
-            activity_number: 活动编号，默认为1054
-            activity_type: 活动类型，默认为10
-            user_times_range: 每个用户抽奖次数范围，默认为[10, 100]
-            validation_mode: 验证模式，"BOTH"表示全服+个人，"SERVER"表示仅全服，"PERSONAL"表示仅个人，默认为"BOTH"
+            threshold: 抽奖次数阈值, 低于此值跳过概率校验, 默认为50
+            times_options: 抽奖次数选项列表, 默认为[1, 10, 50]
+            total_times: 抽奖总次数, 默认为100
+            activity_number: 活动编号, 默认为1054
+            activity_type: 活动类型, 默认为10
+            user_times_range: 每个用户抽奖次数范围, 默认为[10, 100]
+            validation_mode: 验证模式, "BOTH"表示全服+个人, "SERVER"表示仅全服, "PERSONAL"表示仅个人, 默认为"BOTH"
         """
         self.accounts = accounts
         self.lottery_type = lottery_type.upper()
@@ -83,67 +85,10 @@ class MultiUserLotteryProbabilityValidator:
         self.users = {}  # key: user_id, value: user_info dict
 
         self.db = MySQLClient(config_manager.get_mysql_config())
-        self.api_client = ApiClient()
 
-    def login_user(self, account: Dict[str, str]) -> Optional[Dict]:
-        """
-        用户登录
-
-        Args:
-            account: 账号信息
-
-        Returns:
-            Dict: 用户信息字典，包含user_id, auth_sign等
-        """
-        try:
-            self.logger.info(f"正在登录账号: {account['mobile']}")
-            # 获取用户信息 ID, 性别
-            user_info = self.db.get_one(
-                "SELECT userid, nick, sex FROM `kong_test`.`user` WHERE mobile = %s",
-                (account["mobile"],)
-            )
-
-            if user_info:
-                user_info = {
-                    "user_id": user_info.get("userid"),
-                    "mobile": account["mobile"],
-                    "sex": user_info.get("sex", 2),
-                    "nick": user_info.get("nick"),
-                }
-            else:
-                self.logger.error(f"[失败] 未找到用户信息: {account['mobile']}")
-                return None
-
-            # 发送登录请求
-            login_data = {
-                "mobile": account["mobile"],
-                "password": account["password"]
-            }
-
-            response = self.api_client.post(
-                url = "/api/hx/usr/login/v2",
-                json = login_data,
-                headers = {"Content-Type": "application/json"}
-            )
-
-            if response.status_code == 200:
-                resp_json = response.json().get("data")
-                if "signature" in resp_json:
-                    auth_sign = resp_json["signature"]
-                    # 设置签名
-                    user_info["sign"] = auth_sign
-
-                    self.logger.info(f"[成功] 账号: {user_info['user_id']} - {user_info['nick']} 登录成功")
-                    return user_info
-                else:
-                    self.logger.error(f"[失败] 登录失败: {resp_json.get('code', '未知错误')}")
-                    return None
-            else:
-                self.logger.error(f"[失败] 登录异常: {response.status_code}")
-                return None
-        except Exception as e:
-            self.logger.error(f"[失败] 登录异常: {str(e)}")
-            return None
+        # 添加线程安全锁
+        self._probability_lock = threading.Lock()
+        self._db_lock = threading.Lock()
 
     def login_all_users(self) -> bool:
         """
@@ -154,16 +99,93 @@ class MultiUserLotteryProbabilityValidator:
         """
         self.logger.info(f"开始登录 {len(self.accounts)} 个用户")
 
+        # 线程安全锁，保护self.users字典
+        users_lock = threading.Lock()
         success_count = 0
-        for account in self.accounts:
-            user_info = self.login_user(account)
-            if user_info:
-                user_id = user_info["user_id"]
-                self.users[user_id] = user_info
-                success_count += 1
-            else:
-                self.logger.error(f"用户 {account['mobile']} 登录失败")
 
+        def login_task(account):
+            """登录任务函数"""
+            nonlocal success_count
+            try:
+                # 创建临时ApiClient实例用于登录
+                login_api_client = ApiClient()
+                try:
+                    # 获取用户信息 ID, 性别
+                    user_info = self.db.get_one(
+                        "SELECT userid, nick, sex FROM `kong_test`.`user` WHERE mobile = %s",
+                        (account["mobile"],)
+                    )
+
+                    if user_info:
+                        user_info = {
+                            "user_id": user_info.get("userid"),
+                            "mobile": account["mobile"],
+                            "sex": user_info.get("sex", 2),
+                            "nick": user_info.get("nick"),
+                        }
+                    else:
+                        self.logger.error(f"[失败] 未找到用户信息: {account['mobile']}")
+                        return False, account
+
+                    # 发送登录请求
+                    login_data = {
+                        "mobile": account["mobile"],
+                        "password": account["password"]
+                    }
+
+                    response = login_api_client.post(
+                        url = "/api/hx/usr/login/v2",
+                        json = login_data,
+                        headers = {"Content-Type": "application/json"}
+                    )
+
+                    if response.status_code == 200:
+                        resp_json = response.json().get("data")
+                        if "signature" in resp_json:
+                            auth_sign = resp_json["signature"]
+                            # 设置签名
+                            user_info["sign"] = auth_sign
+
+                            # 线程安全地更新用户字典
+                            with users_lock:
+                                self.users[user_info["user_id"]] = user_info
+                                nonlocal success_count
+                                success_count += 1
+
+                            self.logger.info(f"[成功] 账号: {user_info['user_id']} - {user_info['nick']} 登录成功")
+                            return True, account
+                        else:
+                            self.logger.error(f"[失败] 登录失败: {resp_json.get('code', '未知错误')}")
+                            return False, account
+                    else:
+                        self.logger.error(f"[失败] 登录异常: {response.status_code}")
+                        return False, account
+                finally:
+                    # 关闭临时ApiClient实例
+                    login_api_client.close()
+                    return True, account
+            except Exception as e:
+                self.logger.error(f"[失败] 登录异常: {str(e)}")
+                return False, account
+
+        # 使用线程池执行并发登录
+        # 线程池大小设置为用户数量，最多不超过20
+        max_workers = min(len(self.accounts), 20)
+
+        with ThreadPoolExecutor(max_workers = max_workers, thread_name_prefix = "LoginThread") as executor:
+            # 提交任务到线程池
+            future_to_account = {executor.submit(login_task, account): account for account in self.accounts}
+
+            # 收集任务结果
+            for future in as_completed(future_to_account):
+                account = future_to_account[future]
+                try:
+                    success, _ = future.result()
+                    if not success:
+                        self.logger.error(f"用户 {account['mobile']} 登录失败")
+                except Exception as e:
+                    self.logger.error(f"用户 {account['mobile']} 登录任务执行失败: {str(e)}")
+        
         self.logger.info(f"用户登录完成: {success_count}/{len(self.accounts)} 个用户登录成功")
         return success_count > 0
 
@@ -179,7 +201,7 @@ class MultiUserLotteryProbabilityValidator:
 
         # 无用户直接返回空字典
         if user_count == 0:
-            self.logger.info("无登录用户，抽奖次数分配结果为空")
+            self.logger.info("无登录用户, 抽奖次数分配结果为空")
             return {}
 
         min_user_times = min(self.user_times_range)
@@ -201,7 +223,7 @@ class MultiUserLotteryProbabilityValidator:
             )
             return {}
 
-        # 基础分配，每人先给最小次数
+        # 基础分配, 每人先给最小次数
         user_times = {user_id: min_user_times for user_id in user_ids}
         remaining_times = self.total_times - min_required_total
 
@@ -213,12 +235,12 @@ class MultiUserLotteryProbabilityValidator:
                 selected_user = random.choice(available_users)
                 # 用户还可分配的最大次数
                 max_add = max_user_times - user_times[selected_user]
-                # 用户已达上限，则不再分配
+                # 用户已达上限, 则不再分配
                 if max_add <= 0:
                     available_users.remove(selected_user)
                     continue
 
-                # 本次分配次数: 随机1~(剩余次数和最大可加次数的最小值)，批量分配
+                # 本次分配次数: 随机1~(剩余次数和最大可加次数的最小值), 批量分配
                 add_num = random.randint(1, min(remaining_times, max_add))
                 user_times[selected_user] += add_num
                 remaining_times -= add_num
@@ -365,7 +387,7 @@ class MultiUserLotteryProbabilityValidator:
 
             # 有缺失的抽奖材料则在数据库中创建材料记录
             if missing_material_ids:
-                self.logger.info(f"用户 {user_id} 缺少 {len(missing_material_ids)} 种抽奖材料，正在创建...")
+                self.logger.info(f"用户 {user_id} 缺少 {len(missing_material_ids)} 种抽奖材料, 正在创建...")
                 for material_id in missing_material_ids:
                     material_name = material_dict.get(material_id, f"未知抽奖材料({material_id})")
                     self.db.execute_update(
@@ -383,13 +405,13 @@ class MultiUserLotteryProbabilityValidator:
                 material_name = material_dict.get(material_id, f"未知材料({material_id})")
 
                 if material_id in count_dict:
-                    # 已有记录，检查数量
+                    # 已有记录, 检查数量
                     item = count_dict[material_id]
                     total_count = item.get("totalCount", 0)
                     used_count = item.get("usedCount", 0)
                     usable_count = total_count - used_count
                 else:
-                    # 新创建的记录，数量足够
+                    # 新创建的记录, 数量足够
                     usable_count = required_times
 
                 self.logger.info(f"用户 {user_id} 当前{material_name}剩余数量: {usable_count}, 需要: {required_times}")
@@ -429,106 +451,189 @@ class MultiUserLotteryProbabilityValidator:
         Returns:
             Dict[str, float]: 奖品概率映射
         """
+        # 双重检查锁定模式，避免重复查询
         if self.prize_probabilities:
             return self.prize_probabilities
 
-        self.logger.info(f"正在获取活动 {self.activity_number} 的奖品概率配置")
-        # self.prize_probabilities = {
-        #     "8金币礼物": 0.030000,
-        #     "88金币礼物": 0.010000,
-        #     "188金币礼物": 0.005000,
-        #     "进场特效进场特效": 0.125000,
-        #     "头像框A头像框": 0.150000,
-        #     "A房间气泡房间聊天气泡": 0.200000,
-        #     "私聊气泡A私聊气泡": 0.240000,
-        #     "私聊气泡B私聊气泡": 0.240000
-        # }
-        try:
-            # 从数据库中获取奖品概率配置
-            query = "SELECT name, prob FROM kong_test.activity_material WHERE activityNumber = %s AND activityType = %s"
-            prize = self.db.execute_query(query, (self.activity_number, self.activity_type))
+        with self._probability_lock:
+            # 再次检查，确保其他线程没有已经初始化
+            if self.prize_probabilities:
+                return self.prize_probabilities
 
-            if prize:
-                self.prize_probabilities = {item.get("name"): float(item.get("prob")) for item in prize}
-                self.logger.info(f"成功从数据库获取奖品概率配置: {self.prize_probabilities}")
-            else:
-                self.logger.warning(f"未从数据库获取到活动 {self.activity_number} 的奖品概率配置")
+            self.logger.info(f"正在获取活动 {self.activity_number} 的奖品概率配置")
+            try:
+                # 从数据库中获取奖品概率配置
+                with self._db_lock:
+                    query = "SELECT name, prob FROM kong_test.activity_material WHERE activityNumber = %s AND activityType = %s"
+                    prize = self.db.execute_query(query, (self.activity_number, self.activity_type))
+
+                if prize:
+                    self.prize_probabilities = {item.get("name"): float(item.get("prob")) for item in prize}
+                    self.logger.info(f"成功从数据库获取奖品概率配置: {self.prize_probabilities}")
+                else:
+                    self.logger.warning(f"未从数据库获取到活动 {self.activity_number} 的奖品概率配置")
+                    self.prize_probabilities = {}
+            except Exception as e:
+                # 查询数据库失败
+                self.logger.error(f"从数据库获取奖品概率配置失败: {str(e)}")
                 self.prize_probabilities = {}
-        except Exception as e:
-            # 查询数据库失败
-            self.logger.error(f"从数据库获取奖品概率配置失败: {str(e)}")
-            self.prize_probabilities = {}
 
-        return self.prize_probabilities
+            return self.prize_probabilities
 
-    def call_lottery_api(self, user_id: str, times: int) -> Dict[str, int]:
+    def _user_lottery_task(self, user_id: str, required_times: int, result_lock: threading.Lock) -> Dict[str, int]:
         """
-        调用抽奖API
-
+        单个用户的抽奖任务
+        
         Args:
             user_id: 用户ID
-            times: 本次抽奖次数
-
+            required_times: 该用户需要完成的抽奖次数
+            result_lock: 结果合并锁
+        
         Returns:
-            Dict[str, int]: 抽奖结果，键为奖品名称，值为获得数量
+            Dict[str, int]: 该用户的抽奖结果
         """
-        try:
-            auth_sign = self.users[user_id]["sign"]
+        # 为每个线程创建独立的ApiClient实例
+        thread_api_client = ApiClient()
 
-            # 抽奖请求参数
-            if self.lottery_type == "COUPON":
-                params = {
-                    "times": times,
-                    "number": self.activity_number,
-                }
-            else:  # MATERIAL
-                params = {
-                    "num": times,
-                }
+        user_results = {prize: 0 for prize in self.get_prize_probabilities()}
+        user_results["未知奖品"] = 0
 
-            response = self.api_client.get(
-                url = self.lottery_api,
-                params = params,
-                headers = {"Content-Type": "application/json", "sign": auth_sign}
-            )
+        remaining_times = required_times
+        completed_times = 0
+        consecutive_failures = 0
+        max_consecutive_failures = 3
 
-            if response.status_code == 200:
-                response_json = response.json()
+        def get_optimal_times(remaining: int) -> int:
+            """
+            选择最优抽奖次数
+            """
+            if remaining <= 1:
+                return remaining
+            
+            # 从times_options中选择不超过用户剩余次数的最大值
+            available_times_options = [t for t in self.times_options if t <= remaining]
+            if not available_times_options:
+                return remaining
 
-                # 抽奖成功
-                if response_json.get("code") == 200:
-                    data = response_json.get("data", [])
+            # 优先选择较大的抽奖次数, 减少API调用
+            max_option = max(available_times_options)
 
-                    lottery_result = {}
-                    if data and len(data) > 0:
-                        for item in data:
-                            prize_name = item.get("name", "未知奖品")
-                            count = item.get("rewardCount", 0)
-                            if prize_name in lottery_result:
-                                lottery_result[prize_name] += count
-                            else:
-                                lottery_result[prize_name] = count
+            return max_option
 
-                    self.logger.info(f"用户 {user_id} 抽奖结果: {lottery_result}")
-                    return lottery_result
+        while remaining_times > 0 and consecutive_failures < max_consecutive_failures:
+            # 选择抽奖次数
+            current_times = get_optimal_times(remaining_times)
+            current_times = min(current_times, remaining_times)
+
+            self.logger.info(f"用户 {user_id}: 执行 {current_times} 次抽奖, 剩余 {remaining_times} 次")
+
+            # 调用抽奖API (使用当前线程的ApiClient实例)
+            try:
+                auth_sign = self.users[user_id]["sign"]
+
+                # 抽奖请求参数
+                if self.lottery_type == "COUPON":
+                    params = {
+                        "times": current_times,
+                        "number": self.activity_number,
+                    }
+                else:  # MATERIAL
+                    params = {
+                        "num": current_times,
+                    }
+
+                response = thread_api_client.get(
+                    url = self.lottery_api,
+                    params = params,
+                    headers = {"Content-Type": "application/json", "sign": auth_sign}
+                )
+
+                lottery_result = {}
+                if response.status_code == 200:
+                    response_json = response.json()
+
+                    # 抽奖成功
+                    if response_json.get("code") == 200:
+                        data = response_json.get("data", [])
+
+                        if data and len(data) > 0:
+                            for item in data:
+                                prize_name = item.get("name", "未知奖品")
+                                count = item.get("rewardCount", 0)
+                                if prize_name in lottery_result:
+                                    lottery_result[prize_name] += count
+                                else:
+                                    lottery_result[prize_name] = count
+                    else:
+                        # 抽奖失败，根据错误码进行分类处理
+                        error_msg = response_json.get("err", "未知错误")
+                        error_code = response_json.get("code", "未知错误")
+
+                        # 可重试错误码列表（示例，根据实际情况调整）
+                        retryable_codes = [500, 502, 503, 504, 429]  # 服务器错误和限流
+
+                        if error_code in retryable_codes:
+                            self.logger.warning(f"[可重试] 用户 {user_id} 抽奖失败, 错误信息: {error_code}, {error_msg} - 将重试")
+                        else:
+                            self.logger.error(f"[不可重试] 用户 {user_id} 抽奖失败, 错误信息: {error_code}, {error_msg} - 停止重试")
+                            consecutive_failures = max_consecutive_failures  # 标记为不可重试，加速退出
                 else:
-                    # 抽奖失败
-                    error_msg = response_json.get("err", "未知错误")
-                    error_code = response_json.get("code", "未知错误")
-                    self.logger.error(f"[失败] 用户 {user_id} 抽奖失败, 错误信息: {error_code}, {error_msg}")
-                    return {}
-            else:
-                self.logger.error(f"[失败] 用户 {user_id} 抽奖接口请求失败, 状态码: {response.status_code}, 响应: {response.text}")
-                return {}
+                    # HTTP状态码错误
+                    self.logger.error(f"[HTTP错误] 用户 {user_id} 抽奖接口请求失败, 状态码: {response.status_code}, 响应: {response.text}")
+            except Exception as e:
+                # 通用异常处理，避免直接依赖requests模块
+                error_str = str(e)
+                if "timeout" in error_str.lower() or "time out" in error_str.lower():
+                    self.logger.warning(f"[超时错误] 用户 {user_id} 抽奖请求超时: {error_str} - 将重试")
+                    lottery_result = {}
+                elif any(keyword in error_str.lower() for keyword in ["connection", "network", "connect", "socket"]):
+                    self.logger.warning(f"[网络异常] 用户 {user_id} 抽奖网络请求异常: {error_str} - 将重试")
+                    lottery_result = {}
+                else:
+                    # 其他未知异常
+                    self.logger.error(f"[未知异常] 用户 {user_id} 抽奖接口调用异常: {error_str} - 停止重试")
+                    lottery_result = {}
+                    consecutive_failures = max_consecutive_failures  # 标记为不可重试，加速退出
+            
+            if lottery_result:
+                # 更新用户抽奖结果
+                with result_lock:
+                    for prize, count in lottery_result.items():
+                        if prize in user_results:
+                            user_results[prize] += count
+                        else:
+                            user_results["未知奖品"] += count
+                
+                # 更新剩余次数
+                remaining_times -= current_times
+                completed_times += current_times
+                consecutive_failures = 0
 
-        except Exception as e:
-            self.logger.error(f"[失败] 用户 {user_id} 抽奖接口调用异常: {str(e)}")
-            return {}
+                self.logger.info(f"[成功] 用户 {user_id} 完成 {completed_times} 次抽奖, 剩余 {remaining_times} 次")
+            else:
+                # 抽奖失败
+                consecutive_failures += 1
+                self.logger.error(f"[失败] 用户 {user_id} 抽奖失败, 连续失败 {consecutive_failures} 次")
+
+            # 增加延迟时间到2-2.5秒随机, 避免操作太快
+            delay_time = random.uniform(2.0, 2.5)
+            time.sleep(delay_time)
+
+        if consecutive_failures >= max_consecutive_failures:
+            self.logger.warning(f"用户 {user_id} 连续失败次数过多({max_consecutive_failures}), 停止抽奖")
+
+        if remaining_times > 0:
+            self.logger.warning(f"用户 {user_id} 未完成全部抽奖次数, 剩余 {remaining_times} 次")
+
+        # 关闭当前线程的ApiClient实例
+        thread_api_client.close()
+
+        return user_results
 
     def execute_lottery_rounds(self, user_times: Dict[str, int]) -> Tuple[Dict[str, Dict[str, int]], Dict[str, int]]:
         """
         执行抽奖轮次
-        支持随机抽奖次数选择，处理用户剩余次数不足的情况
+        支持多线程并发抽奖
 
         Args:
             user_times: 用户抽奖次数分配
@@ -538,161 +643,54 @@ class MultiUserLotteryProbabilityValidator:
         """
         # 初始化结果存储
         personal_results = {}
-        for user_id in user_times.keys():
-            personal_results[user_id] = {prize: 0 for prize in self.get_prize_probabilities()}
-            personal_results[user_id]["未知奖品"] = 0
-
         server_results = {prize: 0 for prize in self.get_prize_probabilities()}
         server_results["未知奖品"] = 0
 
-        # 记录每个用户的剩余抽奖次数
-        user_remaining_times = user_times.copy()
-
-        # 记录每个用户的连续失败次数
-        user_fail_count = {user_id: 0 for user_id in user_times.keys()}
-        failed_users = set()
-        max_consecutive_failures = 3
-        # 最大循环次数限制，防止无限循环
-        max_rounds = self.total_times
-        current_round = 0
-
-        self.logger.info(f"开始执行抽奖, 抽奖次数选项: {self.times_options}")
-
-        completed_rounds = 0
+        result_lock = threading.Lock()
         total_completed_times = 0
 
-        def get_optimal_times(userid: str) -> int:
-            """
-            选择最优抽奖次数
-            Returns:
-                int: 最优抽奖次数
-            """
-            user_remaining = user_remaining_times[userid]
+        self.logger.info(f"开始执行并发抽奖, 最大并发数: {len(user_times)}")
+        self.logger.info(f"抽奖次数选项: {self.times_options}")
 
-            if user_remaining <= 1:
-                return user_remaining
+        # 使用线程池执行并发抽奖
+        # 线程池大小设置为用户数量，最多不超过20
+        max_workers = min(len(user_times), 20)
 
-            # 从times_options中选择不超过用户剩余次数的最大值
-            available_times_options = [t for t in self.times_options if t <= user_remaining]
-            if not available_times_options:
-                return user_remaining
+        with ThreadPoolExecutor(max_workers = max_workers, thread_name_prefix = "LotteryThread") as executor:
+            # 提交任务到线程池
+            future_to_user = {}
+            for user_id, required_times in user_times.items():
+                future = executor.submit(
+                    self._user_lottery_task,
+                    user_id,
+                    required_times,
+                    result_lock
+                )
+                future_to_user[future] = user_id
 
-            # 优先选择较大的抽奖次数，减少API调用
-            max_option = max(available_times_options)
+            # 收集结果
+            for future in as_completed(future_to_user):
+                user_id = future_to_user[future]
+                try:
+                    user_result = future.result()
+                    personal_results[user_id] = user_result
 
-            # 如果选择最大选项后，剩余次数还能被其他选项整除，则选择最大选项
-            remaining_after_max = user_remaining - max_option
+                    # 合并到全服结果
+                    with result_lock:
+                        for prize, count in user_result.items():
+                            if prize in server_results:
+                                server_results[prize] += count
+                            else:
+                                server_results["未知奖品"] += count
+                        total_completed_times += sum(user_result.values())
 
-            if remaining_after_max == 0:
-                return max_option
+                    self.logger.info(f"用户 {user_id} 抽奖完成, 结果: {user_result}")
+                except Exception as e:
+                    self.logger.error(f"用户 {user_id} 抽奖任务执行失败: {str(e)}")
+                    personal_results[user_id] = {prize: 0 for prize in self.get_prize_probabilities()}
+                    personal_results[user_id]["未知奖品"] = 0
 
-            # 检查剩余次数是否能被其他选项整除
-            for option in sorted(available_times_options, reverse = True):
-                if remaining_after_max >= option and remaining_after_max % option == 0:
-                    return max_option
-
-            # 如果选择最大选项会导致剩余次数难以分配，尝试次大选项
-            if len(available_times_options) > 1:
-                second_max = sorted(available_times_options, reverse = True)[1]
-                remaining_after_second = user_remaining - second_max
-                if remaining_after_second == 0:
-                    return second_max
-                for option in sorted(available_times_options, reverse = True):
-                    if remaining_after_second >= option and remaining_after_second % option == 0:
-                        return second_max
-
-            return max_option
-
-        while sum(user_remaining_times.values()) > 0 and current_round < max_rounds:
-            current_round += 1
-
-            # 选择用户: 优先选择未失败的用户
-            available_users = [uid for uid in user_remaining_times.keys()
-                               if uid not in failed_users and user_remaining_times[uid] > 0]
-
-            if not available_users:
-                all_users_failed = True
-                for user_id, remaining in user_remaining_times.items():
-                    if remaining > 0:
-                        if user_fail_count[user_id] < max_consecutive_failures:
-                            all_users_failed = False
-                            failed_users.discard(user_id)
-                            break
-
-                if all_users_failed:
-                    self.logger.warning("所有用户都无法抽奖，退出循环")
-                    break
-
-                # 重置失败用户集合，重新尝试
-                self.logger.warning("所有用户都失败了，重置失败用户集合")
-                failed_users.clear()
-                available_users = [uid for uid in user_remaining_times.keys()
-                                   if user_remaining_times[uid] > 0]
-
-            if not available_users:
-                break
-
-            # 随机选择一个用户
-            user_id = random.choice(available_users)
-            remaining_times = user_remaining_times[user_id]
-
-            if remaining_times <= 0:
-                continue
-
-            # 选择抽奖次数
-            current_times = get_optimal_times(user_id)
-            current_times = min(current_times, remaining_times)
-
-            self.logger.info(f"第{completed_rounds + 1}轮: 用户 {user_id}, 抽奖次数: {current_times}")
-
-            # 直接调用抽奖API
-            lottery_result = self.call_lottery_api(user_id, current_times)
-
-            if lottery_result:
-                # 更新个人抽奖结果
-                for prize, count in lottery_result.items():
-                    if prize in personal_results[user_id]:
-                        personal_results[user_id][prize] += count
-                    else:
-                        personal_results[user_id]["未知奖品"] += count
-
-                # 更新全服抽奖结果
-                for prize, count in lottery_result.items():
-                    if prize in server_results:
-                        server_results[prize] += count
-                    else:
-                        server_results["未知奖品"] += count
-
-                # 更新剩余次数
-                user_remaining_times[user_id] -= current_times
-                total_completed_times += current_times
-                completed_rounds += 1
-
-                # 重置失败计数
-                user_fail_count[user_id] = 0
-                if user_id in failed_users:
-                    failed_users.remove(user_id)
-
-                self.logger.info(f"[成功] 第{completed_rounds}轮抽奖完成, 用户 {user_id} 剩余次数: {user_remaining_times[user_id]}")
-            else:
-                # 抽奖失败
-                user_fail_count[user_id] += 1
-                self.logger.error(f"[失败] 第{completed_rounds + 1}轮抽奖失败, 用户 {user_id}")
-
-                if user_fail_count[user_id] >= max_consecutive_failures:
-                    failed_users.add(user_id)
-                    self.logger.warning(f"用户 {user_id} 连续失败次数过多，暂时跳过")
-
-            # 增加延迟时间到2-2.5秒随机，避免操作太快
-            delay_time = random.uniform(2.0, 2.5)
-            time.sleep(delay_time)
-
-        # 检查是否因为循环次数过多而退出
-        if current_round >= max_rounds:
-            self.logger.warning(f"达到最大循环次数限制({max_rounds})，强制退出循环")
-            self.logger.info(f"当前剩余抽奖次数: {sum(user_remaining_times.values())}")
-
-        self.logger.info(f"抽奖完成: 共执行 {completed_rounds} 轮, {total_completed_times} 次抽奖")
+        self.logger.info(f"并发抽奖完成: 共完成 {total_completed_times} 次抽奖")
         return personal_results, server_results
 
     def calculate_probabilities(self, results: Dict[str, int], total_times: int) -> Dict[str, float]:
@@ -765,19 +763,19 @@ class MultiUserLotteryProbabilityValidator:
 
         # 登录所有用户
         if not self.login_all_users():
-            self.logger.error("所有用户登录失败，无法继续验证")
+            self.logger.error("所有用户登录失败, 无法继续验证")
             return False
 
         # 分配抽奖次数
         user_times = self.distribute_lottery_times()
         if not user_times:
-            self.logger.error("抽奖次数分配失败，无法继续验证")
+            self.logger.error("抽奖次数分配失败, 无法继续验证")
             return False
 
         # 检查抽奖次数
         check = self.check_and_update_user_lottery_times(user_times)
         if not check:
-            self.logger.error("抽奖次数不满足要求，无法继续验证")
+            self.logger.error("抽奖次数不满足要求, 无法继续验证")
             return False
 
         # 执行抽奖
@@ -785,7 +783,7 @@ class MultiUserLotteryProbabilityValidator:
 
         total_server_times = sum(server_results.values())
         if total_server_times == 0:
-            self.logger.error("抽奖执行失败，没有有效的抽奖结果")
+            self.logger.error("抽奖执行失败, 没有有效的抽奖结果")
             return False
         else:
             self.logger.info(f"=== 最终抽奖结果 ===")
@@ -814,7 +812,7 @@ class MultiUserLotteryProbabilityValidator:
                 self.logger.info("✅ 全服概率验证通过")
             else:
                 server_valid = False
-                self.logger.warning("⚠️ 总抽奖次数低于阈值，跳过全服概率验证")
+                self.logger.warning("⚠️ 总抽奖次数低于阈值, 跳过全服概率验证")
 
         # 验证个人概率
         if self.validation_mode in ["BOTH", "PERSONAL"]:
@@ -833,7 +831,7 @@ class MultiUserLotteryProbabilityValidator:
                     else:
                         self.logger.warning(f"⚠️ 用户 {user_id} 个人概率验证跳过")
                 else:
-                    self.logger.warning(f"⚠️ 用户 {user_id} 没有有效的抽奖结果，跳过个人概率验证")
+                    self.logger.warning(f"⚠️ 用户 {user_id} 没有有效的抽奖结果, 跳过个人概率验证")
 
         # 验证结果
         self.logger.info("=== 最终验证结果 ===")

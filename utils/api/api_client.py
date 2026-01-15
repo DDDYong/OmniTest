@@ -50,20 +50,22 @@ class ApiClient:
         Returns:
             requests.Session: 配置好的会话对象
         """
+        # requests_module, _, http_adapter_class, retry_class = _get_requests_module()
         session = requests.Session()
 
-        # 配置重试策略, 使用默认值避免依赖不存在的配置属性
-        retry_strategy = Retry(
-            total = getattr(config, 'DEFAULT_RETRY_COUNT', 3),
-            backoff_factor = 0.3,
-            status_forcelist = [500, 502, 503, 504],
-            allowed_methods = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD"]
-        )
+        # 配置重试策略
+        if HTTPAdapter and Retry:
+            retry_strategy = Retry(
+                total = getattr(config, 'DEFAULT_RETRY_COUNT', 3),
+                backoff_factor = 0.3,
+                status_forcelist = [500, 502, 503, 504],
+                allowed_methods = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD"]
+            )
 
-        # 挂载适配器到会话
-        adapter = HTTPAdapter(max_retries = retry_strategy, pool_connections = 50, pool_maxsize = 100)
-        session.mount("http://", adapter)
-        session.mount("https://", adapter)
+            # 挂载适配器到会话
+            adapter = HTTPAdapter(max_retries = retry_strategy, pool_connections = 50, pool_maxsize = 100)
+            session.mount("http://", adapter)
+            session.mount("https://", adapter)
 
         # 设置默认超时
         session.timeout = self.timeout
@@ -159,7 +161,7 @@ class ApiClient:
 
         return request_kwargs
 
-    @retry(max_retries = 3, delay = 1)  # 使用默认值避免循环依赖, 实际值会在函数内部记录
+    @retry(max_retries = 3, delay = 1)
     @timing
     def request(self, url: str, method: str, **kwargs) -> Response:
         """
