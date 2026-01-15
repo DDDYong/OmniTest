@@ -228,7 +228,7 @@ class ActivityRewardVerification:
                 })
 
             # rewardID一致, 进一步校验奖励有效期(valid_days vs rewardCount)是否一致
-            # 特殊处理：勋章(Type=1)和靓号(Type=6)是永久奖励，跳过有效期校验
+            # 特殊处理：勋章(Type=1)和靓号(Type=6)是永久奖励, 跳过有效期校验
             if rewardType_db in [1, 6]:
                 if rewardCount_db == 1:
                     # self.logger.info(f"跳过有效期验证 - 奖励: {doc_info["rewardType_desc_doc"]} (Type={rewardType_db}) | 榜单: {doc_info['activityType_name_doc']} | 排名: {rankNumber_db} | 文档有效期: {doc_info['valid_days_doc']} | 数据库数量: {rewardCount_db}个")
@@ -301,7 +301,7 @@ class ActivityRewardVerification:
         if not any(differences.values()):
             self.logger.info("✅ 数据库配置所有奖励均在文档中存在, 且rewardId、有效期完全一致！")
         else:
-            self.logger.warning(f"❌ 发现 {sum(len(v) for v in differences.values())} 条差异，请检查文档和数据库配置！")
+            self.logger.warning(f"❌ 发现 {sum(len(v) for v in differences.values())} 条差异, 请检查文档和数据库配置！")
 
         return differences
 
@@ -337,22 +337,22 @@ class ActivityRewardVerification:
 
                 # 检查数据量是否足够
                 if len(raw_data) < rank_coverage:
-                    self.logger.warning(f"现有数据不足TopN({rank_coverage})，当前只有{len(raw_data)}条，需要补足数据")
+                    self.logger.warning(f"现有数据不足TopN({rank_coverage}), 当前只有{len(raw_data)}条, 需要补足数据")
                     missing_count = rank_coverage - len(raw_data)
 
                     # 插入缺少的数据
                     inserted_count = self._insert_test_ranking_data(rank_category, rank_day, stage, missing_count)
 
                     if inserted_count > 0:
-                        self.logger.info(f"成功插入{inserted_count}条测试数据，重新查询榜单数据")
+                        self.logger.info(f"成功插入{inserted_count}条测试数据, 重新查询榜单数据")
                         # 重新查询数据
                         raw_data = self._query_ranking_data(rank_category, rank_day, stage, rank_coverage)
                     else:
-                        self.logger.warning("复制数据失败，使用现有数据进行处理")
+                        self.logger.warning("复制数据失败, 使用现有数据进行处理")
 
                 # 处理榜单数据并计算排名
                 ranked_data = self._process_ranking_data(raw_data)
-                self.logger.info(f"成功获取到 {len(ranked_data)} 条榜单数据，排名范围: 1-{len(ranked_data)}")
+                self.logger.info(f"成功获取到 {len(ranked_data)} 条榜单数据, 排名范围: 1-{len(ranked_data)}")
 
                 return ranked_data
 
@@ -365,9 +365,9 @@ class ActivityRewardVerification:
         """查询榜单数据
         Args:
             rank_category: 榜单分类
-            rank_day: 榜单类型(日榜/总榜)，-1表示总榜，其他数字表示日榜
-            stage: 活动阶段(赛段/日期)，默认前一天
-            rank_coverage: 要获取的榜单Top N用户，默认10
+            rank_day: 榜单类型(日榜/总榜), -1表示总榜, 其他数字表示日榜
+            stage: 活动阶段(赛段/日期), 默认前一天
+            rank_coverage: 要获取的榜单Top N用户, 默认10
 
         Returns:
             List[Dict]: 格式化后的榜单数据
@@ -400,8 +400,8 @@ class ActivityRewardVerification:
             user_id: 用户ID
             imtimate_id: Partner用户ID
             ranking_category: 榜单分类
-            rank_day: 榜单类型(日榜/总榜)，-1表示总榜，其他数字表示日榜
-            stage: 活动阶段(赛段/日期)，默认前一天
+            rank_day: 榜单类型(日榜/总榜), -1表示总榜, 其他数字表示日榜
+            stage: 活动阶段(赛段/日期), 默认前一天
 
         Returns:
             bool: 用户是否已在榜单中
@@ -432,8 +432,8 @@ class ActivityRewardVerification:
         """插入测试榜单数据
         Args:
             ranking_category: 榜单分类
-            rank_day: 榜单类型(日榜/总榜)，-1表示总榜，其他数字表示日榜
-            stage: 活动阶段(赛段/日期)，默认前一天
+            rank_day: 榜单类型(日榜/总榜), -1表示总榜, 其他数字表示日榜
+            stage: 活动阶段(赛段/日期), 默认前一天
             count: 要插入的测试数据数量
         """
         # 从满足条件的榜单数据中取一条数据作为模板
@@ -449,10 +449,10 @@ class ActivityRewardVerification:
         template_data = self.db.get_one(template_query)
 
         if not template_data:
-            self.logger.warning("未找到符合条件的模板数据，无法进行复制")
+            self.logger.warning("未找到符合条件的模板数据, 无法进行复制")
             return 0
 
-        self.logger.info(f"找到模板数据，开始复制生成 {count} 条测试数据")
+        self.logger.info(f"找到模板数据, 开始复制生成 {count} 条测试数据")
 
         inserted_count = 0
         base_user_id = 1467213
@@ -467,7 +467,7 @@ class ActivityRewardVerification:
             else:  # 双人榜
                 intimate_id = user_account[12 + i]['user_id']
 
-            # 构建复制插入SQL，只修改关键字段
+            # 构建复制插入SQL, 只修改关键字段
             insert_query = """
                         INSERT INTO `kong_test`.`activity_rank` 
                         (userId, intimateId, number, category, stage, year, month, day, value, 
@@ -674,7 +674,7 @@ class ActivityRewardVerification:
             self.activity_number,)
         )
 
-        # 根据活动名称获取定时任务ID，并对ID进行处理
+        # 根据活动名称获取定时任务ID, 并对ID进行处理
         scheduled_tasks = self.db.execute_query("select job_desc as taskName, REPLACE(executor_handler, '#', '@') AS taskId from `xxl_job`.`xxl_job_info` where SUBSTRING_INDEX(SUBSTRING_INDEX(job_desc, '【', -1), '】', 1) = %s", (
             activity_name['activityName'],)
         )
@@ -724,7 +724,7 @@ class ActivityRewardVerification:
         """
         self.logger.info("开始验证奖励下发情况")
 
-        # 按用户ID分组，处理同一用户在多个榜单的情况
+        # 按用户ID分组, 处理同一用户在多个榜单的情况
         user_rewards_map = {}
 
         for user_data in ranking_data:
@@ -766,7 +766,7 @@ class ActivityRewardVerification:
             rankings = user_info['rankings']
             activity_types = user_info['activity_types']
 
-            self.logger.info(f"验证用户 {user_id} 的奖励下发情况（在 {len(rankings)} 个榜单中，排名: {rankings}）")
+            self.logger.info(f"验证用户 {user_id} 的奖励下发情况（在 {len(rankings)} 个榜单中, 排名: {rankings}）")
 
             # 去重处理：同一用户可能在不同榜单获得相同奖励
             unique_rewards = {}
@@ -775,7 +775,7 @@ class ActivityRewardVerification:
                 if reward_key not in unique_rewards:
                     unique_rewards[reward_key] = reward
                 else:
-                    # 如果同一奖励在多个榜单出现，取最长的有效期
+                    # 如果同一奖励在多个榜单出现, 取最长的有效期
                     existing_reward = unique_rewards[reward_key]
                     if reward.get('valid_days', 0) > existing_reward.get('valid_days', 0):
                         unique_rewards[reward_key] = reward

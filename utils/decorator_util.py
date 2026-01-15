@@ -26,7 +26,7 @@ def retry(max_retries = None, delay = None, exceptions = (Exception,)):
     Returns:
         function: 装饰后的函数
     """
-    # 使用默认值，避免在装饰时导入config
+    # 使用默认值, 避免在装饰时导入config
     default_max_retries = max_retries if max_retries is not None else 3
     default_delay = delay if delay is not None else 1
 
@@ -46,7 +46,7 @@ def retry(max_retries = None, delay = None, exceptions = (Exception,)):
                     if delay is None:
                         actual_delay = config.RETRY_INTERVAL
                 except ImportError:
-                    logger.warning("无法导入config模块，使用默认的重试配置")
+                    logger.warning("无法导入config模块, 使用默认的重试配置")
 
             last_exception = None
             for attempt in range(actual_max_retries):
@@ -56,9 +56,9 @@ def retry(max_retries = None, delay = None, exceptions = (Exception,)):
                     last_exception = e
                     error_str = str(e)
 
-                    # 检查是否包含502错误信息，如果是则直接终止进程
+                    # 检查是否包含502错误信息, 如果是则直接终止进程
                     if "502" in error_str or "too many 502 error responses" in error_str:
-                        logger.error(f"检测到502错误，服务不可用，直接终止进程: {error_str}")
+                        logger.error(f"检测到502错误, 服务不可用, 直接终止进程: {error_str}")
                         import sys
                         sys.exit(1)
 
@@ -109,7 +109,7 @@ def wait(delay_seconds = None):
     Returns:
         function: 装饰后的函数
     """
-    # 使用默认值，避免在装饰时导入config
+    # 使用默认值, 避免在装饰时导入config
     default_delay = delay_seconds if delay_seconds is not None else 1
 
     def decorator(func):
@@ -124,7 +124,7 @@ def wait(delay_seconds = None):
                     from config.config_manager import config
                     actual_delay = config.DEFAULT_WAIT_TIME
                 except ImportError:
-                    logger.warning("无法导入config模块，使用默认的等待配置")
+                    logger.warning("无法导入config模块, 使用默认的等待配置")
 
             # 记录等待信息
             logger.info(f"函数 {func.__name__} 开始等待 {actual_delay} 秒")
@@ -132,7 +132,7 @@ def wait(delay_seconds = None):
             # 执行等待
             time.sleep(actual_delay)
 
-            logger.info(f"函数 {func.__name__} 等待完成，开始执行")
+            logger.info(f"函数 {func.__name__} 等待完成, 开始执行")
 
             # 执行原函数
             return func(*args, **kwargs)
@@ -168,7 +168,7 @@ def wait_random(min_delay = 1, max_delay = 5):
             # 执行等待
             time.sleep(actual_delay)
 
-            logger.info(f"函数 {func.__name__} 随机等待完成，开始执行")
+            logger.info(f"函数 {func.__name__} 随机等待完成, 开始执行")
 
             # 执行原函数
             return func(*args, **kwargs)
@@ -187,8 +187,8 @@ def wait_with_jitter(base_delay = 2, jitter_factor = 0.3, jitter_type = "relativ
         base_delay: 基础等待时间（秒）
         jitter_factor: 抖动因子
         jitter_type: 抖动类型
-            - "relative": 相对抖动（默认），jitter_factor为比例（0-1之间）
-            - "absolute": 绝对抖动，jitter_factor为绝对时间（秒），支持正负值
+            - "relative": 相对抖动（默认）, jitter_factor为比例（0-1之间）
+            - "absolute": 绝对抖动, jitter_factor为绝对时间（秒）, 支持正负值
 
     Returns:
         function: 装饰后的函数
@@ -206,7 +206,7 @@ def wait_with_jitter(base_delay = 2, jitter_factor = 0.3, jitter_type = "relativ
                 max_delay = base_delay + jitter_range
                 jitter_description = f"±{jitter_factor * 100:.0f}%"
             else:
-                # 绝对抖动：jitter_factor为绝对时间（秒），支持正负值
+                # 绝对抖动：jitter_factor为绝对时间（秒）, 支持正负值
                 min_delay = base_delay + jitter_factor
                 max_delay = base_delay - jitter_factor
                 jitter_description = f"±{abs(jitter_factor)}秒"
@@ -215,7 +215,7 @@ def wait_with_jitter(base_delay = 2, jitter_factor = 0.3, jitter_type = "relativ
             min_delay = max(0.1, min_delay)
             max_delay = max(0.1, max_delay)
 
-            # 如果最大值小于最小值，交换它们
+            # 如果最大值小于最小值, 交换它们
             if max_delay < min_delay:
                 min_delay, max_delay = max_delay, min_delay
 
@@ -228,7 +228,7 @@ def wait_with_jitter(base_delay = 2, jitter_factor = 0.3, jitter_type = "relativ
             # 执行等待
             time.sleep(actual_delay)
 
-            logger.info(f"函数 {func.__name__} 带抖动等待完成，开始执行")
+            logger.info(f"函数 {func.__name__} 带抖动等待完成, 开始执行")
 
             # 执行原函数
             return func(*args, **kwargs)
@@ -249,7 +249,7 @@ def wait_after(delay_seconds = None):
     Returns:
         function: 装饰后的函数
     """
-    # 使用默认值，避免在装饰时导入config
+    # 使用默认值, 避免在装饰时导入config
     default_delay = delay_seconds if delay_seconds is not None else 1
 
     def decorator(func):
@@ -264,13 +264,13 @@ def wait_after(delay_seconds = None):
                     from config.config_manager import config
                     actual_delay = config.DEFAULT_WAIT_TIME
                 except ImportError:
-                    logger.warning("无法导入config模块，使用默认的等待配置")
+                    logger.warning("无法导入config模块, 使用默认的等待配置")
 
             # 执行原函数
             result = func(*args, **kwargs)
 
             # 记录等待信息
-            logger.info(f"函数 {func.__name__} 执行完成，开始等待 {actual_delay} 秒")
+            logger.info(f"函数 {func.__name__} 执行完成, 开始等待 {actual_delay} 秒")
 
             # 执行等待
             time.sleep(actual_delay)
@@ -290,8 +290,8 @@ def wait_until(condition_func = None, timeout = None, interval = 1):
     等待条件满足后再执行函数
 
     Args:
-        condition_func: 条件判断函数，返回True表示条件满足
-        timeout: 最大等待时间（秒），默认无限等待
+        condition_func: 条件判断函数, 返回True表示条件满足
+        timeout: 最大等待时间（秒）, 默认无限等待
         interval: 检查间隔（秒）
 
     Returns:
@@ -304,7 +304,7 @@ def wait_until(condition_func = None, timeout = None, interval = 1):
             start_time = time.time()
             wait_count = 0
 
-            # 如果有条件函数，等待条件满足
+            # 如果有条件函数, 等待条件满足
             if condition_func:
                 logger.info(f"函数 {func.__name__} 等待条件满足...")
 
@@ -314,14 +314,14 @@ def wait_until(condition_func = None, timeout = None, interval = 1):
                     # 检查条件
                     try:
                         if condition_func():
-                            logger.info(f"函数 {func.__name__} 条件已满足，等待 {wait_count} 次后开始执行")
+                            logger.info(f"函数 {func.__name__} 条件已满足, 等待 {wait_count} 次后开始执行")
                             break
                     except Exception as e:
                         logger.warning(f"条件检查失败: {str(e)}")
 
                     # 检查超时
                     if timeout and (time.time() - start_time) >= timeout:
-                        logger.error(f"函数 {func.__name__} 等待超时（{timeout}秒），条件未满足")
+                        logger.error(f"函数 {func.__name__} 等待超时（{timeout}秒）, 条件未满足")
                         raise TimeoutError(f"等待条件超时（{timeout}秒）")
 
                     # 等待间隔
@@ -406,7 +406,7 @@ def timeout(seconds = None):
     Returns:
         function: 装饰后的函数
     """
-    # 使用默认值，避免在装饰时导入config
+    # 使用默认值, 避免在装饰时导入config
     default_seconds = seconds if seconds is not None else 30
 
     def decorator(func):
@@ -421,7 +421,7 @@ def timeout(seconds = None):
                     from config.config_manager import config
                     actual_seconds = config.DEFAULT_TIMEOUT
                 except ImportError:
-                    logger.warning("无法导入config模块，使用默认的超时配置")
+                    logger.warning("无法导入config模块, 使用默认的超时配置")
 
             # 定义超时异常
             class TimeoutError(Exception):

@@ -60,7 +60,7 @@ class Logger:
         """
         self.logger = logging.getLogger(logger_name)
 
-        # 直接导入配置，使用懒加载代理
+        # 直接导入配置, 使用懒加载代理
         try:
             from config.config_manager import config
             log_level = getattr(logging, config.LOG_LEVEL, getattr(logging, DEFAULT_LOG_LEVEL))
@@ -136,7 +136,7 @@ class Logger:
         self.logger.exception(message)
 
 
-# 懒加载logger实例，避免循环依赖
+# 懒加载logger实例, 避免循环依赖
 logger = None
 
 

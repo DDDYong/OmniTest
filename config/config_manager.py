@@ -510,7 +510,7 @@ class ConfigManager:
 
                 if name in special_mappings:
                     value = self.get_config_value(special_mappings[name])
-                    # 如果是路径配置项且值是相对路径，则转换为绝对路径
+                    # 如果是路径配置项且值是相对路径, 则转换为绝对路径
                     if name in path_configs and isinstance(value, str) and value.startswith('./'):
                         # 获取项目根目录（配置目录的父目录）
                         project_root = os.path.dirname(self.config_dir)
@@ -583,7 +583,7 @@ def ensure_directories():
 
     for dir_path in dirs_to_create:
         if dir_path:
-            # 确保路径是绝对路径，基于项目根目录
+            # 确保路径是绝对路径, 基于项目根目录
             if not os.path.isabs(dir_path):
                 dir_path = os.path.abspath(os.path.join(project_root, dir_path))
             os.makedirs(dir_path, exist_ok = True)
@@ -612,7 +612,7 @@ class LazyConfigProxy:
 config = LazyConfigProxy()
 
 # 全局配置管理器实例（懒加载）
-# 直接使用ConfigManager实例，不再使用LazyConfigManager包装
+# 直接使用ConfigManager实例, 不再使用LazyConfigManager包装
 config_manager = None
 
 
@@ -635,11 +635,11 @@ class LazyConfigManagerProxy:
 # 替换全局配置管理器实例为代理对象
 config_manager = LazyConfigManagerProxy()
 
-# 在模块加载完成后，延迟调用ensure_directories
+# 在模块加载完成后, 延迟调用ensure_directories
 try:
-    # 仅在主线程中调用，避免在导入时执行
+    # 仅在主线程中调用, 避免在导入时执行
     if __name__ == '__main__' or not hasattr(sys, 'argv'):
         ensure_directories()
 except:
-    # 如果在导入时调用失败，忽略错误，稍后在实际使用时再调用
+    # 如果在导入时调用失败, 忽略错误, 稍后在实际使用时再调用
     pass

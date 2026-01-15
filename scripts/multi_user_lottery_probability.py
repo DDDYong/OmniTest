@@ -15,15 +15,15 @@ import sys
 import time
 from typing import Dict, List, Optional, Tuple
 
-# 添加项目根目录到Python路径
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from config.config_manager import config_manager
 from utils import util
 from utils.api.api_client import ApiClient
 from utils.db.mysql_client import MySQLClient
 from utils.file_util import FileHandler
 from utils.logger_util import logger
+
+# 添加项目根目录到Python路径
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 class MultiUserLotteryProbabilityValidator:
@@ -341,7 +341,7 @@ class MultiUserLotteryProbabilityValidator:
             material_dict[m['id']] = m['name']
             material_id_list.append(m['id'])
 
-        # 构建批量查询语句
+        # 构建查询语句
         placeholders = ','.join(['%s'] * len(material_id_list))
         count_query = f"SELECT materialId, totalCount, usedCount FROM `kong_test`.`activity_material_count` WHERE materialId IN ({placeholders}) and userId = %s"
 
@@ -375,7 +375,7 @@ class MultiUserLotteryProbabilityValidator:
                     )
                     self.logger.info(f"[新增] 已为用户 {user_id} 的 {material_name} 创建记录, 初始数量: {required_times}")
 
-            # 直接计算需要更新的材料，不再重新查询
+            # 计算需要更新的材料
             count_dict = {item.get("materialId"): item for item in count} if count else {}
             need_update_materials = []
 
@@ -433,6 +433,16 @@ class MultiUserLotteryProbabilityValidator:
             return self.prize_probabilities
 
         self.logger.info(f"正在获取活动 {self.activity_number} 的奖品概率配置")
+        # self.prize_probabilities = {
+        #     "8金币礼物": 0.030000,
+        #     "88金币礼物": 0.010000,
+        #     "188金币礼物": 0.005000,
+        #     "进场特效进场特效": 0.125000,
+        #     "头像框A头像框": 0.150000,
+        #     "A房间气泡房间聊天气泡": 0.200000,
+        #     "私聊气泡A私聊气泡": 0.240000,
+        #     "私聊气泡B私聊气泡": 0.240000
+        # }
         try:
             # 从数据库中获取奖品概率配置
             query = "SELECT name, prob FROM kong_test.activity_material WHERE activityNumber = %s AND activityType = %s"
@@ -442,31 +452,12 @@ class MultiUserLotteryProbabilityValidator:
                 self.prize_probabilities = {item.get("name"): float(item.get("prob")) for item in prize}
                 self.logger.info(f"成功从数据库获取奖品概率配置: {self.prize_probabilities}")
             else:
-                # 如果数据库中没有配置，使用默认值
-                self.logger.warning(f"未从数据库获取到活动 {self.activity_number} 的奖品概率配置，使用默认值")
-                self.prize_probabilities = {
-                    "8金币礼物": 0.030000,
-                    "88金币礼物": 0.010000,
-                    "188金币礼物": 0.005000,
-                    "进场特效进场特效": 0.125000,
-                    "头像框A头像框": 0.150000,
-                    "A房间气泡房间聊天气泡": 0.200000,
-                    "私聊气泡A私聊气泡": 0.240000,
-                    "私聊气泡B私聊气泡": 0.240000
-                }
+                self.logger.warning(f"未从数据库获取到活动 {self.activity_number} 的奖品概率配置")
+                self.prize_probabilities = {}
         except Exception as e:
-            # 如果查询数据库失败，使用默认值
-            self.logger.error(f"从数据库获取奖品概率配置失败: {str(e)}，使用默认值")
-            self.prize_probabilities = {
-                "8金币礼物": 0.030000,
-                "88金币礼物": 0.010000,
-                "188金币礼物": 0.005000,
-                "进场特效进场特效": 0.125000,
-                "头像框A头像框": 0.150000,
-                "A房间气泡房间聊天气泡": 0.200000,
-                "私聊气泡A私聊气泡": 0.240000,
-                "私聊气泡B私聊气泡": 0.240000
-            }
+            # 查询数据库失败
+            self.logger.error(f"从数据库获取奖品概率配置失败: {str(e)}")
+            self.prize_probabilities = {}
 
         return self.prize_probabilities
 
@@ -871,8 +862,8 @@ def main():
         activity_number = 1055,
         lottery_api = "/api/activity/lottery/start",
         accounts = accounts,
-        total_times = 2000,
-        user_times_range = [500, 850],
+        total_times = 20,
+        user_times_range = [5, 10],
         times_options = [1, 10, 50],
         allowed_deviation = 0.02,
         threshold = 500

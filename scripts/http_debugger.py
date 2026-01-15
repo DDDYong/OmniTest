@@ -26,7 +26,7 @@ class HTTPDebugger:
         初始化调试器
 
         Args:
-            base_url: 基础域名，可选
+            base_url: 基础域名, 可选
         """
         self.base_url = base_url
         self.session = requests.Session()
@@ -170,7 +170,7 @@ class HTTPDebugger:
             json_data = response.json()
             print(json.dumps(json_data, indent = 2, ensure_ascii = False))
         except:
-            # 如果不是JSON，显示文本内容
+            # 如果不是JSON, 显示文本内容
             content = response.text
             if len(content) > 1000:
                 print(content[:1000] + "...")

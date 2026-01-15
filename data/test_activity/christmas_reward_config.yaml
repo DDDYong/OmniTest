@@ -57,7 +57,7 @@
 
 - activityType: 82
   activityType_name: 圣诞总榜
-  rank_coverage: 10  # 前10名获奖（1-3名单独配置，4-10名拆分为独立配置）
+  rank_coverage: 10  # 前10名获奖（1-3名单独配置, 4-10名拆分为独立配置）
   reward_details:
     - rank: 1  # 总榜冠军
       rewards:
@@ -68,7 +68,7 @@
           reward_desc: 圣诞总榜冠军勋章
         - rewardType: 16
           rewardType_name: DUKE_NOBLE
-          rewardId: 0  # 体验卡无具体资源ID，填0占位
+          rewardId: 0  # 体验卡无具体资源ID, 填0占位
           valid_days: 30
           reward_desc: 公爵贵族体验卡
         - rewardType: 5

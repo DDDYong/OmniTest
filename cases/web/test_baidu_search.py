@@ -26,7 +26,7 @@ class TestBaiduSearch:
     包含打开百度首页、输入关键词搜索和验证搜索结果等测试用例
     """
 
-    # 类变量，用于存储driver和页面对象
+    # 类变量, 用于存储driver和页面对象
     driver = None
     baidu_home_page = None
 

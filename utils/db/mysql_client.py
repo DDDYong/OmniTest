@@ -173,7 +173,7 @@ class MySQLClient:
             self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.server_socket.bind(('', local_port))
             self.server_socket.listen(100)
-            # 设置socket为非阻塞模式，以便可以优雅退出
+            # 设置socket为非阻塞模式, 以便可以优雅退出
             self.server_socket.settimeout(1.0)
 
             while not self._stop_forwarding:
@@ -190,7 +190,7 @@ class MySQLClient:
                     thread.start()
 
                 except socket.timeout:
-                    # 超时是正常的，继续检查停止标志
+                    # 超时是正常的, 继续检查停止标志
                     continue
                 except Exception as e:
                     if not self._stop_forwarding:

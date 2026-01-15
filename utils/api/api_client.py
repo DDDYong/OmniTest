@@ -16,7 +16,7 @@ from requests import Response
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-# 直接导入配置，使用懒加载代理
+# 直接导入配置, 使用懒加载代理
 from config.config_manager import config
 from utils.decorator_util import retry, timing
 from utils.logger_util import logger
@@ -52,7 +52,7 @@ class ApiClient:
         """
         session = requests.Session()
 
-        # 配置重试策略，使用默认值避免依赖不存在的配置属性
+        # 配置重试策略, 使用默认值避免依赖不存在的配置属性
         retry_strategy = Retry(
             total = getattr(config, 'DEFAULT_RETRY_COUNT', 3),
             backoff_factor = 0.3,
@@ -159,7 +159,7 @@ class ApiClient:
 
         return request_kwargs
 
-    @retry(max_retries = 3, delay = 1)  # 使用默认值避免循环依赖，实际值会在函数内部记录
+    @retry(max_retries = 3, delay = 1)  # 使用默认值避免循环依赖, 实际值会在函数内部记录
     @timing
     def request(self, url: str, method: str, **kwargs) -> Response:
         """

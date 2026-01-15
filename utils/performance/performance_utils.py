@@ -88,7 +88,7 @@ class PerformanceUtils:
                 from config.config_manager import config
                 data_dir = config.DATA_DIR
             except ImportError:
-                logger.warning("无法导入config模块，使用默认数据目录")
+                logger.warning("无法导入config模块, 使用默认数据目录")
             output_file = os.path.join(
                 data_dir,
                 f"performance_test_data_{timestamp}.{data_type}"
@@ -110,8 +110,8 @@ class PerformanceUtils:
                 df = pd.DataFrame(data_records)
                 df.to_csv(output_file, index = False, encoding = "utf-8")
             except ImportError:
-                logger.error("缺少pandas库，无法生成CSV文件")
-                raise ImportError("缺少pandas库，请安装后重试")
+                logger.error("缺少pandas库, 无法生成CSV文件")
+                raise ImportError("缺少pandas库, 请安装后重试")
         else:
             raise ValueError(f"不支持的数据类型: {data_type}")
 
@@ -182,8 +182,8 @@ class PerformanceUtils:
         try:
             import pandas as pd
         except ImportError:
-            logger.error("缺少pandas库，无法解析Locust测试结果")
-            raise ImportError("缺少pandas库，请安装后重试")
+            logger.error("缺少pandas库, 无法解析Locust测试结果")
+            raise ImportError("缺少pandas库, 请安装后重试")
         import glob
 
         logger.info(f"开始解析Locust测试结果,目录: {results_dir}")
