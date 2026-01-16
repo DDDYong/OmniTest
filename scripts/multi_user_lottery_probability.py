@@ -8,10 +8,7 @@ Description:
 多用户抽奖概率验证脚本
 -------------------------------------------------
 """
-import datetime
-import os
 import random
-import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -23,9 +20,6 @@ from utils.api.api_client import ApiClient
 from utils.db.mysql_client import MySQLClient
 from utils.file_util import FileHandler
 from utils.logger_util import logger
-
-# 添加项目根目录到Python路径
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 class MultiUserLotteryProbabilityValidator:
@@ -164,8 +158,8 @@ class MultiUserLotteryProbabilityValidator:
                     # 关闭临时ApiClient实例
                     login_api_client.close()
                     return True, account
-            except Exception as e:
-                self.logger.error(f"[失败] 登录异常: {str(e)}")
+            except Exception as exp:
+                self.logger.error(f"[失败] 登录异常: {str(exp)}")
                 return False, account
 
         # 使用线程池执行并发登录
@@ -392,8 +386,7 @@ class MultiUserLotteryProbabilityValidator:
                     material_name = material_dict.get(material_id, f"未知抽奖材料({material_id})")
                     self.db.execute_update(
                         insert_query,
-                        (material_id, user_id, required_times, 0, '8', datetime.datetime.now(),
-                         datetime.datetime.now()),
+                        (material_id, user_id, required_times, 0, '8', util.current_time(), util.current_time()),
                     )
                     self.logger.info(f"[新增] 已为用户 {user_id} 的 {material_name} 创建记录, 初始数量: {required_times}")
 
@@ -555,7 +548,6 @@ class MultiUserLotteryProbabilityValidator:
                     # 抽奖成功
                     if response_json.get("code") == 200:
                         data = response_json.get("data", [])
-
                         if data and len(data) > 0:
                             for item in data:
                                 prize_name = item.get("name", "未知奖品")
@@ -564,24 +556,25 @@ class MultiUserLotteryProbabilityValidator:
                                     lottery_result[prize_name] += count
                                 else:
                                     lottery_result[prize_name] = count
+                        self.logger.info(f"用户 {user_id} 抽奖成功, 奖品: {lottery_result}")
                     else:
                         # 抽奖失败，根据错误码进行分类处理
                         error_msg = response_json.get("err", "未知错误")
                         error_code = response_json.get("code", "未知错误")
 
-                        # 可重试错误码列表（示例，根据实际情况调整）
-                        retryable_codes = [500, 502, 503, 504, 429]  # 服务器错误和限流
+                        # 不可重试错误码列表
+                        retryable_codes = [10059]
 
-                        if error_code in retryable_codes:
+                        if error_code not in retryable_codes:
                             self.logger.warning(f"[可重试] 用户 {user_id} 抽奖失败, 错误信息: {error_code}, {error_msg} - 将重试")
                         else:
                             self.logger.error(f"[不可重试] 用户 {user_id} 抽奖失败, 错误信息: {error_code}, {error_msg} - 停止重试")
-                            consecutive_failures = max_consecutive_failures  # 标记为不可重试，加速退出
+                            consecutive_failures = max_consecutive_failures
                 else:
                     # HTTP状态码错误
                     self.logger.error(f"[HTTP错误] 用户 {user_id} 抽奖接口请求失败, 状态码: {response.status_code}, 响应: {response.text}")
             except Exception as e:
-                # 通用异常处理，避免直接依赖requests模块
+                # 通用异常处理
                 error_str = str(e)
                 if "timeout" in error_str.lower() or "time out" in error_str.lower():
                     self.logger.warning(f"[超时错误] 用户 {user_id} 抽奖请求超时: {error_str} - 将重试")
@@ -683,8 +676,6 @@ class MultiUserLotteryProbabilityValidator:
                             else:
                                 server_results["未知奖品"] += count
                         total_completed_times += sum(user_result.values())
-
-                    self.logger.info(f"用户 {user_id} 抽奖完成, 结果: {user_result}")
                 except Exception as e:
                     self.logger.error(f"用户 {user_id} 抽奖任务执行失败: {str(e)}")
                     personal_results[user_id] = {prize: 0 for prize in self.get_prize_probabilities()}
@@ -788,10 +779,10 @@ class MultiUserLotteryProbabilityValidator:
         else:
             self.logger.info(f"=== 最终抽奖结果 ===")
             if self.validation_mode in ["BOTH", "SERVER"]:
-                self.logger.info(f"全服:{server_results}")
+                self.logger.info(f"全服: {server_results}")
             if self.validation_mode in ["BOTH", "PERSONAL"] and personal_results:
                 for user_id, user_results in personal_results.items():
-                    self.logger.info(f"用户{user_id}:{user_results}")
+                    self.logger.info(f"用户{user_id}: {user_results}")
 
         # 计算概率
         expected_probabilities = self.get_prize_probabilities()

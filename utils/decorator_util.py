@@ -223,7 +223,7 @@ def wait_with_jitter(base_delay = 2, jitter_factor = 0.3, jitter_type = "relativ
             actual_delay = random.uniform(min_delay, max_delay)
 
             # 记录等待信息
-            logger.info(f"函数 {func.__name__} 开始带抖动等待 {actual_delay:.2f} 秒 (基础: {base_delay}秒, 抖动: {jitter_description})")
+            logger.info(f"函数 {func.__name__} 开始带抖动等待 {actual_delay:.2f} 秒")
 
             # 执行等待
             time.sleep(actual_delay)
@@ -276,6 +276,68 @@ def wait_after(delay_seconds = None):
             time.sleep(actual_delay)
 
             logger.info(f"函数 {func.__name__} 等待完成")
+
+            return result
+
+        return wrapper
+
+    return decorator
+
+
+def wait_after_with_jitter(base_delay = 2, jitter_factor = 0.3, jitter_type = "relative"):
+    """
+    带抖动的后等待装饰器
+    在函数执行后等待带抖动的时间
+
+    Args:
+        base_delay: 基础等待时间（秒）
+        jitter_factor: 抖动因子
+        jitter_type: 抖动类型
+            - "relative": 相对抖动（默认）, jitter_factor为比例（0-1之间）
+            - "absolute": 绝对抖动, jitter_factor为绝对时间（秒）, 支持正负值
+
+    Returns:
+        function: 装饰后的函数
+    """
+    import random
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            # 执行原函数
+            result = func(*args, **kwargs)
+
+            # 根据抖动类型计算抖动范围
+            if jitter_type == "relative":
+                # 相对抖动：jitter_factor为比例（0-1之间）
+                jitter_range = base_delay * jitter_factor
+                min_delay = base_delay - jitter_range
+                max_delay = base_delay + jitter_range
+                jitter_description = f"±{jitter_factor * 100:.0f}%"
+            else:
+                # 绝对抖动：jitter_factor为绝对时间（秒）, 支持正负值
+                min_delay = base_delay + jitter_factor
+                max_delay = base_delay - jitter_factor
+                jitter_description = f"±{abs(jitter_factor)}秒"
+
+            # 确保最小延迟不小于0.1秒
+            min_delay = max(0.1, min_delay)
+            max_delay = max(0.1, max_delay)
+
+            # 如果最大值小于最小值, 交换它们
+            if max_delay < min_delay:
+                min_delay, max_delay = max_delay, min_delay
+
+            # 生成带抖动的等待时间
+            actual_delay = random.uniform(min_delay, max_delay)
+
+            # 记录等待信息
+            logger.info(f"函数 {func.__name__} 执行完成, 开始带抖动等待 {actual_delay:.2f} 秒")
+
+            # 执行等待
+            time.sleep(actual_delay)
+
+            logger.info(f"函数 {func.__name__} 带抖动等待完成")
 
             return result
 
