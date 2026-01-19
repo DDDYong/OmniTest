@@ -15,6 +15,7 @@ import time
 from contextlib import contextmanager
 from typing import Dict, List, Any, Optional, Tuple, Union
 
+import paramiko
 import pymysql
 import pymysql.cursors
 
@@ -26,11 +27,6 @@ DEFAULT_POOL_SIZE = 10
 DEFAULT_MAX_OVERFLOW = 5
 DEFAULT_RECYCLE = 3600  # 连接回收时间（秒）
 DEFAULT_TIMEOUT = 30  # 连接超时时间（秒）
-
-try:
-    import paramiko
-except ImportError:
-    logger.warning("paramiko库未安装,SSH隧道功能将不可用。请安装: pip install paramiko")
 
 
 class MySQLClient:
@@ -93,9 +89,6 @@ class MySQLClient:
             timeout = timeout,
             local_port = self.local_port if self.ssh_config['use_ssh'] else None
         )
-
-        logger.info(f"MySQL客户端初始化成功,连接到 {self.config['host']}:{self.config['port']}/{self.config['db']}" +
-                    (" (通过SSH隧道)" if self.ssh_config['use_ssh'] else ""))
 
     def _check_paramiko_available(self):
         """检查paramiko库是否可用"""
