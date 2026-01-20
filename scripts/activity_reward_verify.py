@@ -1,6 +1,6 @@
 """
 -------------------------------------------------
-File:           Activity_reward_verify.py
+File:           activity_reward_verify.py
 Author:         duanyang
 Date:           2026/1/4
 -------------------------------------------------
@@ -8,66 +8,15 @@ Description:
 活动榜单奖励下发验证模块
 -------------------------------------------------
 """
-import os
-import sys
 from typing import Dict, List, Any
 
 from config.config_manager import config_manager
+from scripts.reward_type_mapper import RewardTypeMapper
 from utils import logger, util
 from utils.api import ApiClient
 from utils.db.mysql_client import MySQLClient
 from utils.decorator_util import wait_with_jitter
 from utils.file_util import FileHandler
-
-# 添加项目根目录到Python路径
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-
-class RewardTypeMapper:
-    """
-    活动奖励类型枚举
-    """
-
-    # 奖励类型枚举映射
-    REWARD_TYPE_MAPPING = {
-        0: {"name": "UNKNOWN", "desc": "未知"},
-        1: {"name": "MEDAL", "desc": "勋章"},
-        2: {"name": "AVATAR_COVER", "desc": "头像框"},
-        3: {"name": "RIDE", "desc": "座驾"},
-        4: {"name": "VIP", "desc": "会员"},
-        5: {"name": "SUPER_VIP", "desc": "超级会员"},
-        6: {"name": "BRIGHT_NUMBER", "desc": "靓号", "extend": {
-            746: "五位自选靓号",
-            1357: "六位自选靓号",
-            1001620: "七位靓号"
-        }},
-        7: {"name": "GIFT", "desc": "礼物"},
-        8: {"name": "CUSTOM", "desc": "自定义"},
-        9: {"name": "CHATROOM_BUBBLE", "desc": "房间聊天气泡"},
-        10: {"name": "MAIN_PAGE_EFFECTS", "desc": "主页特效"},
-        11: {"name": "ACTIVITY_VOTE", "desc": "活动票"},
-        12: {"name": "IM_BUBBLE", "desc": "私聊气泡"},
-        14: {"name": "ENTER_EFFECTS", "desc": "进场特效"},
-        15: {"name": "TITLE", "desc": "荣誉称号"},
-        16: {"name": "DUKE_NOBLE", "desc": "公爵贵族"},
-        17: {"name": "VISCOUNT_NOBLE", "desc": "子爵贵族"},
-        99: {"name": "GAME", "desc": "游戏"}
-    }
-
-    @classmethod
-    def get_reward_type_name(cls, reward_type: int) -> str:
-        """根据奖励类型ID获取类型名称"""
-        return cls.REWARD_TYPE_MAPPING.get(reward_type, {}).get("name", "UNKNOWN")
-
-    @classmethod
-    def get_reward_type_desc(cls, reward_type: int) -> str:
-        """根据奖励类型ID获取类型描述"""
-        return cls.REWARD_TYPE_MAPPING.get(reward_type, {}).get("desc", "未知奖励类型")
-
-    @classmethod
-    def validate_reward_type(cls, reward_type: int) -> bool:
-        """验证奖励类型是否有效"""
-        return reward_type in cls.REWARD_TYPE_MAPPING
 
 
 class ActivityRewardVerification:
@@ -325,11 +274,10 @@ class ActivityRewardVerification:
 
             # 根据activityType_name判断榜单类型
             if '日榜' in activity_type_name:
-                rank_day = util.current_day() - 1
                 # 日榜的stage设为当前日期的前一天
                 stage = util.format_time(util.get_time_delta(days = -1), format_str = '%Y%m%d')
             elif '总榜' in activity_type_name:
-                rank_day = -1  # 总榜
+                # 只有一个赛段时, stage设为-1, TODO 多赛段时，stage的值
                 stage = "-1"
             else:
                 self.logger.warning(f"未知榜单类型: {activity_type_name}, 跳过处理")
@@ -339,7 +287,7 @@ class ActivityRewardVerification:
 
             try:
                 # 按条件查询榜单数据
-                raw_data = self._query_ranking_data(rank_category, rank_day, stage, rank_coverage)
+                raw_data = self._query_ranking_data(rank_category, stage, rank_coverage)
 
                 # 检查数据量是否足够
                 if len(raw_data) < rank_coverage:
@@ -347,21 +295,23 @@ class ActivityRewardVerification:
                     missing_count = rank_coverage - len(raw_data)
 
                     # 插入缺少的数据
-                    inserted_count = self._insert_test_ranking_data(rank_category, rank_day, stage, missing_count)
+                    inserted_count = self._insert_test_ranking_data(rank_category, stage, missing_count)
 
                     if inserted_count > 0:
                         self.logger.info(f"成功插入{inserted_count}条测试数据, 重新查询榜单数据")
                         # 重新查询数据
-                        raw_data = self._query_ranking_data(rank_category, rank_day, stage, rank_coverage)
+                        raw_data = self._query_ranking_data(rank_category, stage, rank_coverage)
                     else:
                         self.logger.warning("复制数据失败, 使用现有数据进行处理")
 
                 # 处理榜单数据并计算排名
-                ranked_data = self._process_ranking_data(raw_data, rank_type)
-                self.logger.info(f"成功获取到 {len(ranked_data)} 条榜单数据, 排名范围: 1-{len(ranked_data)}")
-
-                # 将当前配置的数据添加到总结果中
-                all_ranked_data.extend(ranked_data)
+                if raw_data:
+                    ranked_data = self._process_ranking_data(raw_data, rank_type)
+                    self.logger.info(f"成功获取到 {len(ranked_data)} 条榜单数据, 排名范围: 1-{rank_coverage}")
+                    # 将当前配置的数据添加到总结果中
+                    all_ranked_data.extend(ranked_data)
+                else:
+                    self.logger.warning(f"没有获取到榜单数据, 跳过处理")
 
             except Exception as e:
                 self.logger.error(f"获取活动榜单数据失败: {str(e)}")
@@ -371,145 +321,208 @@ class ActivityRewardVerification:
         self.logger.info(f"总共获取到 {len(all_ranked_data)} 条榜单数据")
         return all_ranked_data
 
-    def _query_ranking_data(self, rank_category: str, rank_day: int, stage: str, rank_coverage: int) -> List[Dict]:
+    def _query_ranking_data(self, rank_category: str, stage: str, rank_coverage: int) -> List[Dict]:
         """查询榜单数据
         Args:
             rank_category: 榜单分类
-            rank_day: 榜单类型(日榜/总榜), -1表示总榜, 其他数字表示日榜
             stage: 活动阶段(赛段/日期), 默认前一天
             rank_coverage: 要获取的榜单Top N用户, 默认10
 
         Returns:
             List[Dict]: 格式化后的榜单数据
         """
-        # 构建查询条件
-        query_conditions = [f"number = {self.activity_number}", f"category = '{rank_category}'",
-                            f"day = {rank_day}"]
-
-        # 添加活动阶段
-        if stage:
-            query_conditions.append(f"stage = '{stage}'")
-
-        where_clause = " and ".join(query_conditions)
-
         # 查询数据并按value降序排列
         query = f"""
                 SELECT number, userId, intimateId, category, stage, year, month, day, value
                 FROM `kong_test`.`activity_rank` 
-                WHERE 1 = 1 and {where_clause}
+                WHERE number = %s and category = %s and stage = %s
                 ORDER BY value DESC LIMIT {rank_coverage}
             """
 
-        raw_data = self.db.execute_query(query)
+        raw_data = self.db.execute_query(query, (self.activity_number, rank_category, stage))
         return raw_data
 
-    def _check_user_in_ranking(self, user_id: str, imtimate_id: str, ranking_category: str, rank_day: int, stage: str) -> bool:
-        """检查用户是否已在榜单中
-
-        Args:
-            user_id: 用户ID
-            imtimate_id: Partner用户ID
-            ranking_category: 榜单分类
-            rank_day: 榜单类型(日榜/总榜), -1表示总榜, 其他数字表示日榜
-            stage: 活动阶段(赛段/日期), 默认前一天
-
-        Returns:
-            bool: 用户是否已在榜单中
-        """
-        query_conditions = [
-            f"number = {self.activity_number}",
-            f"category = '{ranking_category}'",
-            f"day = {rank_day}",
-            f"userId = {user_id}",
-            f"intimateId = {imtimate_id}"
-        ]
-
-        if stage:
-            query_conditions.append(f"stage = '{stage}'")
-
-        where_clause = " and ".join(query_conditions)
-
-        query = f"""
-               SELECT COUNT(*) as count 
-               FROM `kong_test`.`activity_rank` 
-               WHERE {where_clause}
-           """
-
-        result = self.db.get_one(query)
-        return result['count'] > 0 if result else False
-
-    def _insert_test_ranking_data(self, ranking_category: str, rank_day: int, stage: str, count: int):
+    def _insert_test_ranking_data(self, ranking_category: str, stage: str, count: int) -> int:
         """插入测试榜单数据
         Args:
             ranking_category: 榜单分类
-            rank_day: 榜单类型(日榜/总榜), -1表示总榜, 其他数字表示日榜
-            stage: 活动阶段(赛段/日期), 默认前一天
+            stage: 活动阶段(赛段/日期), 默认前一天, 20260119表示日榜
             count: 要插入的测试数据数量
+        Returns:
+            int: 成功插入的测试数据数量
         """
         # 从满足条件的榜单数据中取一条数据作为模板
-        template_query = f"""
+        inserted_count = 0
+
+        existing_users_query = f"""
                     SELECT * FROM `kong_test`.`activity_rank` 
                     WHERE number = {self.activity_number} 
                     and category = '{ranking_category}' 
-                    and day = {rank_day}
-                    {'and stage = ' + stage if stage else ''}
-                    LIMIT 1
+                    order by id desc
                 """
-
-        template_data = self.db.get_one(template_query)
-
+        existing_users = self.db.execute_query(existing_users_query)
+        template_data = existing_users[0] if existing_users else None
         if not template_data:
             self.logger.warning("未找到符合条件的模板数据, 无法进行复制")
             return 0
-
+        # 解析stage参数获取年、月、日
+        if len(stage) == 8:
+            year = int(stage[:4])
+            month = int(stage[4:6])
+            day = int(stage[6:8])
+        else:
+            year = -1
+            month = -1
+            day = -1
         self.logger.info(f"找到模板数据, 开始复制生成 {count} 条测试数据")
 
-        inserted_count = 0
-        base_user_id = 1467220
-        user_account = FileHandler().read_yaml("test_data/test_user_account.yaml")
+        # 构建已存在的用户对集合
+        existing_user_pairs = set()
+        existing_user_ids = set()
+        for user in existing_users:
+            existing_user_pairs.add((user['userId'], user['intimateId']))
+            existing_user_ids.add(user['userId'])
+            existing_user_ids.add(user['intimateId'])
 
-        for i in range(count):
-            user_id = base_user_id + i
+        # 同类型榜单的日榜/总榜
+        # 检查同一类型的其他榜单是否有数据
+        if existing_user_pairs:
+            pairs_str = ', '.join([f'({user_id}, {intimate_id})' for user_id, intimate_id in existing_user_pairs])
+            not_in_condition = f'and (userId, intimateId) not in ({pairs_str})'
+        else:
+            not_in_condition = ''
+        other_stage_query = f"""
+                        SELECT * FROM `kong_test`.`activity_rank` 
+                        WHERE number = {self.activity_number} 
+                        and category = '{ranking_category}' 
+                        {'and day = -1' if len(stage) == 8 else 'and day != -1'}
+                        {not_in_condition}
+                        ORDER BY id DESC
+                        LIMIT {count}
+                   """
+        other_stage_data = self.db.execute_query(other_stage_query)
 
-            # 设置intimateId（单人榜：user_id=intimateId；双人榜：intimateId>user_id）
-            if template_data['userId'] == template_data['intimateId']:  # 单人榜
-                intimate_id = user_id
-            else:  # 双人榜
-                intimate_id = user_account[12 + i]['user_id']
+        # 同一类型的其他榜单有数据
+        if other_stage_data:
+            # 先复制所有可用的其他榜单数据
+            copy_count = min(len(other_stage_data), count)
+            self.logger.info(f"发现同一类型的其他榜单有{len(other_stage_data)}条数据，复制其中{copy_count}条")
 
-            # 构建复制插入SQL, 只修改关键字段
-            insert_query = """
-                        INSERT INTO `kong_test`.`activity_rank` 
-                        (userId, intimateId, number, category, stage, year, month, day, value, 
-                         value1, value2, value3, value4, value5, value6, value7, valueTime, 
-                         source, display, completed, created, updated)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 
-                                %s, %s, %s, %s, %s, %s, %s, %s, 
-                                %s, %s, %s, %s, %s)
-                    """
+            for i in range(copy_count):
+                insert_query = """
+                                INSERT INTO `kong_test`.`activity_rank` 
+                                (userId, intimateId, number, category, stage, year, month, day, value, 
+                                 value1, value2, value3, value4, value5, value6, value7, valueTime, 
+                                 source, display, completed, created, updated)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 
+                                        %s, %s, %s, %s, %s, %s, %s, %s, 
+                                        %s, %s, %s, %s, %s)
+                            """
+                try:
+                    self.db.execute_update(
+                        insert_query,
+                        (
+                            other_stage_data[i]['userId'], other_stage_data[i]['intimateId'],
+                            self.activity_number, ranking_category, stage, year, month, day,
+                            template_data['value'], template_data['value1'], template_data['value2'],
+                            template_data['value3'], template_data['value4'], template_data['value5'],
+                            template_data['value6'], template_data['value7'], template_data['valueTime'],
+                            template_data['source'], template_data['display'], template_data['completed'],
+                            template_data['created'], template_data['updated']
 
-            try:
-                # 插入数据
-                self.db.execute_update(
-                    insert_query,
-                    (
-                        user_id, intimate_id,
-                        template_data['number'], template_data['category'], template_data['stage'],
-                        template_data['year'], template_data['month'], template_data['day'],
-                        template_data['value'] + (i + 1) * 10,
-                        template_data['value1'], template_data['value2'], template_data['value3'],
-                        template_data['value4'], template_data['value5'], template_data['value6'],
-                        template_data['value7'], template_data['valueTime'],
-                        template_data['source'], template_data['display'], template_data['completed'],
-                        template_data['created'], template_data['updated']
+                        )
                     )
-                )
-                inserted_count += 1
-                self.logger.info(f"新增榜单数据 {user_id} - {intimate_id}")
-            except Exception as e:
-                self.logger.error(f"新增榜单数据 {user_id} - {intimate_id} 失败: {str(e)}")
+                    inserted_count += 1
+                    existing_user_pairs.add((other_stage_data[i]['userId'], other_stage_data[i]['intimateId']))
+                    existing_user_ids.add(other_stage_data[i]['userId'])
+                    existing_user_ids.add(other_stage_data[i]['intimateId'])
+                    self.logger.info(f"复制榜单数据 {other_stage_data[i]['userId']} - {other_stage_data[i]['intimateId']}")
+                except Exception as e:
+                    self.logger.error(f"复制榜单数据 {other_stage_data[i]['userId']} - {other_stage_data[i]['intimateId']} 失败: {str(e)}")
 
-        self.logger.info(f"共插入 {inserted_count} 条测试数据")
+            self.logger.info(f"已复制插入 {inserted_count} 条测试数据")
+
+            # 满足榜单数量要求，直接返回
+            if inserted_count >= count:
+                return inserted_count
+            else:
+                # 还需要生成的随机数据数量
+                remaining_count = count - inserted_count
+        else:
+            # 没有其他榜单数据，全部使用随机数据生成
+            remaining_count = count
+
+        # 生成剩余的随机数据
+        if remaining_count > 0:
+            self.logger.info(f"使用随机数据生成剩余的 {remaining_count} 条测试数据")
+
+            # 随机获取不在排行榜中的用户ID
+            random_users_query = f"""
+                   SELECT userid FROM `kong_test`.`user` 
+                   WHERE status = 0 and role = 5 
+                   and userid NOT IN ({','.join(map(str, existing_user_ids)) if existing_user_ids else '0'})
+                   ORDER BY lastLoginDate desc
+                   LIMIT {remaining_count * 2}
+               """
+            random_users = self.db.execute_query(random_users_query)
+
+            for i in range(remaining_count):
+                if template_data['userId'] == template_data['intimateId']:  # 单人榜
+                    user_id = random_users[i]['userid']
+                    intimate_id = user_id
+                else:  # 双人榜
+                    # 生成唯一的用户对
+                    max_attempts = 3  # 最多尝试3次
+                    for attempt in range(max_attempts):
+                        user_id = random_users[i]['userid']
+                        intimate_id = random_users[remaining_count + i]['userid']
+
+                        # 跳过自己和自己的组合
+                        if user_id == intimate_id:
+                            continue
+
+                        # 确保userId < intimateId
+                        if user_id > intimate_id:
+                            user_id, intimate_id = intimate_id, user_id
+
+                        user_pair = (user_id, intimate_id)
+                        # 检查用户对是否已存在
+                        if user_pair not in existing_user_pairs:
+                            existing_user_pairs.add(user_pair)
+                            break
+                    else:
+                        self.logger.warning(f"无法为第 {i + 1} 条记录生成唯一的用户对，已跳过")
+                        continue
+
+                # 构建复制插入SQL, 只修改关键字段
+                insert_query = """
+                            INSERT INTO `kong_test`.`activity_rank` 
+                            (userId, intimateId, number, category, stage, year, month, day, value, 
+                             value1, value2, value3, value4, value5, value6, value7, valueTime, 
+                             source, display, completed, created, updated)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 
+                                    %s, %s, %s, %s, %s, %s, %s, %s, 
+                                    %s, %s, %s, %s, %s)
+                        """
+                try:
+                    self.db.execute_update(
+                        insert_query,
+                        (
+                            user_id, intimate_id,
+                            self.activity_number, ranking_category, stage, year, month, day,
+                            template_data['value'], template_data['value1'], template_data['value2'],
+                            template_data['value3'], template_data['value4'], template_data['value5'],
+                            template_data['value6'], template_data['value7'], template_data['valueTime'],
+                            template_data['source'], template_data['display'], template_data['completed'],
+                            template_data['created'], template_data['updated']
+                        )
+                    )
+                    inserted_count += 1
+                    self.logger.info(f"生成随机榜单数据 {user_id} - {intimate_id}")
+                except Exception as e:
+                    self.logger.error(f"生成随机榜单数据 {user_id} - {intimate_id} 失败: {str(e)}")
+
+            self.logger.info(f"共插入 {inserted_count} 条测试数据")
         return inserted_count
 
     def _process_ranking_data(self, raw_data: List[Dict], rank_type: int) -> List[Dict]:
@@ -587,22 +600,18 @@ class ActivityRewardVerification:
                 reward_details = config.get('reward_details', [])
                 self.logger.debug(f"该榜单有 {len(reward_details)} 个排名配置")
 
-                rank_found = False
-                for reward_detail in reward_details:
-                    detail_rank = reward_detail.get('rank')
-                    self.logger.debug(f"检查排名配置: rank={detail_rank}, 目标rank={ranking}")
+                # 使用字典映射代替线性查找，减少日志输出
+                reward_detail_dict = {int(rd.get('rank')): rd for rd in reward_details}
 
-                    if int(detail_rank) == int(ranking):
-                        rank_found = True
-                        rewards = reward_detail.get('rewards', [])
-                        expected_rewards.extend(rewards)
-                        self.logger.debug(f"找到排名 {ranking} 的奖励配置，共 {len(rewards)} 个奖励")
-                        break
-
-                if not rank_found:
+                if int(ranking) in reward_detail_dict:
+                    reward_detail = reward_detail_dict[int(ranking)]
+                    rewards = reward_detail.get('rewards', [])
+                    expected_rewards.extend(rewards)
+                    self.logger.info(f"找到排名 {ranking} 的奖励配置，共 {len(rewards)} 个奖励")
+                else:
                     self.logger.warning(f"在榜单类型 {activity_type} 中未找到排名 {ranking} 的奖励配置")
                     # 列出该榜单所有可用的排名
-                    available_ranks = [rd.get('rank') for rd in reward_details]
+                    available_ranks = sorted(reward_detail_dict.keys())
                     self.logger.warning(f"该榜单可用的排名: {available_ranks}")
                 break
 
@@ -623,15 +632,26 @@ class ActivityRewardVerification:
             ranking_data: 榜单数据
             activity_reward_config: 活动奖励配置
         """
+        # 缓存已查找过的奖励配置(ranking, activity_type)
+        reward_cache = {}
 
         # 清除用户奖励
         for user_data in ranking_data:
             user_id = user_data.get('user_id')
             ranking = user_data.get('ranking')
-            activity_type = (user_data.get('rank_type'))
+            activity_type = user_data.get('rank_type')
 
-            # 获取用户应得奖励
-            expected_rewards = self.get_expected_rewards_by_ranking(ranking, activity_type, activity_reward_config)
+            # 检查缓存中是否已有该排名和榜单类型的奖励配置
+            cache_key = (ranking, activity_type)
+            if cache_key in reward_cache:
+                expected_rewards = reward_cache[cache_key]
+                self.logger.debug(f"使用缓存的奖励配置: 排名{ranking}, 榜单类型{activity_type}")
+            else:
+                # 获取用户应得奖励
+                expected_rewards = self.get_expected_rewards_by_ranking(ranking, activity_type, activity_reward_config)
+                # 将结果存入缓存
+                reward_cache[cache_key] = expected_rewards
+    
             if not expected_rewards:
                 self.logger.warning(f"用户 {user_id} 排名 {ranking} 未找到对应的奖励配置")
                 continue
@@ -641,23 +661,28 @@ class ActivityRewardVerification:
             for reward in expected_rewards:
                 reward_type = reward.get('rewardType')
                 reward_id = reward.get('rewardId')
-
+                reward_desc = reward.get('reward_desc')
+    
                 if reward_type == 1:  # 勋章
                     self._clear_user_medal(user_id, reward_id)
                 elif reward_type == 2:  # 头像框
-                    self._clear_user_dress(user_id, reward_id, '头像框')
+                    self._clear_user_dress(user_id, reward_id, reward_desc)
                 elif reward_type == 3:  # 座驾
-                    self._clear_user_dress(user_id, reward_id, '座驾')
+                    self._clear_user_dress(user_id, reward_id, reward_desc)
                 elif reward_type == 4:  # 会员
                     self._clear_user_vip(user_id, 'Vip')
                 elif reward_type == 5:  # 超级会员
                     self._clear_user_vip(user_id, 'SuperVip')
                 elif reward_type == 6:  # 靓号
-                    self._clear_user_nice_number(user_id, reward_id)
+                    self._clear_user_bright_number(user_id, reward_id, reward_desc)
                 elif reward_type == 9:  # 房间气泡
-                    self._clear_user_dress(user_id, reward_id, '房间气泡')
+                    self._clear_user_dress(user_id, reward_id, reward_desc)
+                elif reward_type == 10:  # 主页特效
+                    self._clear_user_dress(user_id, reward_id, reward_desc)
                 elif reward_type == 12:  # 私聊气泡
-                    self._clear_user_dress(user_id, reward_id, '私聊气泡')
+                    self._clear_user_dress(user_id, reward_id, reward_desc)
+                elif reward_type == 14:  # 进场特效
+                    self._clear_user_dress(user_id, reward_id, reward_desc)
                 elif reward_type == 15:  # 荣誉称号
                     self._clear_user_title(user_id, reward_id)
                 elif reward_type == 16:  # 公爵贵族
@@ -665,11 +690,11 @@ class ActivityRewardVerification:
                 elif reward_type == 17:  # 子爵贵族
                     self._clear_user_noble(user_id, 4)
 
-    def _clear_user_dress(self, user_id: int, dress_id: int, dress_type: str):
+    def _clear_user_dress(self, user_id: int, dress_id: int, dress_type_name: str):
         """清除用户装扮"""
         query = "DELETE FROM `kong_test`.`user_dress` WHERE userId = %s and dressId = %s"
         self.db.execute_update(query, (user_id, dress_id,))
-        self.logger.debug(f"清除用户 {user_id} 的{dress_type}装扮 {dress_id}")
+        self.logger.debug(f"清除用户 {user_id} 的{dress_type_name}装扮 {dress_id}")
 
     def _clear_user_medal(self, user_id: int, medal_id: int):
         """清除用户勋章"""
@@ -703,11 +728,11 @@ class ActivityRewardVerification:
         self.db.execute_update(query, (user_id,))
         self.logger.debug(f"设置用户 {user_id} 的{vip_type}为过期状态")
 
-    def _clear_user_nice_number(self, user_id: int, reward_id: int):
+    def _clear_user_bright_number(self, user_id: int, reward_id: int, reward_desc: str):
         """清除用户靓号"""
         query = "DELETE FROM `kong_test`.`user_gift` WHERE userId = %s and giftId = %s"
         self.db.execute_update(query, (user_id, reward_id,))
-        self.logger.debug(f"清除用户 {user_id} 的靓号")
+        self.logger.debug(f"清除用户 {user_id} 的{reward_desc}")
 
     def get_scheduled_tasks(self) -> List[Dict]:
         """
@@ -728,7 +753,6 @@ class ActivityRewardVerification:
             self.logger.warning(f"活动: {activity_name['activityName']} 未配置定时任务")
             return []
         self.logger.info(f"活动: {activity_name['activityName']} 已配置 {len(scheduled_tasks)} 个定时任务")
-
         return scheduled_tasks
 
     def execute_scheduled_task(self, task: Dict[str, Any]) -> bool:
@@ -757,7 +781,7 @@ class ActivityRewardVerification:
 
     @wait_with_jitter(base_delay = 2, jitter_factor = 0.3)
     def validate_reward_distribution(self, ranking_data: List[Dict], activity_reward_config: List[Dict[str, Any]]) -> \
-    Dict[str, Any]:
+            Dict[str, Any]:
         """
         验证奖励下发情况
 
@@ -842,9 +866,10 @@ class ActivityRewardVerification:
                 reward_type = expected_reward.get('rewardType')
                 reward_id = expected_reward.get('rewardId')
                 valid_days = expected_reward.get('valid_days')
+                reward_desc = expected_reward.get('reward_desc')
 
                 # 验证奖励是否已下发
-                is_valid, validation_msg = self._validate_single_reward(user_id, reward_type, reward_id, valid_days)
+                is_valid, validation_msg = self._validate_single_reward(user_id, reward_type, reward_id, valid_days, reward_desc)
 
                 user_validation["actual_rewards"].append({
                     "reward_type": reward_type,
@@ -870,7 +895,6 @@ class ActivityRewardVerification:
             else:
                 validation_result["users_with_incorrect_rewards"] += 1
                 user_validation["status"] = "incorrect"
-
             validation_result["reward_validation_details"].append(user_validation)
 
         # 输出验证摘要
@@ -882,8 +906,8 @@ class ActivityRewardVerification:
 
         return validation_result
 
-    def _validate_single_reward(self, user_id: int, reward_type: int, reward_id: int, valid_days: int) -> tuple[
-        bool, str]:
+    def _validate_single_reward(self, user_id: int, reward_type: int, reward_id: int, valid_days: int, reward_desc: str) -> \
+            tuple[bool, str]:
         """
         验证单个奖励的下发情况
 
@@ -894,19 +918,23 @@ class ActivityRewardVerification:
             if reward_type == 1:  # 勋章
                 return self._validate_medal_reward(user_id, reward_id)
             elif reward_type == 2:  # 头像框
-                return self._validate_dress_reward(user_id, reward_id, '头像框', valid_days)
+                return self._validate_dress_reward(user_id, reward_id, 2, reward_desc, valid_days)
             elif reward_type == 3:  # 座驾
-                return self._validate_dress_reward(user_id, reward_id, '座驾', valid_days)
+                return self._validate_dress_reward(user_id, reward_id, 1, reward_desc, valid_days)
             elif reward_type == 4:  # 会员
                 return self._validate_vip_reward(user_id, 'Vip', valid_days)
             elif reward_type == 5:  # 超级会员
                 return self._validate_vip_reward(user_id, 'SuperVip', valid_days)
             elif reward_type == 6:  # 靓号
-                return self._validate_nice_number_reward(user_id, reward_id)
+                return self._validate_nice_number_reward(user_id, reward_id, reward_desc)
             elif reward_type == 9:  # 房间聊天气泡
-                return self._validate_dress_reward(user_id, reward_id, '房间气泡', valid_days)
+                return self._validate_dress_reward(user_id, reward_id, 4, reward_desc, valid_days)
+            elif reward_type == 10:  # 主页特效
+                return self._validate_dress_reward(user_id, reward_id, 5, reward_desc, valid_days)
             elif reward_type == 12:  # 私聊气泡
-                return self._validate_dress_reward(user_id, reward_id, '私聊气泡', valid_days)
+                return self._validate_dress_reward(user_id, reward_id, 3, reward_desc, valid_days)
+            elif reward_type == 14:  # 进场特效
+                return self._validate_dress_reward(user_id, reward_id, 6, reward_desc, valid_days)
             elif reward_type == 15:  # 荣誉称号
                 return self._validate_title_reward(user_id, reward_id, valid_days)
             elif reward_type == 16:  # 公爵贵族
@@ -918,24 +946,25 @@ class ActivityRewardVerification:
         except Exception as e:
             return False, f"验证过程中发生错误: {str(e)}"
 
-    def _validate_dress_reward(self, user_id: int, dress_id: int, dress_type: str, valid_days: int) -> tuple[bool, str]:
+    def _validate_dress_reward(self, user_id: int, dress_id: int, dress_type: int, dress_type_name: str, valid_days: int) -> \
+            tuple[bool, str]:
         """验证装扮奖励"""
         query = """
             SELECT userid, dressId, timestampdiff(day, FROM_UNIXTIME(valid/1000), FROM_UNIXTIME(expire/1000)) as validDay FROM `kong_test`.`user_dress` 
-            WHERE userId = %s and dressId = %s 
+            WHERE userId = %s and dressId = %s and category = %s
         """
-        result = self.db.get_one(query, (user_id, dress_id,))
+        result = self.db.get_one(query, (user_id, dress_id, dress_type))
 
         if not result:
-            return False, f"{dress_type}装扮 {dress_id} 未下发或已过期"
+            return False, f"{dress_type_name}装扮 {dress_id} 未下发或已过期"
 
         # 验证有效期
         if valid_days > 0:
             actual_expire = result.get('validDay')
             if abs(actual_expire - valid_days) > 0:
-                return False, f"{dress_type}装扮有效期不匹配"
+                return False, f"{dress_type_name}装扮有效期不匹配"
 
-        return True, f"{dress_type}装扮验证通过"
+        return True, f"{dress_type_name}装扮验证通过"
 
     def _validate_medal_reward(self, user_id: int, medal_id: int) -> tuple[bool, str]:
         """验证勋章奖励"""
@@ -1009,15 +1038,15 @@ class ActivityRewardVerification:
 
         return True, f"{vip_type}验证通过"
 
-    def _validate_nice_number_reward(self, user_id: int, reward_id: int) -> tuple[bool, str]:
+    def _validate_nice_number_reward(self, user_id: int, reward_id: int, reward_desc: str) -> tuple[bool, str]:
         """验证靓号奖励"""
         query = "SELECT * FROM `kong_test`.`user_gift` WHERE userId = %s and giftId = %s"
         result = self.db.get_one(query, (user_id, reward_id,))
 
         if not result:
-            return False, f"靓号 {reward_id} 未下发"
+            return False, f"{reward_desc} - {reward_id} 未下发"
 
-        return True, "靓号验证通过"
+        return True, f"{reward_desc}验证通过"
 
     def validate(self):
         """
@@ -1026,7 +1055,7 @@ class ActivityRewardVerification:
         Returns:
             bool: 验证是否通过
         """
-        self.logger.info("开始活动榜单奖励验证")
+        self.logger.info("=== 开始活动榜单奖励验证 ===")
 
         try:
             # 1、获取活动文档中的奖励配置
