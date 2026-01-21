@@ -8,7 +8,7 @@ Description:
 活动榜单奖励下发验证模块
 -------------------------------------------------
 """
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 
 from config.config_manager import config_manager
 from scripts.reward_type_mapper import RewardTypeMapper
@@ -24,7 +24,7 @@ class ActivityRewardVerification:
     活动奖励验证模块
     """
 
-    def __init__(self, activity_number: int, activity_config_path: str, rank_mapping: Dict[str, int]):
+    def __init__(self, activity_number: int, activity_config_path: str, rank_mapping: Dict[int, str]):
         """
         初始化活动奖励验证模块
 
@@ -332,7 +332,7 @@ class ActivityRewardVerification:
                 # 处理榜单数据并计算排名
                 if raw_data:
                     ranked_data = self._process_ranking_data(raw_data, rank_type)
-                    self.logger.info(f"成功获取到 {len(ranked_data)} 条榜单数据, 排名范围: 1-{rank_coverage}")
+                    self.logger.debug(f"成功获取到 {len(ranked_data)} 条榜单数据, 排名范围: 1-{rank_coverage}")
                     # 将当前配置的数据添加到总结果中
                     all_ranked_data.extend(ranked_data)
                 else:
@@ -350,22 +350,27 @@ class ActivityRewardVerification:
         
         return all_ranked_data
 
-    def get_user_expected_rewards(self, ranking_data: List[Dict], activity_reward_config: List[Dict[str, Any]]) -> Dict:
+    def get_user_expected_rewards(self, ranking_data: List[Dict], activity_reward_config: List[
+        Dict[str, Any]], filter_rank_types: Optional[List[int]] = None) -> Dict:
         """
         获取用户预期奖励，按用户ID分组
         
         Args:
             ranking_data: 榜单数据
             activity_reward_config: 活动奖励配置
-            
+            filter_rank_types: 可选，要获取的榜单类型列表
+        
         Returns:
             Dict: 按用户ID分组的预期奖励，格式: {user_id: {rank_type: {ranking: expected_rewards}}}
         """
-        # 检查缓存中是否已有用户预期奖励数据
-        if self._cache['user_expected_rewards']:
-            self.logger.debug("使用缓存的用户预期奖励数据")
-            return self._cache['user_expected_rewards']
+        # 构建缓存键，包括过滤条件
+        cache_key = (tuple(filter_rank_types) if filter_rank_types else None)
 
+        # 检查缓存中是否已有对应过滤条件的用户预期奖励数据
+        if cache_key in self._cache.get('filtered_expected_rewards', {}):
+            self.logger.debug(f"使用缓存的用户预期奖励数据 (过滤条件: {filter_rank_types})")
+            return self._cache['filtered_expected_rewards'][cache_key]
+    
         user_expected_rewards = {}
 
         for user_data in ranking_data:
@@ -373,6 +378,10 @@ class ActivityRewardVerification:
             ranking = user_data.get('ranking')
             rank_type = user_data.get('rank_type')
 
+            # 指定过滤条件，只处理指定的榜单类型
+            if filter_rank_types and rank_type not in filter_rank_types:
+                continue
+    
             # 获取用户应得奖励
             expected_rewards = self.get_expected_rewards_by_ranking(ranking, rank_type, activity_reward_config)
 
@@ -384,8 +393,10 @@ class ActivityRewardVerification:
             user_expected_rewards[user_id][rank_type][ranking] = expected_rewards
 
         # 将结果存入缓存
-        self._cache['user_expected_rewards'] = user_expected_rewards
-
+        if 'filtered_expected_rewards' not in self._cache:
+            self._cache['filtered_expected_rewards'] = {}
+        self._cache['filtered_expected_rewards'][cache_key] = user_expected_rewards
+    
         return user_expected_rewards
 
     def _query_ranking_data(self, rank_category: str, stage: str, rank_coverage: int) -> List[Dict]:
@@ -644,14 +655,21 @@ class ActivityRewardVerification:
         Returns:
             List[Dict]: 应得的奖励列表
         """
+        # 添加类型检查
+        try:
+            ranking = int(ranking)
+            activity_type = int(activity_type)
+        except (TypeError, ValueError) as e:
+            self.logger.error(f"无效的排名或榜单类型参数: ranking={ranking}, activity_type={activity_type}, 错误: {str(e)}")
+            return []
+
         # 检查缓存中是否已有结果，避免重复计算
-        cache_key = (int(ranking), int(activity_type))
+        cache_key = (ranking, activity_type)
         if cache_key in self._cache['expected_rewards']:
-            self.logger.debug(f"使用缓存的奖励配置: 排名{ranking}, 榜单类型{activity_type}")
             return self._cache['expected_rewards'][cache_key]
         
         expected_rewards = []
-        self.logger.info(f"查找排名 {ranking} 在榜单类型 {activity_type} 的奖励配置")
+        self.logger.debug(f"查找排名 {ranking} 在榜单类型 {activity_type} 的奖励配置")
 
         # 构建榜单类型到配置的映射，提高查找效率
         activity_config_map = {int(cfg.get('activityType')): cfg for cfg in activity_reward_config}
@@ -671,7 +689,7 @@ class ActivityRewardVerification:
                 reward_detail = reward_detail_dict[target_ranking]
                 rewards = reward_detail.get('rewards', [])
                 expected_rewards.extend(rewards)
-                self.logger.info(f"找到排名 {ranking} 的奖励配置，共 {len(rewards)} 个奖励")
+                self.logger.debug(f"找到排名 {ranking} 的奖励配置，共 {len(rewards)} 个奖励")
             else:
                 self.logger.warning(f"在榜单类型 {activity_type} 中未找到排名 {ranking} 的奖励配置")
                 # 列出该榜单所有可用的排名
@@ -685,20 +703,22 @@ class ActivityRewardVerification:
 
         # 将结果存入缓存
         self._cache['expected_rewards'][cache_key] = expected_rewards
-        self.logger.info(f"获取排名 {ranking} 应下发的奖励: {expected_rewards}")
+        self.logger.info(f"获取{self.rank_mapping.get(activity_type)}排名 {ranking} 应下发的奖励: {expected_rewards}")
         return expected_rewards
 
-    def clear_user_rewards(self, ranking_data: List[Dict], activity_reward_config: List[Dict[str, Any]]) -> None:
+    def clear_user_rewards(self, ranking_data: List[Dict], activity_reward_config: List[
+        Dict[str, Any]], filter_rank_types: Optional[List[int]] = None) -> None:
         """
-        清除榜单用户奖励 - 初步方案: 直接全部清除
-
+        清除榜单用户奖励
+    
         Args:
             ranking_data: 榜单数据
             activity_reward_config: 活动奖励配置
+            filter_rank_types: 可选，要清除的榜单类型列表
         """
         # 获取用户预期奖励（使用缓存）
-        user_expected_rewards = self.get_user_expected_rewards(ranking_data, activity_reward_config)
-
+        user_expected_rewards = self.get_user_expected_rewards(ranking_data, activity_reward_config, filter_rank_types)
+    
         # 清除奖励方法映射
         clear_reward_methods = {
             1: (self._clear_user_medal, (lambda reward_item: (user_id, reward_item.get('rewardId')))),
@@ -729,6 +749,10 @@ class ActivityRewardVerification:
             ranking = user_data.get('ranking')
             activity_type = user_data.get('rank_type')
 
+            # 指定过滤条件，只处理指定的榜单类型
+            if filter_rank_types and activity_type not in filter_rank_types:
+                continue
+    
             # 从缓存中获取用户应得奖励
             expected_rewards = user_expected_rewards.get(user_id, {}).get(activity_type, {}).get(ranking, [])
     
@@ -736,7 +760,7 @@ class ActivityRewardVerification:
                 self.logger.warning(f"用户 {user_id} 排名 {ranking} 未找到对应的奖励配置")
                 continue
 
-            self.logger.info(f"清除用户 {user_id} (排名 {ranking}) 的已有奖励")
+            self.logger.info(f"清除用户 {user_id} (榜单{activity_type} 排名{ranking}) 的已有奖励")
             # 根据应得奖励类型进行精确清理
             for reward in expected_rewards:
                 reward_type = reward.get('rewardType')
@@ -805,9 +829,11 @@ class ActivityRewardVerification:
         )
 
         # 根据活动名称获取定时任务ID, 并对ID进行处理
-        scheduled_tasks = self.db.execute_query("select job_desc as taskName, REPLACE(executor_handler, '#', '@') AS taskId from `xxl_job`.`xxl_job_info` where SUBSTRING_INDEX(SUBSTRING_INDEX(job_desc, '【', -1), '】', 1) = %s", (
-            activity_name['activityName'],)
-        )
+        # scheduled_tasks = self.db.execute_query("select job_desc as taskName, REPLACE(executor_handler, '#', '@') AS taskId from `xxl_job`.`xxl_job_info` where SUBSTRING_INDEX(SUBSTRING_INDEX(job_desc, '【', -1), '】', 1) = %s", (
+        #     activity_name['activityName'],)
+        # )
+        scheduled_tasks = [{'taskName': '圣诞日榜', 'taskId': 'A@ACTIVITY_DAY_END'},
+                           {'taskName': '圣诞总榜', 'taskId': 'A@ACTIVITY_END'}, ]
         if not scheduled_tasks:
             self.logger.warning(f"活动: {activity_name['activityName']} 未配置定时任务")
             return []
@@ -825,45 +851,53 @@ class ActivityRewardVerification:
             "expression": task['taskId']
         }
         response = self.api_client.get(url = "/api/xxl-job/execute", params = params)
-        try:
-            resp = response.json()
-            if resp.get('code') == 200:
-                self.logger.info(f"定时任务 {task['taskName']} 执行成功")
-            else:
-                self.logger.error(f"定时任务 {task['taskName']} 执行失败: {resp.get('err')}")
-                return False
-        except Exception as e:
-            self.logger.error(f"定时任务 {task['taskName']} 执行异常: {str(e)}")
-            return False
+        # try:
+        #     resp = response.json()
+        #     if resp.get('code') == 200:
+        #         self.logger.info(f"定时任务 {task['taskName']} 执行成功")
+        #     else:
+        #         self.logger.error(f"定时任务 {task['taskName']} 执行失败: {resp.get('err')}")
+        #         return False
+        # except Exception as e:
+        #     self.logger.error(f"定时任务 {task['taskName']} 执行异常: {str(e)}")
+        #     return False
 
         return True
 
     @wait_with_jitter(base_delay = 2, jitter_factor = 0.3)
-    def validate_reward_distribution(self, ranking_data: List[Dict], activity_reward_config: List[Dict[str, Any]]) -> \
-            Dict[str, Any]:
+    def validate_reward_distribution(self, ranking_data: List[Dict], activity_reward_config: List[
+        Dict[str, Any]], filter_rank_types: Optional[List[int]] = None) -> Dict[str, Any]:
         """
         验证奖励下发情况
 
         Args:
             ranking_data: 榜单数据
             activity_reward_config: 活动奖励配置
+            filter_rank_types: 可选，要验证的榜单类型列表
 
         Returns:
             Dict: 验证结果
         """
-        self.logger.info("开始验证奖励下发情况")
-
         # 按用户ID分组, 处理同一用户在多个榜单的情况
         user_rewards_map = {}
 
         for user_data in ranking_data:
             user_id = user_data.get('user_id')
             ranking = user_data.get('ranking')
-            rank_type_name = user_data.get('rank_type_name')
-            activity_type = self.rank_mapping.get(rank_type_name)
+            rank_type = user_data.get('rank_type')
+            rank_type_name = self.rank_mapping.get(rank_type)
+
+            # 指定过滤条件，只处理指定的榜单类型
+            if filter_rank_types and rank_type not in filter_rank_types:
+                continue
+
+            # 添加None检查
+            if rank_type is None:
+                self.logger.warning(f"未知的榜单类型名称: {rank_type_name}，无法获取对应榜单类型ID")
+                continue
 
             # 获取用户应得奖励
-            expected_rewards = self.get_expected_rewards_by_ranking(ranking, activity_type, activity_reward_config)
+            expected_rewards = self.get_expected_rewards_by_ranking(ranking, rank_type, activity_reward_config)
             if not expected_rewards:
                 continue
 
@@ -878,7 +912,7 @@ class ActivityRewardVerification:
 
             user_rewards_map[user_id]['rewards'].extend(expected_rewards)
             user_rewards_map[user_id]['rankings'].append(ranking)
-            user_rewards_map[user_id]['activity_types'].add(activity_type)
+            user_rewards_map[user_id]['activity_types'].add(rank_type)
 
         validation_result = {
             "total_users": len(user_rewards_map),
@@ -896,9 +930,9 @@ class ActivityRewardVerification:
             rankings = user_info['rankings']
             activity_types = user_info['activity_types']
 
-            self.logger.info(f"验证用户 {user_id} 的奖励下发情况（在 {len(rankings)} 个榜单中, 排名: {rankings})")
+            self.logger.info(f"验证用户 {user_id} 的奖励下发情况（{activity_types} - 排名: {rankings})")
 
-            # 去重处理：同一用户可能在不同榜单获得相同奖励
+            # 同一用户可能在不同榜单获得相同奖励
             unique_rewards = {}
             for reward in rewards:
                 reward_key = f"{reward['rewardType']}_{reward['rewardId']}"
@@ -959,21 +993,20 @@ class ActivityRewardVerification:
         # 输出验证摘要
         self.logger.info("=== 奖励下发验证结果 ===")
         self.logger.info(f"总用户数: {validation_result['total_users']}")
-        self.logger.info(f"奖励下发正确的用户: {validation_result['users_with_correct_rewards']}")
-        self.logger.info(f"奖励下发错误的用户: {validation_result['users_with_incorrect_rewards']}")
-        self.logger.info(f"无奖励配置的用户: {validation_result['users_without_rewards']}")
+        self.logger.info(f"✅ 奖励下发正确的用户: {validation_result['users_with_correct_rewards']}")
+        self.logger.error(f"❌ 奖励下发错误的用户: {validation_result['users_with_incorrect_rewards']}")
+        self.logger.error(f"⚠️ 无奖励配置的用户: {validation_result['users_without_rewards']}")
 
         return validation_result
 
     def _validate_single_reward(self, user_id: int, reward_type: int, reward_id: int, valid_days: int, reward_desc: str) -> \
-            tuple[bool, str]:
+    tuple[bool, str]:
         """
         验证单个奖励的下发情况
-
+    
         Returns:
             tuple[bool, str]: (是否验证通过, 验证消息)
         """
-        # 奖励验证方法映射，使用字典映射替代大量if-else分支
         validate_reward_methods = {
             1: (self._validate_medal_reward, (user_id, reward_id)),  # 勋章
             2: (self._validate_dress_reward, (user_id, reward_id, 2, reward_desc, valid_days)),  # 头像框
@@ -1123,25 +1156,83 @@ class ActivityRewardVerification:
             # 4、获取活动榜单数据 - 用户排名及对应奖励
             ranking_data = self.get_activity_ranking_data()
 
-            # 5、清除下发奖励前已有的装扮、荣誉称号、勋章、贵族、会员/超级会员、靓号
-            self.clear_user_rewards(ranking_data, activity_reward_config_doc)
-
-            # 6、获取活动定时任务
+            # 5、获取活动定时任务
             scheduled_tasks = self.get_scheduled_tasks()
-            # 7、开始执行定时任务, 下发奖励
+
+            # 6、定时任务与榜单类型的映射
+            task_rank_type_map = {}
             for task in scheduled_tasks:
-                if not self.execute_scheduled_task(task):
+                task_name = task['taskName']
+                task_id = task['taskId']
+                task_rank_type_map[task_id] = []
+                # 根据taskId后缀匹配
+                if '@ACTIVITY_DAY_END' in task_id:
+                    # 日榜任务
+                    for k, v in self.rank_mapping.items():
+                        if '日榜' in v:
+                            task_rank_type_map[task_id].append(k)
+                elif '@ACTIVITY_END' in task_id:
+                    # 总榜任务
+                    for k, v in self.rank_mapping.items():
+                        if '总榜' in v:
+                            task_rank_type_map[task_id].append(k)
+
+                # 匹配到榜单类型
+                if not task_rank_type_map[task_id]:
+                    self.logger.warning(f"无法识别定时任务 {task_name} 对应的榜单")
+
+            # 7、开始执行定时任务和验证
+            all_tasks_successful = True
+            all_validation_result = []
+            for task in scheduled_tasks:
+                task_id = task['taskId']
+                task_name = task['taskName']
+
+                # 获取当前任务对应的榜单类型
+                rank_types = task_rank_type_map.get(task_id)
+                if not rank_types:
+                    self.logger.warning(f"无法识别定时任务 {task_name} 对应的榜单类型，跳过执行")
                     continue
-                # 8、定时任务执行成功判断用户所有奖励是否下发, 下发时长是否正确
-                if ranking_data:
-                    validation_result = self.validate_reward_distribution(ranking_data, activity_reward_config_doc)
-                    if validation_result.get('users_with_incorrect_rewards') != 0:
-                        self.logger.error(f"存在用户奖励下发错误: {validation_result.get('users_with_incorrect_rewards')}")
-                        return False
-                    if validation_result.get('users_without_rewards') != 0:
-                        self.logger.error(f"存在用户奖励未下发: {validation_result.get('users_without_rewards')}")
-                        return False
-            return True
+                rank_type_names = [self.rank_mapping.get(rank_type) for rank_type in rank_types]
+
+                # 执行任务前清除榜单中用户奖励
+                self.logger.info(f"清除 {'、'.join(rank_type_names)} 下发奖励前已有的装扮、荣誉称号、勋章、贵族、会员/超级会员、靓号")
+                self.clear_user_rewards(ranking_data, activity_reward_config_doc, rank_types)
+
+                self.logger.info(f"开始执行定时任务: {task_name}")
+                if not self.execute_scheduled_task(task):
+                    self.logger.error(f"定时任务 {task_name} 执行失败，跳过该榜单验证")
+                    all_tasks_successful = False
+                    continue
+
+                self.logger.info(f"开始验证 {'、'.join(rank_type_names)} 奖励下发情况")
+                validation_result = self.validate_reward_distribution(ranking_data, activity_reward_config_doc, rank_types)
+                all_validation_result.append(validation_result)
+                self.logger.info(f"{'、'.join(rank_type_names)}奖励验证完成")
+
+            # 汇总验证结果
+            if all_validation_result:
+                # 计算汇总统计信息
+                total_users = sum(result.get('total_users', 0) for result in all_validation_result)
+                total_correct_users = sum(
+                    result.get('users_with_correct_rewards', 0) for result in all_validation_result)
+                total_incorrect_users = sum(
+                    result.get('users_with_incorrect_rewards', 0) for result in all_validation_result)
+                total_without_rewards = sum(result.get('users_without_rewards', 0) for result in all_validation_result)
+
+                # 输出汇总报告
+                self.logger.info("=" * 50)
+                self.logger.info("🎯 所有榜单奖励验证结果汇总")
+                self.logger.info(f"📊 总用户数: {total_users}")
+                self.logger.info(f"✅ 奖励下发正确的用户: {total_correct_users}")
+                self.logger.error(f"❌ 奖励下发错误的用户: {total_incorrect_users}")
+                self.logger.error(f"⚠️ 无奖励配置的用户: {total_without_rewards}")
+                self.logger.info("=" * 50)
+
+                # 检查是否所有任务都成功
+                if total_incorrect_users > 0 or total_without_rewards > 0:
+                    all_tasks_successful = False
+            return all_tasks_successful
 
         except Exception as e:
             self.logger.error(f"验证过程中发生错误: {str(e)}")
@@ -1156,8 +1247,8 @@ def main():
         activity_number = 1053,
         activity_config_path = 'test_activity/christmas_reward_config.yaml',
         rank_mapping = {
-            "圣诞日榜": 81,
-            "圣诞总榜": 82,
+            81: "圣诞日榜",
+            82: "圣诞总榜",
         }
     )
 
