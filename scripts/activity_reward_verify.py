@@ -41,12 +41,12 @@ class ActivityRewardVerification:
         self.db = MySQLClient(config_manager.get_mysql_config())
         self.reward_mapper = RewardTypeMapper()
 
-        # 缓存字典，用于减少重复的文件读取和数据库查询
+        # 缓存字典，减少重复的文件读取和数据库查询
         self._cache = {
             'activity_reward_config_doc': [],
             'activity_reward_config_db': [],
             'expected_rewards': {},  # {(ranking, activity_type): expected_rewards}
-            'activity_ranking_data': [],  # 榜单用户排名数据
+            'activity_ranking_data': {},  # 榜单用户排名数据
             'user_expected_rewards': {},  # {user_id: {rank_type: {ranking: expected_rewards}}}
         }
 
@@ -114,6 +114,7 @@ class ActivityRewardVerification:
     def verify_db_vs_doc(self, doc_config, db_config):
         """
         校验每个奖励配置在文档数据库中是否一致
+
         Args:
             doc_config: 文档配置
             db_config: 数据库配置
@@ -274,17 +275,22 @@ class ActivityRewardVerification:
 
         return differences
 
-    def get_activity_ranking_data(self) -> List[Dict]:
+    def get_activity_ranking_data(self, filter_rank_types: Optional[List[int]] = None) -> List[Dict]:
         """
         获取活动榜单数据 - 用户排名及对应奖励
+        Args:
+            filter_rank_types: 可选，要获取的榜单类型列表
         Returns:
             List[Dict]: 格式化后的榜单数据
         """
-        # 检查缓存中是否已有榜单数据，避免重复获取
-        if self._cache['activity_ranking_data']:
-            self.logger.debug("使用缓存的活动榜单数据")
-            return self._cache['activity_ranking_data']
-        
+        # 构建缓存键，包括过滤条件
+        cache_key = (tuple(filter_rank_types) if filter_rank_types else None)
+
+        # 检查缓存中是否已有对应过滤条件的榜单数据
+        if cache_key in self._cache.get('activity_ranking_data', {}):
+            self.logger.debug(f"使用缓存的活动榜单数据 (过滤条件: {filter_rank_types})")
+            return self._cache['activity_ranking_data'][cache_key]
+
         # 从奖励配置文档读取榜单信息
         activity_reward_config = self.get_activity_reward_config_doc(self.activity_config_path)
 
@@ -292,9 +298,14 @@ class ActivityRewardVerification:
 
         # 遍历所有榜单配置
         for config in activity_reward_config:
+            rank_type = config.get('activityType', 0)
+
+            # 检查是否需要过滤榜单类型
+            if filter_rank_types and rank_type not in filter_rank_types:
+                continue
+
             rank_category = config.get('rank_category', '0')
             activity_type_name = config.get('activityType_name', '')
-            rank_type = config.get('activityType', 0)
             rank_coverage = config.get('rank_coverage', 10)
 
             # 根据activityType_name判断榜单类型
@@ -340,13 +351,15 @@ class ActivityRewardVerification:
 
             except Exception as e:
                 self.logger.error(f"获取活动榜单数据失败: {str(e)}")
-                # 继续处理下一个配置，而不是抛出异常
+                # 继续处理下一个榜单
                 continue
 
         self.logger.info(f"总共获取到 {len(all_ranked_data)} 条榜单数据")
 
         # 将结果存入缓存
-        self._cache['activity_ranking_data'] = all_ranked_data
+        if 'activity_ranking_data' not in self._cache:
+            self._cache['activity_ranking_data'] = {}
+        self._cache['activity_ranking_data'][cache_key] = all_ranked_data
         
         return all_ranked_data
 
@@ -354,12 +367,12 @@ class ActivityRewardVerification:
         Dict[str, Any]], filter_rank_types: Optional[List[int]] = None) -> Dict:
         """
         获取用户预期奖励，按用户ID分组
-        
+
         Args:
             ranking_data: 榜单数据
             activity_reward_config: 活动奖励配置
             filter_rank_types: 可选，要获取的榜单类型列表
-        
+
         Returns:
             Dict: 按用户ID分组的预期奖励，格式: {user_id: {rank_type: {ranking: expected_rewards}}}
         """
@@ -370,7 +383,7 @@ class ActivityRewardVerification:
         if cache_key in self._cache.get('filtered_expected_rewards', {}):
             self.logger.debug(f"使用缓存的用户预期奖励数据 (过滤条件: {filter_rank_types})")
             return self._cache['filtered_expected_rewards'][cache_key]
-    
+
         user_expected_rewards = {}
 
         for user_data in ranking_data:
@@ -381,7 +394,7 @@ class ActivityRewardVerification:
             # 指定过滤条件，只处理指定的榜单类型
             if filter_rank_types and rank_type not in filter_rank_types:
                 continue
-    
+
             # 获取用户应得奖励
             expected_rewards = self.get_expected_rewards_by_ranking(ranking, rank_type, activity_reward_config)
 
@@ -396,11 +409,13 @@ class ActivityRewardVerification:
         if 'filtered_expected_rewards' not in self._cache:
             self._cache['filtered_expected_rewards'] = {}
         self._cache['filtered_expected_rewards'][cache_key] = user_expected_rewards
-    
+
         return user_expected_rewards
 
     def _query_ranking_data(self, rank_category: str, stage: str, rank_coverage: int) -> List[Dict]:
-        """查询榜单数据
+        """
+        查询榜单数据
+
         Args:
             rank_category: 榜单分类
             stage: 活动阶段(赛段/日期), 默认前一天
@@ -421,11 +436,14 @@ class ActivityRewardVerification:
         return raw_data
 
     def _insert_test_ranking_data(self, ranking_category: str, stage: str, count: int) -> int:
-        """插入测试榜单数据
+        """
+        插入测试榜单数据
+
         Args:
             ranking_category: 榜单分类
             stage: 活动阶段(赛段/日期), 默认前一天, 20260119表示日榜
             count: 要插入的测试数据数量
+
         Returns:
             int: 成功插入的测试数据数量
         """
@@ -434,9 +452,7 @@ class ActivityRewardVerification:
 
         existing_users_query = """
                     SELECT * FROM `kong_test`.`activity_rank` 
-                    WHERE number = %s 
-                    and category = %s 
-                    order by id desc
+                    WHERE number = %s and category = %s order by id desc
                 """
         existing_users = self.db.execute_query(existing_users_query, (self.activity_number, ranking_category))
         template_data = existing_users[0] if existing_users else None
@@ -466,11 +482,8 @@ class ActivityRewardVerification:
         # 检查同一类型的其他榜单是否有数据
         other_stage_query = """
                         SELECT * FROM `kong_test`.`activity_rank` 
-                        WHERE number = %s 
-                        and category = %s 
-                        and day = %s
-                        ORDER BY id DESC
-                        LIMIT %s
+                        WHERE number = %s and category = %s and day = %s
+                        ORDER BY id DESC LIMIT %s
                    """
         other_stage_data = self.db.execute_query(other_stage_query, (self.activity_number, ranking_category,
                                                                      -1 if len(stage) == 8 else 0, count))
@@ -533,10 +546,8 @@ class ActivityRewardVerification:
             existing_ids_str = ','.join(map(str, existing_user_ids))
             random_users_query = """
                                 SELECT userid FROM `kong_test`.`user` 
-                                WHERE status = 0 and role = 5 
-                                and userid NOT IN (%s)
-                                ORDER BY lastLoginDate desc
-                                LIMIT %s
+                                WHERE status = 0 and role = 5 and userid NOT IN (%s)
+                                ORDER BY lastLoginDate desc LIMIT %s
                             """
             random_users = self.db.execute_query(random_users_query, (existing_ids_str, remaining_count * 2,))
             for i in range(remaining_count):
@@ -599,7 +610,16 @@ class ActivityRewardVerification:
         return inserted_count
 
     def _process_ranking_data(self, raw_data: List[Dict], rank_type: int) -> List[Dict]:
-        """处理榜单数据（单人和双人分别处理)"""
+        """
+        处理榜单数据（单人和双人分别处理)
+
+        Args:
+            raw_data: 原始榜单数据列表
+            rank_type: 榜单类型
+
+        Returns:
+            List[Dict]: 处理后的榜单数据列表
+        """
         ranked_data = []
 
         for index, item in enumerate(raw_data, 1):
@@ -667,13 +687,13 @@ class ActivityRewardVerification:
         cache_key = (ranking, activity_type)
         if cache_key in self._cache['expected_rewards']:
             return self._cache['expected_rewards'][cache_key]
-        
+
         expected_rewards = []
         self.logger.debug(f"查找排名 {ranking} 在榜单类型 {activity_type} 的奖励配置")
 
         # 构建榜单类型到配置的映射，提高查找效率
         activity_config_map = {int(cfg.get('activityType')): cfg for cfg in activity_reward_config}
-        
+
         # 查找对应榜单类型的配置
         target_activity_type = int(activity_type)
         if target_activity_type in activity_config_map:
@@ -710,7 +730,7 @@ class ActivityRewardVerification:
         Dict[str, Any]], filter_rank_types: Optional[List[int]] = None) -> None:
         """
         清除榜单用户奖励
-    
+
         Args:
             ranking_data: 榜单数据
             activity_reward_config: 活动奖励配置
@@ -718,32 +738,17 @@ class ActivityRewardVerification:
         """
         # 获取用户预期奖励（使用缓存）
         user_expected_rewards = self.get_user_expected_rewards(ranking_data, activity_reward_config, filter_rank_types)
-    
-        # 清除奖励方法映射
-        clear_reward_methods = {
-            1: (self._clear_user_medal, (lambda reward_item: (user_id, reward_item.get('rewardId')))),
-            2: (self._clear_user_dress,
-                (lambda reward_item: (user_id, reward_item.get('rewardId'), reward_item.get('reward_desc')))),
-            3: (self._clear_user_dress,
-                (lambda reward_item: (user_id, reward_item.get('rewardId'), reward_item.get('reward_desc')))),
-            4: (self._clear_user_vip, (lambda reward_item: (user_id, 'Vip'))),
-            5: (self._clear_user_vip, (lambda reward_item: (user_id, 'SuperVip'))),
-            6: (self._clear_user_bright_number,
-                (lambda reward_item: (user_id, reward_item.get('rewardId'), reward_item.get('reward_desc')))),
-            9: (self._clear_user_dress,
-                (lambda reward_item: (user_id, reward_item.get('rewardId'), reward_item.get('reward_desc')))),
-            10: (self._clear_user_dress,
-                 (lambda reward_item: (user_id, reward_item.get('rewardId'), reward_item.get('reward_desc')))),
-            12: (self._clear_user_dress,
-                 (lambda reward_item: (user_id, reward_item.get('rewardId'), reward_item.get('reward_desc')))),
-            14: (self._clear_user_dress,
-                 (lambda reward_item: (user_id, reward_item.get('rewardId'), reward_item.get('reward_desc')))),
-            15: (self._clear_user_title, (lambda reward_item: (user_id, reward_item.get('rewardId')))),
-            16: (self._clear_user_noble, (lambda reward_item: (user_id, 7))),
-            17: (self._clear_user_noble, (lambda reward_item: (user_id, 4))),
-        }
 
-        # 清除用户奖励
+        # 收集需要清除的各种奖励
+        dress_to_clear = []
+        medal_to_clear = []
+        title_to_clear = []
+        noble_to_clear = []
+        vip_to_clear = []
+        super_vip_to_clear = []
+        nice_number_to_clear = []
+
+        # 遍历用户数据，收集需要清除的奖励
         for user_data in ranking_data:
             user_id = user_data.get('user_id')
             ranking = user_data.get('ranking')
@@ -752,70 +757,124 @@ class ActivityRewardVerification:
             # 指定过滤条件，只处理指定的榜单类型
             if filter_rank_types and activity_type not in filter_rank_types:
                 continue
-    
+
             # 从缓存中获取用户应得奖励
             expected_rewards = user_expected_rewards.get(user_id, {}).get(activity_type, {}).get(ranking, [])
-    
+
             if not expected_rewards:
                 self.logger.warning(f"用户 {user_id} 排名 {ranking} 未找到对应的奖励配置")
                 continue
 
-            self.logger.info(f"清除用户 {user_id} (榜单{activity_type} 排名{ranking}) 的已有奖励")
-            # 根据应得奖励类型进行精确清理
+            self.logger.info(f"准备清除用户 {user_id} (榜单{activity_type} 排名{ranking}) 的已有奖励")
+            # 根据应得奖励类型统计需要清除的记录
             for reward in expected_rewards:
                 reward_type = reward.get('rewardType')
+                reward_id = reward.get('rewardId')
 
-                # 使用字典映射调用对应的清除方法
-                if reward_type in clear_reward_methods:
-                    method, args_func = clear_reward_methods[reward_type]
-                    args = args_func(reward)
-                    method(*args)
+                if reward_type in {2, 3, 9, 10, 12, 14}:
+                    # 装扮类奖励
+                    dress_to_clear.append((user_id, reward_id))
+                elif reward_type == 1:
+                    # 勋章
+                    medal_to_clear.append((user_id, reward_id))
+                elif reward_type == 15:
+                    # 荣誉称号
+                    title_to_clear.append((user_id, reward_id))
+                elif reward_type in {16, 17}:
+                    # 贵族 - 16为公爵，17为子爵
+                    nobleman_id = 7 if reward_type == 16 else 4
+                    noble_to_clear.append((user_id, nobleman_id))
+                elif reward_type == 4:
+                    # VIP
+                    vip_to_clear.append((user_id,))
+                elif reward_type == 5:
+                    # 超级VIP
+                    super_vip_to_clear.append((user_id,))
+                elif reward_type == 6:
+                    # 靓号
+                    nice_number_to_clear.append((user_id, reward_id))
                 else:
                     self.logger.warning(f"未知的奖励类型: {reward_type}，无法清除")
 
-    def _clear_user_dress(self, user_id: int, dress_id: int, dress_type_name: str):
-        """清除用户装扮"""
-        query = "DELETE FROM `kong_test`.`user_dress` WHERE userId = %s and dressId = %s"
-        self.db.execute_update(query, (user_id, dress_id,))
-        self.logger.debug(f"清除用户 {user_id} 的{dress_type_name}装扮 {dress_id}")
+        # 批量执行清除操作
+        if dress_to_clear:
+            query = "DELETE FROM `kong_test`.`user_dress` WHERE userId = %s and dressId = %s"
+            affected_rows = self.db.execute_many(query, dress_to_clear)
+            self.logger.info(f"批量清除装扮奖励，共影响 {affected_rows} 条记录")
 
-    def _clear_user_medal(self, user_id: int, medal_id: int):
-        """清除用户勋章"""
-        query = "DELETE FROM `kong_test`.`user_medal` WHERE userId = %s and medalId = %s"
-        self.db.execute_update(query, (user_id, medal_id))
-        self.logger.debug(f"清除用户 {user_id} 的勋章 {medal_id}")
+        if medal_to_clear:
+            query = "DELETE FROM `kong_test`.`user_medal` WHERE userId = %s and medalId = %s"
+            affected_rows = self.db.execute_many(query, medal_to_clear)
+            self.logger.info(f"批量清除勋章奖励，共影响 {affected_rows} 条记录")
 
-    def _clear_user_title(self, user_id: int, title_id: int):
-        """清除用户荣誉称号"""
-        query = "DELETE FROM `kong_test`.`user_title` WHERE userId = %s and titleId = %s"
-        self.db.execute_update(query, (user_id, title_id))
-        self.logger.debug(f"清除用户 {user_id} 的荣誉称号 {title_id}")
+        if title_to_clear:
+            query = "DELETE FROM `kong_test`.`user_honor_title` WHERE userId = %s and titleId = %s"
+            affected_rows = self.db.execute_many(query, title_to_clear)
+            self.logger.info(f"批量清除荣誉称号奖励，共影响 {affected_rows} 条记录")
 
-    def _clear_user_noble(self, user_id: int, nobleman_id: int):
-        """清除用户贵族身份 - 设置为过期状态"""
-        noble_type = '公爵' if nobleman_id == 7 else '子爵'
-        query = "UPDATE `kong_test`.`user_nobleman_level` SET isNobleman = 0, noblemanExpire = DATE_SUB(NOW(), INTERVAL 1 DAY) WHERE userId = %s and noblemanId = %s"
+        if noble_to_clear:
+            query = "UPDATE `kong_test`.`user_nobleman_level` SET isNobleman = 0, noblemanExpire = DATE_SUB(NOW(), INTERVAL 1 DAY) WHERE userId = %s and noblemanId = %s"
+            affected_rows = self.db.execute_many(query, noble_to_clear)
+            self.logger.info(f"批量清除贵族奖励，共影响 {affected_rows} 条记录")
 
-        self.db.execute_update(query, (user_id, nobleman_id,))
-        self.logger.debug(f"设置用户 {user_id} 的{noble_type}贵族为过期状态")
-
-    def _clear_user_vip(self, user_id: int, vip_type: str):
-        """清除用户会员身份 - 设置为过期状态"""
-        if vip_type == 'Vip':
+        if vip_to_clear:
             query = "UPDATE `kong_test`.`user` SET isVip = 0, vipExpire = DATE_SUB(NOW(), INTERVAL 1 DAY) WHERE userId = %s"
-        elif vip_type == 'SuperVip':
+            affected_rows = self.db.execute_many(query, vip_to_clear)
+            self.logger.info(f"批量清除VIP奖励，共影响 {affected_rows} 条记录")
+
+        if super_vip_to_clear:
             query = "UPDATE `kong_test`.`user` SET isSuperVip = 0, superVipExpire = DATE_SUB(NOW(), INTERVAL 1 DAY) WHERE userId = %s"
-        else:
-            return
+            affected_rows = self.db.execute_many(query, super_vip_to_clear)
+            self.logger.info(f"批量清除超级VIP奖励，共影响 {affected_rows} 条记录")
 
-        self.db.execute_update(query, (user_id,))
-        self.logger.debug(f"设置用户 {user_id} 的{vip_type}为过期状态")
+        if nice_number_to_clear:
+            query = "DELETE FROM `kong_test`.`user_gift` WHERE userId = %s and giftId = %s"
+            affected_rows = self.db.execute_many(query, nice_number_to_clear)
+            self.logger.info(f"批量清除靓号奖励，共影响 {affected_rows} 条记录")
 
-    def _clear_user_bright_number(self, user_id: int, reward_id: int, reward_desc: str):
-        """清除用户靓号"""
-        query = "DELETE FROM `kong_test`.`user_gift` WHERE userId = %s and giftId = %s"
-        self.db.execute_update(query, (user_id, reward_id,))
-        self.logger.debug(f"清除用户 {user_id} 的{reward_desc}")
+    # def _clear_user_dress(self, user_id: int, dress_id: int, dress_type_name: str):
+    #     """清除用户装扮"""
+    #     query = "DELETE FROM `kong_test`.`user_dress` WHERE userId = %s and dressId = %s"
+    #     self.db.execute_update(query, (user_id, dress_id,))
+    #     self.logger.debug(f"清除用户 {user_id} 的{dress_type_name}装扮 {dress_id}")
+    #
+    # def _clear_user_medal(self, user_id: int, medal_id: int):
+    #     """清除用户勋章"""
+    #     query = "DELETE FROM `kong_test`.`user_medal` WHERE userId = %s and medalId = %s"
+    #     self.db.execute_update(query, (user_id, medal_id))
+    #     self.logger.debug(f"清除用户 {user_id} 的勋章 {medal_id}")
+    #
+    # def _clear_user_title(self, user_id: int, title_id: int):
+    #     """清除用户荣誉称号"""
+    #     query = "DELETE FROM `kong_test`.`user_honor_title` WHERE userId = %s and titleId = %s"
+    #     self.db.execute_update(query, (user_id, title_id))
+    #     self.logger.debug(f"清除用户 {user_id} 的荣誉称号 {title_id}")
+    #
+    # def _clear_user_noble(self, user_id: int, nobleman_id: int):
+    #     """清除用户贵族身份 - 设置为过期状态"""
+    #     noble_type = '公爵' if nobleman_id == 7 else '子爵'
+    #     query = "UPDATE `kong_test`.`user_nobleman_level` SET isNobleman = 0, noblemanExpire = DATE_SUB(NOW(), INTERVAL 1 DAY) WHERE userId = %s and noblemanId = %s"
+    #
+    #     self.db.execute_update(query, (user_id, nobleman_id,))
+    #     self.logger.debug(f"设置用户 {user_id} 的{noble_type}贵族为过期状态")
+    #
+    # def _clear_user_vip(self, user_id: int, vip_type: str):
+    #     """清除用户会员身份 - 设置为过期状态"""
+    #     if vip_type == 'Vip':
+    #         query = "UPDATE `kong_test`.`user` SET isVip = 0, vipExpire = DATE_SUB(NOW(), INTERVAL 1 DAY) WHERE userId = %s"
+    #     elif vip_type == 'SuperVip':
+    #         query = "UPDATE `kong_test`.`user` SET isSuperVip = 0, superVipExpire = DATE_SUB(NOW(), INTERVAL 1 DAY) WHERE userId = %s"
+    #     else:
+    #         return
+    #
+    #     self.db.execute_update(query, (user_id,))
+    #     self.logger.debug(f"设置用户 {user_id} 的{vip_type}为过期状态")
+    #
+    # def _clear_user_bright_number(self, user_id: int, reward_id: int, reward_desc: str):
+    #     """清除用户靓号"""
+    #     query = "DELETE FROM `kong_test`.`user_gift` WHERE userId = %s and giftId = %s"
+    #     self.db.execute_update(query, (user_id, reward_id,))
+    #     self.logger.debug(f"清除用户 {user_id} 的{reward_desc}")
 
     def get_scheduled_tasks(self) -> List[Dict]:
         """
@@ -876,120 +935,116 @@ class ActivityRewardVerification:
             filter_rank_types: 可选，要验证的榜单类型列表
 
         Returns:
-            Dict: 验证结果
+            Dict[str, Any]: 验证结果
         """
-        # 按用户ID分组, 处理同一用户在多个榜单的情况
-        user_rewards_map = {}
-
-        for user_data in ranking_data:
-            user_id = user_data.get('user_id')
-            ranking = user_data.get('ranking')
-            rank_type = user_data.get('rank_type')
-            rank_type_name = self.rank_mapping.get(rank_type)
-
-            # 指定过滤条件，只处理指定的榜单类型
-            if filter_rank_types and rank_type not in filter_rank_types:
-                continue
-
-            # 添加None检查
-            if rank_type is None:
-                self.logger.warning(f"未知的榜单类型名称: {rank_type_name}，无法获取对应榜单类型ID")
-                continue
-
-            # 获取用户应得奖励
-            expected_rewards = self.get_expected_rewards_by_ranking(ranking, rank_type, activity_reward_config)
-            if not expected_rewards:
-                continue
-
-            # 按用户ID聚合奖励
-            if user_id not in user_rewards_map:
-                user_rewards_map[user_id] = {
-                    'user_id': user_id,
-                    'rewards': [],
-                    'rankings': [],
-                    'activity_types': set()
-                }
-
-            user_rewards_map[user_id]['rewards'].extend(expected_rewards)
-            user_rewards_map[user_id]['rankings'].append(ranking)
-            user_rewards_map[user_id]['activity_types'].add(rank_type)
-
         validation_result = {
-            "total_users": len(user_rewards_map),
+            "total_users": 0,
             "users_with_correct_rewards": 0,
             "users_with_incorrect_rewards": 0,
             "users_without_rewards": 0,
-            "distribution_details": [],
             "reward_validation_details": []
         }
 
-        # 验证每个用户的奖励下发情况
-        for user_info in user_rewards_map.values():
-            user_id = user_info['user_id']
-            rewards = user_info['rewards']
-            rankings = user_info['rankings']
-            activity_types = user_info['activity_types']
+        # 按用户ID分组处理，过滤符合filter_rank_types的榜单数据
+        user_ranking_dict = {}
+        for data in ranking_data:
+            rank_type = data.get('rank_type')
+            # 检查是否需要过滤榜单类型
+            if filter_rank_types and rank_type not in filter_rank_types:
+                continue
 
-            self.logger.info(f"验证用户 {user_id} 的奖励下发情况（{activity_types} - 排名: {rankings})")
+            user_id = data.get('user_id')
+            if user_id not in user_ranking_dict:
+                user_ranking_dict[user_id] = []
+            user_ranking_dict[user_id].append(data)
 
-            # 同一用户可能在不同榜单获得相同奖励
-            unique_rewards = {}
-            for reward in rewards:
-                reward_key = f"{reward['rewardType']}_{reward['rewardId']}"
-                if reward_key not in unique_rewards:
-                    unique_rewards[reward_key] = reward
-                else:
-                    # 如果同一奖励在多个榜单出现, 取最长的有效期
-                    existing_reward = unique_rewards[reward_key]
-                    if reward.get('valid_days', 0) > existing_reward.get('valid_days', 0):
-                        unique_rewards[reward_key] = reward
+        validation_result["total_users"] = len(user_ranking_dict)
 
+        # 如果没有用户数据，直接返回
+        if not user_ranking_dict:
+            return validation_result
+
+        # 获取所有用户预期奖励
+        user_expected_rewards = self.get_user_expected_rewards(ranking_data, activity_reward_config, filter_rank_types)
+
+        # 收集所有需要验证的奖励
+        all_user_ids = list(user_ranking_dict.keys())
+
+        # 批量查询所有需要验证的数据
+        dress_query_results = self._batch_query_dress_rewards(all_user_ids)
+        medal_query_results = self._batch_query_medal_rewards(all_user_ids)
+        title_query_results = self._batch_query_title_rewards(all_user_ids)
+        noble_query_results = self._batch_query_noble_rewards(all_user_ids)
+        vip_query_results = self._batch_query_vip_rewards(all_user_ids)
+        nice_number_query_results = self._batch_query_nice_number_rewards(all_user_ids)
+
+        # 遍历每个用户进行验证
+        for user_id, user_data_list in user_ranking_dict.items():
             user_validation = {
                 "user_id": user_id,
-                "rankings": rankings,
-                "activity_types": list(activity_types),
-                "expected_rewards": list(unique_rewards.values()),
                 "actual_rewards": [],
                 "validation_results": [],
-                "all_correct": True
+                "all_correct": True,
+                "status": ""
             }
 
-            # 验证每个应得奖励是否已正确下发
-            for expected_reward in unique_rewards.values():
-                reward_type = expected_reward.get('rewardType')
-                reward_id = expected_reward.get('rewardId')
-                valid_days = expected_reward.get('valid_days')
-                reward_desc = expected_reward.get('reward_desc')
+            # 检查用户是否在所有符合条件的榜单中都没有奖励配置
+            has_any_reward = False
 
-                # 验证奖励是否已下发
-                is_valid, validation_msg = self._validate_single_reward(user_id, reward_type, reward_id, valid_days, reward_desc)
+            # 遍历用户的所有符合条件的榜单数据
+            for user_data in user_data_list:
+                ranking = user_data.get('ranking')
+                activity_type = user_data.get('rank_type')
 
-                user_validation["actual_rewards"].append({
-                    "reward_type": reward_type,
-                    "reward_id": reward_id,
-                    "valid_days": valid_days,
-                    "is_valid": is_valid
-                })
+                # 获取用户应得奖励
+                expected_rewards = user_expected_rewards.get(user_id, {}).get(activity_type, {}).get(ranking, [])
 
-                user_validation["validation_results"].append({
-                    "reward_type": reward_type,
-                    "reward_id": reward_id,
-                    "is_valid": is_valid,
-                    "message": validation_msg
-                })
+                if expected_rewards:
+                    has_any_reward = True
 
-                if not is_valid:
-                    user_validation["all_correct"] = False
+                    # 对每个奖励进行验证（使用批量查询的结果）
+                    for reward in expected_rewards:
+                        reward_type = reward.get('rewardType')
+                        reward_id = reward.get('rewardId')
+                        valid_days = reward.get('valid_days')
+                        reward_desc = reward.get('reward_desc')
 
+                        # 使用批量查询结果进行验证
+                        is_valid, validation_msg = self._batch_validate_single_reward(
+                            user_id, reward_type, reward_id, valid_days, reward_desc,
+                            dress_query_results, medal_query_results, title_query_results,
+                            noble_query_results, vip_query_results, nice_number_query_results
+                        )
+
+                        user_validation["actual_rewards"].append({
+                            "reward_type": reward_type,
+                            "reward_id": reward_id,
+                            "valid_days": valid_days,
+                            "is_valid": is_valid
+                        })
+
+                        user_validation["validation_results"].append({
+                            "reward_type": reward_type,
+                            "reward_id": reward_id,
+                            "is_valid": is_valid,
+                            "message": validation_msg
+                        })
+
+                        if not is_valid:
+                            user_validation["all_correct"] = False
+    
             # 统计验证结果
-            if user_validation["all_correct"]:
+            if not has_any_reward:
+                validation_result["users_without_rewards"] += 1
+            elif user_validation["all_correct"]:
                 validation_result["users_with_correct_rewards"] += 1
                 user_validation["status"] = "correct"
             else:
                 validation_result["users_with_incorrect_rewards"] += 1
                 user_validation["status"] = "incorrect"
-            validation_result["reward_validation_details"].append(user_validation)
 
+                validation_result["reward_validation_details"].append(user_validation)
+    
         # 输出验证摘要
         self.logger.info("=== 奖励下发验证结果 ===")
         self.logger.info(f"总用户数: {validation_result['total_users']}")
@@ -999,140 +1054,393 @@ class ActivityRewardVerification:
 
         return validation_result
 
-    def _validate_single_reward(self, user_id: int, reward_type: int, reward_id: int, valid_days: int, reward_desc: str) -> \
-    tuple[bool, str]:
+    def _batch_query_dress_rewards(self, user_ids: List[int]) -> Dict:
         """
-        验证单个奖励的下发情况
-    
-        Returns:
-            tuple[bool, str]: (是否验证通过, 验证消息)
+        批量查询装扮奖励
         """
-        validate_reward_methods = {
-            1: (self._validate_medal_reward, (user_id, reward_id)),  # 勋章
-            2: (self._validate_dress_reward, (user_id, reward_id, 2, reward_desc, valid_days)),  # 头像框
-            3: (self._validate_dress_reward, (user_id, reward_id, 1, reward_desc, valid_days)),  # 座驾
-            4: (self._validate_vip_reward, (user_id, 'Vip', valid_days)),  # 会员
-            5: (self._validate_vip_reward, (user_id, 'SuperVip', valid_days)),  # 超级会员
-            6: (self._validate_nice_number_reward, (user_id, reward_id, reward_desc)),  # 靓号
-            9: (self._validate_dress_reward, (user_id, reward_id, 4, reward_desc, valid_days)),  # 房间聊天气泡
-            10: (self._validate_dress_reward, (user_id, reward_id, 5, reward_desc, valid_days)),  # 主页特效
-            12: (self._validate_dress_reward, (user_id, reward_id, 3, reward_desc, valid_days)),  # 私聊气泡
-            14: (self._validate_dress_reward, (user_id, reward_id, 6, reward_desc, valid_days)),  # 进场特效
-            15: (self._validate_title_reward, (user_id, reward_id, valid_days)),  # 荣誉称号
-            16: (self._validate_noble_reward, (user_id, 7, valid_days)),  # 公爵贵族
-            17: (self._validate_noble_reward, (user_id, 4, valid_days)),  # 子爵贵族
-        }
-        
+        if not user_ids:
+            return {}
+
+        placeholders = ', '.join(['%s'] * len(user_ids))
+        query = f"""
+            SELECT userId, dressId, category, timestampdiff(day, FROM_UNIXTIME(valid/1000), FROM_UNIXTIME(expire/1000)) as validDay 
+            FROM `kong_test`.`user_dress` 
+            WHERE userId IN ({placeholders})
+        """
+        results = self.db.execute_query(query, tuple(user_ids))
+
+        # 整理结果为字典便于查询
+        result_dict = {}
+        for row in results:
+            user_id = row['userId']
+            dress_id = row['dressId']
+            category = row['category']
+
+            if user_id not in result_dict:
+                result_dict[user_id] = {}
+            if dress_id not in result_dict[user_id]:
+                result_dict[user_id][dress_id] = {}
+
+            result_dict[user_id][dress_id][category] = row['validDay']
+
+        return result_dict
+
+    def _batch_query_medal_rewards(self, user_ids: List[int]) -> Dict:
+        """
+        批量查询勋章奖励
+        """
+        if not user_ids:
+            return {}
+
+        placeholders = ', '.join(['%s'] * len(user_ids))
+        query = f"""SELECT userId, medalId FROM `kong_test`.`user_medal` WHERE userId IN ({placeholders})"""
+        results = self.db.execute_query(query, tuple(user_ids))
+
+        # 整理结果为字典便于查询: {user_id: {medal_id: True}}
+        result_dict = {}
+        for row in results:
+            user_id = row['userId']
+            medal_id = row['medalId']
+
+            if user_id not in result_dict:
+                result_dict[user_id] = {}
+            result_dict[user_id][medal_id] = True
+
+        return result_dict
+
+    def _batch_query_title_rewards(self, user_ids: List[int]) -> Dict:
+        """
+        批量查询荣誉称号奖励
+        """
+        if not user_ids:
+            return {}
+
+        placeholders = ', '.join(['%s'] * len(user_ids))
+        query = f"""
+            SELECT userId, honorTitleId, timestampdiff(day, valid, expire) as validDay 
+            FROM `kong_test`.`user_honor_title` 
+            WHERE userId IN ({placeholders})
+        """
+        results = self.db.execute_query(query, tuple(user_ids))
+
+        # 整理结果为字典便于查询: {user_id: {title_id: valid_days}}
+        result_dict = {}
+        for row in results:
+            user_id = row['userId']
+            title_id = row['honorTitleId']
+            valid_day = row['validDay']
+
+            if user_id not in result_dict:
+                result_dict[user_id] = {}
+            result_dict[user_id][title_id] = valid_day
+
+        return result_dict
+
+    def _batch_query_noble_rewards(self, user_ids: List[int]) -> Dict:
+        """
+        批量查询贵族奖励
+        """
+        if not user_ids:
+            return {}
+
+        placeholders = ', '.join(['%s'] * len(user_ids))
+        query = f"""
+            SELECT userId, noblemanId, 
+                   timestampdiff(day, FROM_UNIXTIME(noblemanValid), FROM_UNIXTIME(noblemanExpire)) as validDay 
+            FROM `kong_test`.`user_nobleman_level` 
+            WHERE userId IN ({placeholders})
+        """
+        results = self.db.execute_query(query, tuple(user_ids))
+
+        # 整理结果为字典便于查询: {user_id: {nobleman_id: valid_days}}
+        result_dict = {}
+        for row in results:
+            user_id = row['userId']
+            nobleman_id = row['noblemanId']
+            valid_day = row['validDay']
+
+            if user_id not in result_dict:
+                result_dict[user_id] = {}
+            result_dict[user_id][nobleman_id] = valid_day
+
+        return result_dict
+
+    def _batch_query_vip_rewards(self, user_ids: List[int]) -> Dict:
+        """
+        批量查询会员奖励
+        """
+        if not user_ids:
+            return {}
+
+        placeholders = ', '.join(['%s'] * len(user_ids))
+        query = f"""
+            SELECT userId, isVip, isSuperVip, 
+                   timestampdiff(day, FROM_UNIXTIME(vipValid/1000), FROM_UNIXTIME(vipExpire/1000)) as vipValidDay,
+                   timestampdiff(day, FROM_UNIXTIME(superVipValid/1000), FROM_UNIXTIME(superVipExpire/1000)) as superVipValidDay
+            FROM `kong_test`.`user` 
+            WHERE userId IN ({placeholders})
+        """
+        results = self.db.execute_query(query, tuple(user_ids))
+
+        # 整理结果为字典便于查询: {user_id: {'Vip': {'valid': bool, 'valid_days': int}, 'SuperVip': {'valid': bool, 'valid_days': int}}}
+        result_dict = {}
+        for row in results:
+            user_id = row['userId']
+            result_dict[user_id] = {
+                'Vip': {
+                    'valid': bool(row['isVip']),
+                    'valid_days': row['vipValidDay']
+                },
+                'SuperVip': {
+                    'valid': bool(row['isSuperVip']),
+                    'valid_days': row['superVipValidDay']
+                }
+            }
+
+        return result_dict
+
+    def _batch_query_nice_number_rewards(self, user_ids: List[int]) -> Dict:
+        """
+        批量查询靓号奖励
+        """
+        if not user_ids:
+            return {}
+
+        placeholders = ', '.join(['%s'] * len(user_ids))
+        query = f"""
+            SELECT userId, giftId 
+            FROM `kong_test`.`user_gift` 
+            WHERE userId IN ({placeholders})
+        """
+        results = self.db.execute_query(query, tuple(user_ids))
+
+        # 整理结果为字典便于查询: {user_id: {gift_id: True}}
+        result_dict = {}
+        for row in results:
+            user_id = row['userId']
+            gift_id = row['giftId']
+
+            if user_id not in result_dict:
+                result_dict[user_id] = {}
+            result_dict[user_id][gift_id] = True
+
+        return result_dict
+
+    @staticmethod
+    def _batch_validate_single_reward(user_id: int, reward_type: int, reward_id: int, valid_days: int, reward_desc: str,
+                                      dress_results: Dict, medal_results: Dict, title_results: Dict,
+                                      noble_results: Dict, vip_results: Dict, nice_number_results: Dict) -> tuple[
+        bool, str]:
+        """
+        使用批量查询结果验证单个奖励
+        """
         try:
-            if reward_type in validate_reward_methods:
-                method, args = validate_reward_methods[reward_type]
-                return method(*args)
+            # 勋章奖励
+            if reward_type == 1:
+                user_medals = medal_results.get(user_id, {})
+                if reward_id not in user_medals:
+                    return False, f"勋章 {reward_id} 未下发"
+                return True, "勋章验证通过"
+
+            # 装扮奖励（头像框、座驾等）
+            elif reward_type in {2, 3, 9, 10, 12, 14}:
+                # 确定装扮类型
+                dress_type_map = {
+                    2: 2,  # 头像框
+                    3: 1,  # 座驾
+                    9: 4,  # 房间聊天气泡
+                    10: 5,  # 主页特效
+                    12: 3,  # 私聊气泡
+                    14: 6  # 进场特效
+                }
+                dress_type = dress_type_map.get(reward_type)
+
+                user_dresses = dress_results.get(user_id, {})
+                if reward_id not in user_dresses or dress_type not in user_dresses[reward_id]:
+                    return False, f"{reward_desc}装扮 {reward_id} 未下发或已过期"
+
+                # 验证有效期
+                if valid_days > 0:
+                    actual_expire = user_dresses[reward_id][dress_type]
+                    if abs(actual_expire - valid_days) > 0:
+                        return False, f"{reward_desc}装扮有效期不匹配"
+
+                return True, f"{reward_desc}装扮验证通过"
+
+            # 荣誉称号
+            elif reward_type == 15:
+                user_titles = title_results.get(user_id, {})
+                if reward_id not in user_titles:
+                    return False, f"荣誉称号 {reward_id} 未下发或已过期"
+
+                # 验证有效期
+                if valid_days > 0:
+                    actual_expire = user_titles[reward_id]
+                    if abs(actual_expire - valid_days) > 0:
+                        return False, f"荣誉称号有效期不匹配"
+
+                return True, "荣誉称号验证通过"
+
+            # 贵族奖励
+            elif reward_type in {16, 17}:
+                nobleman_id = 7 if reward_type == 16 else 4
+                noble_type = '公爵' if nobleman_id == 7 else '子爵'
+
+                user_nobles = noble_results.get(user_id, {})
+                if nobleman_id not in user_nobles:
+                    return False, f"{noble_type}贵族未下发或已过期"
+
+                # 验证有效期
+                if valid_days > 0:
+                    actual_expire = user_nobles[nobleman_id]
+                    if abs(actual_expire - valid_days) > 0:
+                        return False, f"{noble_type}贵族有效期不匹配"
+
+                return True, f"{noble_type}贵族验证通过"
+
+            # VIP奖励
+            elif reward_type == 4:
+                user_vip = vip_results.get(user_id, {})
+                if 'vip' not in user_vip or user_vip['vip'] != 1:
+                    return False, "VIP未下发"
+
+                # 验证有效期
+                if valid_days > 0:
+                    actual_expire = user_vip.get('vip_valid_day', 0)
+                    if abs(actual_expire - valid_days) > 0:
+                        return False, "VIP有效期不匹配"
+
+                return True, "VIP验证通过"
+
+            # 超级VIP奖励
+            elif reward_type == 5:
+                user_vip = vip_results.get(user_id, {})
+                if 'super_vip' not in user_vip or user_vip['super_vip'] != 1:
+                    return False, "超级VIP未下发"
+
+                # 验证有效期
+                if valid_days > 0:
+                    actual_expire = user_vip.get('super_vip_valid_day', 0)
+                    if abs(actual_expire - valid_days) > 0:
+                        return False, "超级VIP有效期不匹配"
+
+                return True, "超级VIP验证通过"
+
+            # 靓号奖励
+            elif reward_type == 6:
+                user_nice_numbers = nice_number_results.get(user_id, {})
+                if reward_id not in user_nice_numbers:
+                    return False, f"{reward_desc} - {reward_id} 未下发"
+
+                return True, f"{reward_desc}验证通过"
+
             else:
                 return False, f"未知奖励类型: {reward_type}"
+
         except Exception as e:
             return False, f"验证过程中发生错误: {str(e)}"
 
-    def _validate_dress_reward(self, user_id: int, dress_id: int, dress_type: int, dress_type_name: str, valid_days: int) -> \
-            tuple[bool, str]:
-        """验证装扮奖励"""
-        query = """
-            SELECT userid, dressId, timestampdiff(day, FROM_UNIXTIME(valid/1000), FROM_UNIXTIME(expire/1000)) as validDay FROM `kong_test`.`user_dress` 
-            WHERE userId = %s and dressId = %s and category = %s
-        """
-        result = self.db.get_one(query, (user_id, dress_id, dress_type))
-
-        if not result:
-            return False, f"{dress_type_name}装扮 {dress_id} 未下发或已过期"
-
-        # 验证有效期
-        if valid_days > 0:
-            actual_expire = result.get('validDay')
-            if abs(actual_expire - valid_days) > 0:
-                return False, f"{dress_type_name}装扮有效期不匹配"
-
-        return True, f"{dress_type_name}装扮验证通过"
-
-    def _validate_medal_reward(self, user_id: int, medal_id: int) -> tuple[bool, str]:
-        """验证勋章奖励"""
-        query = "SELECT * FROM `kong_test`.`user_medal` WHERE userId = %s and medalId = %s"
-        result = self.db.get_one(query, (user_id, medal_id))
-
-        if not result:
-            return False, f"勋章 {medal_id} 未下发"
-
-        return True, "勋章验证通过"
-
-    def _validate_title_reward(self, user_id: int, title_id: int, valid_days: int) -> tuple[bool, str]:
-        """验证荣誉称号奖励"""
-        query = """
-            SELECT userid, honorTitleId, timestampdiff(day, valid, expire) as validDay FROM `kong_test`.`user_title` 
-            WHERE userId = %s and honorTitleId = %s 
-        """
-        result = self.db.get_one(query, (user_id, title_id))
-
-        if not result:
-            return False, f"荣誉称号 {title_id} 未下发或已过期"
-
-        # 验证有效期
-        if valid_days > 0:
-            actual_expire = result.get('validDay')
-            if abs(actual_expire - valid_days) > 0:
-                return False, f"荣誉称号有效期不匹配"
-
-        return True, "荣誉称号验证通过"
-
-    def _validate_noble_reward(self, user_id: int, nobleman_id: int, valid_days: int) -> tuple[bool, str]:
-        """验证贵族奖励"""
-        noble_type = '公爵' if nobleman_id == 7 else '子爵'
-
-        query = f"SELECT userId, noblemanId, timestampdiff(day, FROM_UNIXTIME(noblemanValid), FROM_UNIXTIME(noblemanExpire)) as validDay FROM `kong_test`.`user_nobleman_level` WHERE userId = %s and noblemanId = %s"
-        result = self.db.get_one(query, (user_id, nobleman_id,))
-
-        if not result:
-            return False, f"{noble_type}贵族未下发或已过期"
-
-        # 验证有效期
-        if valid_days > 0:
-            actual_expire = result.get('validDay')
-            if abs(actual_expire - valid_days) > 0:
-                return False, f"{noble_type}贵族有效期不匹配"
-
-        return True, f"{noble_type}贵族验证通过"
-
-    def _validate_vip_reward(self, user_id: int, vip_type: str, valid_days: int) -> tuple[bool, str]:
-        """验证会员奖励"""
-        if vip_type == 'Vip':
-            query = "SELECT userId, isVip as valid, timestampdiff(day, FROM_UNIXTIME(vipValid/1000), FROM_UNIXTIME(vipExpire/1000)) as validDay FROM `kong_test`.`user` WHERE userId = %s"
-        elif vip_type == 'SuperVip':
-            query = "SELECT userId, isSuperVip as valid, timestampdiff(day, FROM_UNIXTIME(superVipValid/1000), FROM_UNIXTIME(superVipExpire/1000)) as validDay FROM `kong_test`.`user` WHERE userId = %s"
-        else:
-            return False, f"未知会员类型: {vip_type}"
-
-        result = self.db.get_one(query, (user_id,))
-
-        if not result:
-            return False, f"{vip_type}未下发或已过期"
-
-        # 验证有效期
-        if valid_days > 0:
-            valid = result.get('valid')
-            actual_expire = result.get('validDay')
-            if valid == 0:
-                return False, f"{vip_type}未下发"
-            elif valid == 1 and abs(actual_expire - valid_days) > 0:
-                return False, f"{vip_type}有效期不匹配"
-
-        return True, f"{vip_type}验证通过"
-
-    def _validate_nice_number_reward(self, user_id: int, reward_id: int, reward_desc: str) -> tuple[bool, str]:
-        """验证靓号奖励"""
-        query = "SELECT * FROM `kong_test`.`user_gift` WHERE userId = %s and giftId = %s"
-        result = self.db.get_one(query, (user_id, reward_id,))
-
-        if not result:
-            return False, f"{reward_desc} - {reward_id} 未下发"
-
-        return True, f"{reward_desc}验证通过"
+    # def _validate_dress_reward(self, user_id: int, dress_id: int, dress_type: int, dress_type_name: str, valid_days: int) -> \
+    #         tuple[bool, str]:
+    #     """验证装扮奖励"""
+    #     query = """
+    #         SELECT userid, dressId, timestampdiff(day, FROM_UNIXTIME(valid/1000), FROM_UNIXTIME(expire/1000)) as validDay FROM `kong_test`.`user_dress`
+    #         WHERE userId = %s and dressId = %s and category = %s
+    #     """
+    #     result = self.db.get_one(query, (user_id, dress_id, dress_type))
+    #
+    #     if not result:
+    #         return False, f"{dress_type_name}装扮 {dress_id} 未下发或已过期"
+    #
+    #     # 验证有效期
+    #     if valid_days > 0:
+    #         actual_expire = result.get('validDay')
+    #         if abs(actual_expire - valid_days) > 0:
+    #             return False, f"{dress_type_name}装扮有效期不匹配"
+    #
+    #     return True, f"{dress_type_name}装扮验证通过"
+    #
+    # def _validate_medal_reward(self, user_id: int, medal_id: int) -> tuple[bool, str]:
+    #     """验证勋章奖励"""
+    #     query = "SELECT * FROM `kong_test`.`user_medal` WHERE userId = %s and medalId = %s"
+    #     result = self.db.get_one(query, (user_id, medal_id))
+    #
+    #     if not result:
+    #         return False, f"勋章 {medal_id} 未下发"
+    #
+    #     return True, "勋章验证通过"
+    #
+    # def _validate_title_reward(self, user_id: int, title_id: int, valid_days: int) -> tuple[bool, str]:
+    #     """验证荣誉称号奖励"""
+    #     query = """
+    #         SELECT userid, honorTitleId, timestampdiff(day, valid, expire) as validDay FROM `kong_test`.`user_honor_title`
+    #         WHERE userId = %s and honorTitleId = %s
+    #     """
+    #     result = self.db.get_one(query, (user_id, title_id))
+    #
+    #     if not result:
+    #         return False, f"荣誉称号 {title_id} 未下发或已过期"
+    #
+    #     # 验证有效期
+    #     if valid_days > 0:
+    #         actual_expire = result.get('validDay')
+    #         if abs(actual_expire - valid_days) > 0:
+    #             return False, f"荣誉称号有效期不匹配"
+    #
+    #     return True, "荣誉称号验证通过"
+    #
+    # def _validate_noble_reward(self, user_id: int, nobleman_id: int, valid_days: int) -> tuple[bool, str]:
+    #     """验证贵族奖励"""
+    #     noble_type = '公爵' if nobleman_id == 7 else '子爵'
+    #
+    #     query = f"SELECT userId, noblemanId, timestampdiff(day, FROM_UNIXTIME(noblemanValid), FROM_UNIXTIME(noblemanExpire)) as validDay FROM `kong_test`.`user_nobleman_level` WHERE userId = %s and noblemanId = %s"
+    #     result = self.db.get_one(query, (user_id, nobleman_id,))
+    #
+    #     if not result:
+    #         return False, f"{noble_type}贵族未下发或已过期"
+    #
+    #     # 验证有效期
+    #     if valid_days > 0:
+    #         actual_expire = result.get('validDay')
+    #         if abs(actual_expire - valid_days) > 0:
+    #             return False, f"{noble_type}贵族有效期不匹配"
+    #
+    #     return True, f"{noble_type}贵族验证通过"
+    #
+    # def _validate_vip_reward(self, user_id: int, vip_type: str, valid_days: int) -> tuple[bool, str]:
+    #     """验证会员奖励"""
+    #     if vip_type == 'Vip':
+    #         query = "SELECT userId, isVip as valid, timestampdiff(day, FROM_UNIXTIME(vipValid/1000), FROM_UNIXTIME(vipExpire/1000)) as validDay FROM `kong_test`.`user` WHERE userId = %s"
+    #     elif vip_type == 'SuperVip':
+    #         query = "SELECT userId, isSuperVip as valid, timestampdiff(day, FROM_UNIXTIME(superVipValid/1000), FROM_UNIXTIME(superVipExpire/1000)) as validDay FROM `kong_test`.`user` WHERE userId = %s"
+    #     else:
+    #         return False, f"未知会员类型: {vip_type}"
+    #
+    #     result = self.db.get_one(query, (user_id,))
+    #
+    #     if not result:
+    #         return False, f"{vip_type}未下发或已过期"
+    #
+    #     # 验证有效期
+    #     if valid_days > 0:
+    #         valid = result.get('valid')
+    #         actual_expire = result.get('validDay')
+    #         if valid == 0:
+    #             return False, f"{vip_type}未下发"
+    #         elif valid == 1 and abs(actual_expire - valid_days) > 0:
+    #             return False, f"{vip_type}有效期不匹配"
+    #
+    #     return True, f"{vip_type}验证通过"
+    #
+    # def _validate_nice_number_reward(self, user_id: int, reward_id: int, reward_desc: str) -> tuple[bool, str]:
+    #     """验证靓号奖励"""
+    #     query = "SELECT * FROM `kong_test`.`user_gift` WHERE userId = %s and giftId = %s"
+    #     result = self.db.get_one(query, (user_id, reward_id,))
+    #
+    #     if not result:
+    #         return False, f"{reward_desc} - {reward_id} 未下发"
+    #
+    #     return True, f"{reward_desc}验证通过"
 
     def validate(self):
         """
@@ -1141,6 +1449,7 @@ class ActivityRewardVerification:
         Returns:
             bool: 验证是否通过
         """
+        self.logger.info("=" * 50)
         self.logger.info("=== 开始活动榜单奖励验证 ===")
 
         try:
@@ -1153,13 +1462,10 @@ class ActivityRewardVerification:
             # 3、比较奖励配置是否一致
             self.verify_db_vs_doc(activity_reward_config_doc, activity_reward_config_db)
 
-            # 4、获取活动榜单数据 - 用户排名及对应奖励
-            ranking_data = self.get_activity_ranking_data()
-
-            # 5、获取活动定时任务
+            # 4、获取活动定时任务
             scheduled_tasks = self.get_scheduled_tasks()
 
-            # 6、定时任务与榜单类型的映射
+            # 5、定时任务与榜单类型的映射
             task_rank_type_map = {}
             for task in scheduled_tasks:
                 task_name = task['taskName']
@@ -1181,7 +1487,7 @@ class ActivityRewardVerification:
                 if not task_rank_type_map[task_id]:
                     self.logger.warning(f"无法识别定时任务 {task_name} 对应的榜单")
 
-            # 7、开始执行定时任务和验证
+            # 6、执行定时任务和验证
             all_tasks_successful = True
             all_validation_result = []
             for task in scheduled_tasks:
@@ -1195,22 +1501,29 @@ class ActivityRewardVerification:
                     continue
                 rank_type_names = [self.rank_mapping.get(rank_type) for rank_type in rank_types]
 
-                # 执行任务前清除榜单中用户奖励
+                # 6.1、获取活动榜单数据 - 用户排名及对应奖励
+                self.logger.info(f"获取 {'、'.join(rank_type_names)} 榜单数据")
+                ranking_data = self.get_activity_ranking_data(filter_rank_types = rank_types)
+
+                # 6.2、执行任务前清除榜单中用户奖励
                 self.logger.info(f"清除 {'、'.join(rank_type_names)} 下发奖励前已有的装扮、荣誉称号、勋章、贵族、会员/超级会员、靓号")
                 self.clear_user_rewards(ranking_data, activity_reward_config_doc, rank_types)
 
+                # 6.3、执行定时任务
                 self.logger.info(f"开始执行定时任务: {task_name}")
                 if not self.execute_scheduled_task(task):
                     self.logger.error(f"定时任务 {task_name} 执行失败，跳过该榜单验证")
                     all_tasks_successful = False
                     continue
 
+                # 6.4、验证榜单奖励下发情况
                 self.logger.info(f"开始验证 {'、'.join(rank_type_names)} 奖励下发情况")
                 validation_result = self.validate_reward_distribution(ranking_data, activity_reward_config_doc, rank_types)
                 all_validation_result.append(validation_result)
                 self.logger.info(f"{'、'.join(rank_type_names)}奖励验证完成")
+                self.logger.info("-" * 50)
 
-            # 汇总验证结果
+            # 7、汇总验证结果
             if all_validation_result:
                 # 计算汇总统计信息
                 total_users = sum(result.get('total_users', 0) for result in all_validation_result)
@@ -1221,7 +1534,6 @@ class ActivityRewardVerification:
                 total_without_rewards = sum(result.get('users_without_rewards', 0) for result in all_validation_result)
 
                 # 输出汇总报告
-                self.logger.info("=" * 50)
                 self.logger.info("🎯 所有榜单奖励验证结果汇总")
                 self.logger.info(f"📊 总用户数: {total_users}")
                 self.logger.info(f"✅ 奖励下发正确的用户: {total_correct_users}")
