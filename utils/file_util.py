@@ -44,8 +44,6 @@ class FileHandler:
             FileNotFoundError: 文件不存在
             json.JSONDecodeError: JSON格式错误
         """
-        # 直接使用已导入的config_manager
-
         # 处理相对路径
         if not os.path.isabs(file_path):
             file_path = os.path.join(config_manager.DATA_DIR, file_path)
@@ -71,8 +69,6 @@ class FileHandler:
             data: 要写入的数据
             indent: 缩进空格数
         """
-        # 直接使用已导入的config_manager
-
         # 处理相对路径
         if not os.path.isabs(file_path):
             file_path = os.path.join(config_manager.DATA_DIR, file_path)
@@ -99,8 +95,6 @@ class FileHandler:
         Returns:
             dict/list: 解析后的YAML数据
         """
-        # 直接使用已导入的config_manager
-
         # 处理相对路径
         if not os.path.isabs(file_path):
             file_path = os.path.join(config_manager.DATA_DIR, file_path)
@@ -125,8 +119,6 @@ class FileHandler:
             file_path: YAML文件路径,可以是相对路径或绝对路径
             data: 要写入的数据
         """
-        # 直接使用已导入的config_manager
-
         # 处理相对路径
         if not os.path.isabs(file_path):
             file_path = os.path.join(config_manager.DATA_DIR, file_path)
@@ -153,8 +145,6 @@ class FileHandler:
         Returns:
             list: CSV数据列表
         """
-        # 直接使用已导入的config_manager
-
         # 处理相对路径
         if not os.path.isabs(file_path):
             file_path = os.path.join(config_manager.DATA_DIR, file_path)
@@ -186,8 +176,6 @@ class FileHandler:
         Returns:
             list: Excel数据列表
         """
-        # 直接使用已导入的config_manager
-
         # 处理相对路径
         if not os.path.isabs(file_path):
             file_path = os.path.join(config_manager.DATA_DIR, file_path)

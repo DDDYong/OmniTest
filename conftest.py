@@ -272,7 +272,7 @@ def pytest_sessionstart(session):
     logger.info("=" * 80)
     logger.info(f"测试会话开始: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info(f"项目名称: OmniTest")
-    logger.info(f"环境: test")  # 使用默认环境值，避免config属性错误
+    logger.info(f"环境: test")  # 使用默认环境值, 避免config属性错误
     logger.info("=" * 80)
 
 
@@ -633,7 +633,7 @@ def pytest_configure(config):
     """
     配置pytest的钩子函数
     强制设置Allure报告路径为项目根目录下的reports/allure-results
-    确保无论从哪个目录运行测试，报告都生成在正确位置
+    确保无论从哪个目录运行测试, 报告都生成在正确位置
     """
     # 计算项目根目录
     import os
@@ -644,6 +644,6 @@ def pytest_configure(config):
     # 确保目录存在
     os.makedirs(fixed_allure_dir, exist_ok = True)
 
-    # 强制设置--alluredir参数，覆盖命令行或配置文件中的设置
+    # 强制设置--alluredir参数, 覆盖命令行或配置文件中的设置
     config.option.alluredir = fixed_allure_dir
 

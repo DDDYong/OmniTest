@@ -11,8 +11,6 @@ Description:
 import json
 from typing import Dict, Any, Optional, List, Callable
 
-from requests import Response
-
 from utils.common_util import CommonUtils
 from utils.decorator_util import log_function, exception_handler
 from utils.logger_util import logger
@@ -164,7 +162,7 @@ class RequestManager:
 
         return result
 
-    def _process_response(self, response: Response) -> Dict[str, Any]:
+    def _process_response(self, response) -> Dict[str, Any]:
         """
         处理响应对象,提取有用信息
         

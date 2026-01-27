@@ -50,7 +50,7 @@ class TestUserManagement:
         # 初始化通用工具
         self.utils = CommonUtils()
 
-        # 使用os模块构建路径，避免依赖config.DATA_DIR
+        # 使用os模块构建路径, 避免依赖config.DATA_DIR
         self.project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         self.test_data_path = os.path.join(
             self.project_root,
@@ -68,7 +68,7 @@ class TestUserManagement:
             pytest.skip("无法加载测试数据,跳过测试")
 
         # 测试环境信息
-        logger.info(f"当前测试环境: test")  # 使用默认环境值，避免config属性错误
+        logger.info(f"当前测试环境: test")  # 使用默认环境值, 避免config属性错误
         logger.info(f"API基础URL: {self.api_client.base_url}")
 
         yield

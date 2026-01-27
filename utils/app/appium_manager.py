@@ -21,9 +21,6 @@ from utils.decorator_util import retry
 from utils.logger_util import logger
 
 
-# 导入移至函数内部避免循环依赖
-
-
 class AppiumManager:
     """
     Appium管理器类
@@ -134,7 +131,7 @@ class AppiumManager:
         """
         return self.appium_service is not None and self.appium_service.is_running
 
-    @retry(max_retries = 3, delay = 1)  # 使用默认值避免循环依赖，实际值会在函数内部记录
+    @retry(max_retries = 3, delay = 1)  # 使用默认值避免循环依赖, 实际值会在函数内部记录
     def create_driver(self, desired_caps: Dict[str, Any],
                       host: Optional[str] = None,
                       port: Optional[int] = None) -> AppiumDriver:

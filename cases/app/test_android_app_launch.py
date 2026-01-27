@@ -43,7 +43,7 @@ class TestAndroidAppLaunch:
         logger.info("=" * 60)
 
         # 加载测试数据
-        # 使用os模块构建路径，避免依赖config.DATA_DIR
+        # 使用os模块构建路径, 避免依赖config.DATA_DIR
         self.project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         self.test_data_path = os.path.join(
             self.project_root,

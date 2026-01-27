@@ -15,22 +15,18 @@ import time
 from contextlib import contextmanager
 from typing import Dict, List, Any, Optional, Tuple, Union
 
+import paramiko
 import pymysql
 import pymysql.cursors
 
 from config.config_manager import config_manager
-from ..logger_util import logger
+from utils.logger_util import logger
 
 # 连接池配置默认值
 DEFAULT_POOL_SIZE = 10
 DEFAULT_MAX_OVERFLOW = 5
 DEFAULT_RECYCLE = 3600  # 连接回收时间（秒）
 DEFAULT_TIMEOUT = 30  # 连接超时时间（秒）
-
-try:
-    import paramiko
-except ImportError:
-    logger.warning("paramiko库未安装,SSH隧道功能将不可用。请安装: pip install paramiko")
 
 
 class MySQLClient:
@@ -63,7 +59,7 @@ class MySQLClient:
         self.config = self.mysql_config.copy()
 
         # 如果启用SSH隧道,则创建隧道并修改连接配置
-        if self.ssh_config['use_ssh'] and self._check_paramiko_available():
+        if self.ssh_config['use_ssh']:
             self._create_ssh_tunnel()
             self._update_config_for_ssh()
 
@@ -73,33 +69,12 @@ class MySQLClient:
     def _create_pool(self):
         """
         创建数据库连接池
-        
+
         Returns:
             ConnectionPool: 连接池对象
         """
-        # 获取连接池配置
-        pool_config = self.mysql_config.get('pool_config', {})
-        pool_size = pool_config.get('pool_size', DEFAULT_POOL_SIZE)
-        max_overflow = pool_config.get('max_overflow', DEFAULT_MAX_OVERFLOW)
-        recycle = pool_config.get('recycle', DEFAULT_RECYCLE)
-        timeout = pool_config.get('timeout', DEFAULT_TIMEOUT)
-
         # 创建连接池
-        return ConnectionPool(
-            config = self.config,
-            pool_size = pool_size,
-            max_overflow = max_overflow,
-            recycle = recycle,
-            timeout = timeout,
-            local_port = self.local_port if self.ssh_config['use_ssh'] else None
-        )
-
-        logger.info(f"MySQL客户端初始化成功,连接到 {self.config['host']}:{self.config['port']}/{self.config['db']}" +
-                    (" (通过SSH隧道)" if self.ssh_config['use_ssh'] else ""))
-
-    def _check_paramiko_available(self):
-        """检查paramiko库是否可用"""
-        return 'paramiko' in globals()
+        return ConnectionPool(config = self.config)
 
     def _create_ssh_tunnel(self):
         """
@@ -108,10 +83,6 @@ class MySQLClient:
         Raises:
             Exception: SSH连接失败时抛出异常
         """
-        if not self._check_paramiko_available():
-            logger.error("paramiko库未安装,无法创建SSH隧道")
-            raise ImportError("paramiko库未安装,无法创建SSH隧道")
-
         try:
             # 创建SSH客户端
             self.ssh_client = paramiko.SSHClient()
@@ -173,7 +144,7 @@ class MySQLClient:
             self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.server_socket.bind(('', local_port))
             self.server_socket.listen(100)
-            # 设置socket为非阻塞模式，以便可以优雅退出
+            # 设置socket为非阻塞模式, 以便可以优雅退出
             self.server_socket.settimeout(1.0)
 
             while not self._stop_forwarding:
@@ -190,7 +161,7 @@ class MySQLClient:
                     thread.start()
 
                 except socket.timeout:
-                    # 超时是正常的，继续检查停止标志
+                    # 超时是正常的, 继续检查停止标志
                     continue
                 except Exception as e:
                     if not self._stop_forwarding:
@@ -205,7 +176,7 @@ class MySQLClient:
                 if self.server_socket:
                     self.server_socket.close()
                     self.server_socket = None
-            except:
+            except Exception:
                 pass
 
     def _handle_client(self, client_socket, remote_host, remote_port):
@@ -217,6 +188,7 @@ class MySQLClient:
             remote_host: 远程主机
             remote_port: 远程端口
         """
+        channel = None  # 初始化channel变量
         try:
             # 通过SSH连接到远程服务器
             transport = self.ssh_client.get_transport()
@@ -247,14 +219,16 @@ class MySQLClient:
         finally:
             try:
                 client_socket.close()
-            except:
+            except Exception:
                 pass
             try:
-                channel.close()
-            except:
+                if channel:  # 检查channel是否存在
+                    channel.close()
+            except Exception:
                 pass
 
-    def _get_available_local_port(self):
+    @staticmethod
+    def _get_available_local_port():
         """
         获取一个可用的本地端口
 
@@ -346,7 +320,7 @@ class MySQLClient:
                 if self.server_socket:
                     try:
                         self.server_socket.close()
-                    except:
+                    except Exception:
                         pass
                     self.server_socket = None
 
@@ -375,34 +349,22 @@ class ConnectionPool:
     简单的数据库连接池实现
     """
 
-    def __init__(self, config, pool_size = DEFAULT_POOL_SIZE, max_overflow = DEFAULT_MAX_OVERFLOW,
-                 recycle = DEFAULT_RECYCLE, timeout = DEFAULT_TIMEOUT, local_port = None):
+    # 查看连接池的初始化参数
+    def __init__(self, config: Dict[str, Any]):
         """
-        初始化连接池
-
+        初始化数据库连接池
+    
         Args:
-            config: 数据库连接配置
-            pool_size: 连接池大小
-            max_overflow: 最大溢出连接数
-            recycle: 连接回收时间（秒）
-            timeout: 连接超时时间（秒）
-            local_port: 本地端口（用于SSH隧道）
+            config: 数据库配置
         """
         self.config = config
-        self.pool_size = pool_size
-        self.max_overflow = max_overflow
-        self.recycle = recycle
-        self.timeout = timeout
-        self.local_port = local_port
-
-        # 连接队列
-        self.connection_queue = queue.Queue(maxsize = pool_size)
-        # 当前创建的连接数
+        self.pool_size = config.get('pool_size', 20)  # 默认连接池大小为10
+        self.max_overflow = config.get('max_overflow', 10)  # 默认最大溢出连接数为20
+        self.timeout = config.get('timeout', 30)  # 默认获取连接超时时间为30秒
+        self.recycle = config.get('pool_recycle', 3600)  # 默认连接回收时间为3600秒
+        self.connection_queue = queue.Queue(maxsize = self.pool_size)
         self.current_connections = 0
-        # 锁,保证线程安全
-        self.lock = threading.RLock()
-
-        # 初始化连接池
+        self.lock = threading.Lock()
         self._init_pool()
 
     def _init_pool(self):
@@ -469,7 +431,7 @@ class ConnectionPool:
         try:
             conn.ping()
             return True
-        except:
+        except Exception:
             return False
 
     def get_connection(self):
@@ -491,7 +453,7 @@ class ConnectionPool:
                     try:
                         conn.close()
                         self.current_connections -= 1
-                    except:
+                    except Exception:
                         pass
 
                     # 创建新连接
@@ -518,7 +480,7 @@ class ConnectionPool:
                             try:
                                 conn.close()
                                 self.current_connections -= 1
-                            except:
+                            except Exception:
                                 pass
 
                             # 创建新连接
@@ -544,7 +506,7 @@ class ConnectionPool:
                 try:
                     conn.close()
                     self.current_connections -= 1
-                except:
+                except Exception:
                     pass
                 return
 
@@ -553,7 +515,7 @@ class ConnectionPool:
                 try:
                     conn.close()
                     self.current_connections -= 1
-                except:
+                except Exception:
                     pass
             else:
                 # 将连接放回连接池
@@ -569,7 +531,7 @@ class ConnectionPool:
                     conn, _ = self.connection_queue.get(block = False)
                     conn.close()
                     self.current_connections -= 1
-                except:
+                except Exception:
                     pass
 
             logger.info(f"MySQL连接池已关闭,所有连接已释放")
@@ -593,51 +555,70 @@ class ConnectionPool:
     def execute_query(self, sql: str, params: Optional[Union[Tuple, Dict]] = None) -> List[Dict[str, Any]]:
         """
         执行查询语句
-
+    
         Args:
             sql: SQL语句
-            params: 参数
-
+            params: SQL参数
+    
         Returns:
-            List[Dict[str, Any]]: 查询结果
+            List[Dict[str, Any]]: 查询结果列表
         """
         with self.get_connection_context() as conn:
             with conn.cursor() as cursor:
-                cursor.execute(sql, params)
-                return cursor.fetchall()
-
-    def get_one(self, sql: str, params: Optional[Union[Tuple, Dict]] = None) -> Optional[Dict[str, Any]]:
-        """
-        获取单条记录
-
-        Args:
-            sql: SQL语句
-            params: 参数
-
-        Returns:
-            Optional[Dict[str, Any]]: 单条记录
-        """
-        with self.get_connection_context() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(sql, params)
-                return cursor.fetchone()
+                try:
+                    cursor.execute(sql, params)
+                    result = cursor.fetchall()
+                    logger.debug(f"执行查询SQL成功: {sql}")
+                    return result
+                except Exception as e:
+                    logger.error(f"执行查询SQL失败: {sql}, 错误: {str(e)}")
+                    raise
 
     def execute_update(self, sql: str, params: Optional[Union[Tuple, Dict]] = None) -> int:
         """
-        执行更新语句
-
+        执行更新语句（INSERT/UPDATE/DELETE）
+    
         Args:
             sql: SQL语句
-            params: 参数
-
+            params: SQL参数
+    
         Returns:
             int: 影响的行数
         """
         with self.get_connection_context() as conn:
             with conn.cursor() as cursor:
-                cursor.execute(sql, params)
-                conn.commit()
-                return cursor.rowcount
+                try:
+                    affected_rows = cursor.execute(sql, params)
+                    conn.commit()
+                    logger.debug(f"执行更新SQL成功: {sql}, 影响行数: {affected_rows}")
+                    return affected_rows
+                except Exception as e:
+                    conn.rollback()
+                    logger.error(f"执行更新SQL失败: {sql}, 错误: {str(e)}")
+                    raise
+
+    def get_scalar(self, sql: str, params: Optional[Union[Tuple, Dict]] = None) -> Any:
+        """
+        获取单个值
+    
+        Args:
+            sql: SQL语句
+            params: SQL参数
+    
+        Returns:
+            Any: 查询结果中的单个值,如果没有结果则返回None
+        """
+        with self.get_connection_context() as conn:
+            with conn.cursor() as cursor:
+                try:
+                    cursor.execute(sql, params)
+                    result = cursor.fetchone()
+                    if result:
+                        return list(result.values())[0] if isinstance(result, dict) else result[0]
+                    return None
+                except Exception as e:
+                    logger.error(f"获取单个值SQL执行失败: {sql}, 错误: {str(e)}")
+                    raise
 
     def execute_many(self, sql: str, params_list: List[Union[Tuple, Dict]]) -> int:
         """
@@ -677,19 +658,6 @@ class ConnectionPool:
                 conn.rollback()
                 logger.error(f"事务执行失败: {str(e)}")
                 return False
-                conn.autocommit(False)
-                yield conn
-                # 提交事务
-                conn.commit()
-                logger.debug("事务提交成功")
-            except Exception as e:
-                # 回滚事务
-                conn.rollback()
-                logger.error(f"事务执行失败,已回滚: {str(e)}")
-                raise
-            finally:
-                # 恢复自动提交设置
-                conn.autocommit = original_autocommit
 
     def get_one(self, sql: str, params: Optional[Union[Tuple, Dict]] = None) -> Optional[Dict[str, Any]]:
         """
@@ -702,7 +670,7 @@ class ConnectionPool:
         Returns:
             Optional[Dict[str, Any]]: 查询结果,如果没有结果则返回None
         """
-        with self.get_connection() as conn:
+        with self.get_connection_context() as conn:
             with conn.cursor() as cursor:
                 try:
                     cursor.execute(sql, params)
@@ -712,31 +680,6 @@ class ConnectionPool:
                 except Exception as e:
                     logger.error(f"获取单条记录SQL执行失败: {sql}, 错误: {str(e)}")
                     raise
-
-    def get_scalar(self, sql: str, params: Optional[Union[Tuple, Dict]] = None) -> Any:
-        """
-        获取单个值
-
-        Args:
-            sql: SQL语句
-            params: SQL参数
-
-        Returns:
-            Any: 查询结果中的单个值,如果没有结果则返回None
-        """
-        with self.get_connection() as conn:
-            with conn.cursor() as cursor:
-                try:
-                    cursor.execute(sql, params)
-                    result = cursor.fetchone()
-                    if result:
-                        # 返回结果的第一个值
-                        return list(result.values())[0]
-                    return None
-                except Exception as e:
-                    logger.error(f"获取单个值SQL执行失败: {sql}, 错误: {str(e)}")
-                    raise
-
 
     def get_pool_stats(self):
         """

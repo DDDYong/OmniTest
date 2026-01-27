@@ -17,7 +17,6 @@ import string
 import time
 from datetime import datetime, timedelta
 
-# 导入移至函数内部避免循环依赖
 from utils.logger_util import logger
 
 
@@ -44,6 +43,49 @@ class CommonUtils:
             
         Returns:
             str: 当前时间字符串
+        """
+        return datetime.now().strftime(format_str)
+
+    @staticmethod
+    def current_day():
+        """
+        获取当前日期（day）
+        
+        Returns:
+            int: 当前日期的天数（1-31）
+        """
+        return datetime.now().day
+
+    @staticmethod
+    def current_month():
+        """
+        获取当前月份（month）
+        
+        Returns:
+            int: 当前月份（1-12）
+        """
+        return datetime.now().month
+
+    @staticmethod
+    def current_year():
+        """
+        获取当前年份（year）
+        
+        Returns:
+            int: 当前年份
+        """
+        return datetime.now().year
+
+    @staticmethod
+    def current_date(format_str = "%Y-%m-%d"):
+        """
+        获取当前日期（不含时间）
+        
+        Args:
+            format_str: 日期格式, 默认为"YYYY-MM-DD"
+            
+        Returns:
+            str: 当前日期字符串
         """
         return datetime.now().strftime(format_str)
 
@@ -314,7 +356,7 @@ class CommonUtils:
         # 获取项目根目录（common_util.py的父目录的父目录）
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-        # 如果是相对路径，则基于项目根目录解析
+        # 如果是相对路径, 则基于项目根目录解析
         if not os.path.isabs(folder_path):
             folder_path = os.path.abspath(os.path.join(project_root, folder_path))
 

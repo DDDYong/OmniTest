@@ -29,9 +29,6 @@ from utils.decorator_util import retry
 from utils.common_util import CommonUtils
 
 
-# 导入移至函数内部避免循环依赖
-
-
 class AppBasePage:
     """
     APP自动化页面基类

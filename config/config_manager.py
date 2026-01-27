@@ -12,10 +12,32 @@ import os
 import sys
 from typing import Dict, Any
 
-import yaml
-
-# 直接导入依赖模块
 from utils.logger_util import logger
+
+# 延迟导入yaml模块
+yaml = None
+
+try:
+    import yaml
+
+    logger.info("✅ yaml模块导入成功")
+except ImportError:
+    logger.warning("⚠️ yaml模块未安装，将使用空配置")
+
+
+    # 创建mock yaml模块
+    class MockYaml:
+        @staticmethod
+        def safe_load(file_obj):
+            logger.error("❌ yaml模块未安装，无法加载配置文件")
+            return {}
+
+        @staticmethod
+        def dump(data, file_obj, **kwargs):
+            logger.error("❌ yaml模块未安装，无法保存配置文件")
+
+
+    yaml = MockYaml()
 
 
 class ConfigDict(dict):
@@ -64,7 +86,7 @@ class ConfigManager:
     def __init__(self, config_dir: str = None, default_env: str = "test"):
         """
         初始化配置管理器
-        
+
         Args:
             config_dir: 配置文件目录,如果不指定则使用默认目录
             default_env: 默认环境名称
@@ -73,7 +95,7 @@ class ConfigManager:
             os.path.dirname(os.path.abspath(__file__)),
         )
         self.default_env = default_env
-        self.env = os.environ.get("TEST_ENV", self.default_env)
+        self.env = os.environ.get("OMNITEST_ENV", self.default_env)
         self.config_cache: Dict[str, Dict[str, Any]] = {}
         self._load_all_configs()
         # 创建配置对象用于属性访问
@@ -107,10 +129,10 @@ class ConfigManager:
     def _load_file_config(self, env: str) -> Dict[str, Any]:
         """
         从YAML文件加载配置
-        
+
         Args:
             env: 环境名称
-            
+
         Returns:
             Dict[str, Any]: 加载的配置字典
         """
@@ -143,11 +165,11 @@ class ConfigManager:
     def _merge_configs(self, base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
         """
         深度合并两个配置字典
-        
+
         Args:
             base: 基础配置字典
             override: 覆盖配置字典
-            
+
         Returns:
             Dict[str, Any]: 合并后的配置字典
         """
@@ -167,7 +189,7 @@ class ConfigManager:
         """
         使用环境变量覆盖配置
         支持嵌套配置,环境变量名格式：SECTION_KEY 或 SECTION__KEY（双下划线表示嵌套）
-        
+
         Args:
             config: 要被覆盖的配置字典
         """
@@ -195,10 +217,10 @@ class ConfigManager:
     def _is_config_env_var(self, env_var: str) -> bool:
         """
         判断是否为配置相关的环境变量
-        
+
         Args:
             env_var: 环境变量名
-            
+
         Returns:
             bool: 是否为配置相关的环境变量
         """
@@ -220,7 +242,7 @@ class ConfigManager:
     def _set_nested_value(self, config: Dict[str, Any], key_path: str, value: Any) -> None:
         """
         设置嵌套配置值
-        
+
         Args:
             config: 配置字典
             key_path: 键路径,使用双下划线分隔
@@ -243,10 +265,10 @@ class ConfigManager:
     def _convert_value(self, value: str) -> Any:
         """
         将字符串值转换为适当的类型
-        
+
         Args:
             value: 字符串值
-            
+
         Returns:
             Any: 转换后的值
         """
@@ -272,11 +294,11 @@ class ConfigManager:
     def get_config_value(self, key_path: str, default: Any = None) -> Any:
         """
         获取配置值,支持嵌套键路径
-        
+
         Args:
             key_path: 键路径,使用点号分隔,如 "db.host"
             default: 默认值
-            
+
         Returns:
             Any: 配置值,如果不存在则返回默认值
         """
@@ -294,7 +316,7 @@ class ConfigManager:
     def update_config(self, updates: Dict[str, Any]) -> None:
         """
         更新当前配置
-        
+
         Args:
             updates: 要更新的配置
         """
@@ -306,10 +328,10 @@ class ConfigManager:
     def save_config(self, config: Dict[str, Any] = None) -> bool:
         """
         保存配置到YAML文件
-        
+
         Args:
             config: 要保存的配置,如果不指定则使用当前配置
-            
+
         Returns:
             bool: 是否保存成功
         """
@@ -331,10 +353,10 @@ class ConfigManager:
     def get_mysql_config(self, custom_config: Dict[str, Any] = None) -> Dict[str, Any]:
         """
         获取MySQL配置
-        
+
         Args:
             custom_config: 自定义配置,用于覆盖默认配置
-            
+
         Returns:
             Dict[str, Any]: MySQL配置字典
         """
@@ -368,10 +390,10 @@ class ConfigManager:
     def get_ssh_config(self, custom_config: Dict[str, Any] = None) -> Dict[str, Any]:
         """
         获取SSH配置
-        
+
         Args:
             custom_config: 自定义配置,用于覆盖默认配置
-            
+
         Returns:
             Dict[str, Any]: SSH配置字典
         """
@@ -431,10 +453,10 @@ class ConfigManager:
     def get_redis_config(self, custom_config: Dict[str, Any] = None) -> Dict[str, Any]:
         """
         获取Redis配置
-        
+
         Args:
             custom_config: 自定义配置,用于覆盖默认配置
-            
+
         Returns:
             Dict[str, Any]: Redis配置字典
         """
@@ -479,14 +501,6 @@ class ConfigManager:
             try:
                 return getattr(self._config_obj, snake_case_name)
             except AttributeError:
-                # 检查是否为复合配置路径（如LOG_DIR -> log.dir）
-                parts = snake_case_name.split('_')
-                if len(parts) > 1:
-                    nested_path = '.'.join(parts[:-1]) + '.default.' + parts[-1]
-                    value = self.get_config_value(nested_path)
-                    if value is not None:
-                        return value
-
                 # 对于特殊路径的支持
                 special_mappings = {
                     'LOG_DIR': 'log.dir',
@@ -510,7 +524,7 @@ class ConfigManager:
 
                 if name in special_mappings:
                     value = self.get_config_value(special_mappings[name])
-                    # 如果是路径配置项且值是相对路径，则转换为绝对路径
+                    # 如果是路径配置项且值是相对路径, 则转换为绝对路径
                     if name in path_configs and isinstance(value, str) and value.startswith('./'):
                         # 获取项目根目录（配置目录的父目录）
                         project_root = os.path.dirname(self.config_dir)
@@ -523,10 +537,10 @@ class ConfigManager:
     def _camel_to_snake(self, name: str) -> str:
         """
         将驼峰命名转换为蛇形命名
-        
+
         Args:
             name: 驼峰命名的字符串
-            
+
         Returns:
             str: 蛇形命名的字符串
         """
@@ -583,7 +597,7 @@ def ensure_directories():
 
     for dir_path in dirs_to_create:
         if dir_path:
-            # 确保路径是绝对路径，基于项目根目录
+            # 确保路径是绝对路径, 基于项目根目录
             if not os.path.isabs(dir_path):
                 dir_path = os.path.abspath(os.path.join(project_root, dir_path))
             os.makedirs(dir_path, exist_ok = True)
@@ -612,7 +626,7 @@ class LazyConfigProxy:
 config = LazyConfigProxy()
 
 # 全局配置管理器实例（懒加载）
-# 直接使用ConfigManager实例，不再使用LazyConfigManager包装
+# 直接使用ConfigManager实例, 不再使用LazyConfigManager包装
 config_manager = None
 
 
@@ -635,11 +649,11 @@ class LazyConfigManagerProxy:
 # 替换全局配置管理器实例为代理对象
 config_manager = LazyConfigManagerProxy()
 
-# 在模块加载完成后，延迟调用ensure_directories
+# 在模块加载完成后, 延迟调用ensure_directories
 try:
-    # 仅在主线程中调用，避免在导入时执行
+    # 仅在主线程中调用, 避免在导入时执行
     if __name__ == '__main__' or not hasattr(sys, 'argv'):
         ensure_directories()
 except:
-    # 如果在导入时调用失败，忽略错误，稍后在实际使用时再调用
+    # 如果在导入时调用失败, 忽略错误, 稍后在实际使用时再调用
     pass
