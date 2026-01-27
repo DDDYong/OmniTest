@@ -384,6 +384,33 @@ class ActivityRewardVerification:
             self.logger.debug(f"使用缓存的用户预期奖励数据 (过滤条件: {filter_rank_types})")
             return self._cache['filtered_expected_rewards'][cache_key]
 
+        # 收集所有需要查询的用户ID
+        user_ids = []
+        for user_data in ranking_data:
+            user_id = user_data.get('user_id')
+            rank_type = user_data.get('rank_type')
+
+            # 指定过滤条件，只处理指定的榜单类型
+            if filter_rank_types and rank_type not in filter_rank_types:
+                continue
+
+            if user_id not in user_ids:
+                user_ids.append(user_id)
+
+        # 批量查询用户角色信息
+        user_role_map = {}
+        if user_ids:
+            placeholders = ', '.join(['%s'] * len(user_ids))
+            role_query = f"""
+                SELECT userid, role FROM `kong_test`.`user` 
+                WHERE userid IN ({placeholders})
+            """
+            roles = self.db.execute_query(role_query, tuple(user_ids))
+
+            # 构建用户ID到角色的映射
+            for role_info in roles:
+                user_role_map[role_info['userid']] = role_info['role']
+
         user_expected_rewards = {}
 
         for user_data in ranking_data:
@@ -398,12 +425,29 @@ class ActivityRewardVerification:
             # 获取用户应得奖励
             expected_rewards = self.get_expected_rewards_by_ranking(ranking, rank_type, activity_reward_config)
 
+            # 根据用户角色筛选奖励：陪伴师(role=5)只能获得SUPER_VIP(rewardType=5)，普通用户(role=0)只能获得DUKE_NOBLE(rewardType=16)
+            user_role = user_role_map.get(user_id, 0)  # 默认普通用户
+            filtered_rewards = []
+
+            for reward in expected_rewards:
+                reward_type = reward.get('rewardType')
+
+                # 陪伴师专属奖励
+                if user_role == 5 and reward_type == 5:
+                    filtered_rewards.append(reward)
+                # 普通用户专属奖励
+                elif user_role == 0 and reward_type == 16:
+                    filtered_rewards.append(reward)
+                # 其他奖励类型直接保留
+                elif reward_type not in [5, 16]:
+                    filtered_rewards.append(reward)
+
             # 按用户ID、榜单类型、排名分组存储
             if user_id not in user_expected_rewards:
                 user_expected_rewards[user_id] = {}
             if rank_type not in user_expected_rewards[user_id]:
                 user_expected_rewards[user_id][rank_type] = {}
-            user_expected_rewards[user_id][rank_type][ranking] = expected_rewards
+            user_expected_rewards[user_id][rank_type][ranking] = filtered_rewards
 
         # 将结果存入缓存
         if 'filtered_expected_rewards' not in self._cache:
@@ -1557,7 +1601,7 @@ def main():
     # 创建验证器
     validator = ActivityRewardVerification(
         activity_number = 1053,
-        activity_config_path = 'test_activity/christmas_reward_config.yaml',
+        activity_config_path = 'test_activity/2025_christmas_reward_config.yaml',
         rank_mapping = {
             81: "圣诞日榜",
             82: "圣诞总榜",
