@@ -363,8 +363,8 @@ class ActivityRewardVerification:
         
         return all_ranked_data
 
-    def get_user_expected_rewards(self, ranking_data: List[Dict], activity_reward_config: List[
-        Dict[str, Any]], filter_rank_types: Optional[List[int]] = None) -> Dict:
+    def get_user_expected_rewards(self, ranking_data: List[Dict], activity_reward_config: List[Dict[str, Any]],
+                                  filter_rank_types: Optional[List[int]] = None) -> Dict:
         """
         获取用户预期奖励，按用户ID分组
 
@@ -706,8 +706,8 @@ class ActivityRewardVerification:
         self.logger.info(f"榜单数据处理完成: {ranked_data}")
         return ranked_data
 
-    def get_expected_rewards_by_ranking(self, ranking: int, activity_type: int, activity_reward_config: List[
-        Dict[str, Any]]) -> List[Dict]:
+    def get_expected_rewards_by_ranking(self, ranking: int, activity_type: int,
+                                        activity_reward_config: List[Dict[str, Any]]) -> List[Dict]:
         """
         根据排名获取应得的奖励配置
 
@@ -770,8 +770,8 @@ class ActivityRewardVerification:
         self.logger.info(f"获取{self.rank_mapping.get(activity_type)}排名 {ranking} 应下发的奖励: {expected_rewards}")
         return expected_rewards
 
-    def clear_user_rewards(self, ranking_data: List[Dict], activity_reward_config: List[
-        Dict[str, Any]], filter_rank_types: Optional[List[int]] = None) -> None:
+    def clear_user_rewards(self, ranking_data: List[Dict], activity_reward_config: List[Dict[str, Any]],
+                           filter_rank_types: Optional[List[int]] = None) -> None:
         """
         清除榜单用户奖励
 
@@ -932,11 +932,11 @@ class ActivityRewardVerification:
         )
 
         # 根据活动名称获取定时任务ID, 并对ID进行处理
-        # scheduled_tasks = self.db.execute_query("select job_desc as taskName, REPLACE(executor_handler, '#', '@') AS taskId from `xxl_job`.`xxl_job_info` where SUBSTRING_INDEX(SUBSTRING_INDEX(job_desc, '【', -1), '】', 1) = %s", (
-        #     activity_name['activityName'],)
-        # )
-        scheduled_tasks = [{'taskName': '圣诞日榜', 'taskId': 'A@ACTIVITY_DAY_END'},
-                           {'taskName': '圣诞总榜', 'taskId': 'A@ACTIVITY_END'}, ]
+        scheduled_tasks = self.db.execute_query("select job_desc as taskName, REPLACE(executor_handler, '#', '@') AS taskId from `xxl_job`.`xxl_job_info` where SUBSTRING_INDEX(SUBSTRING_INDEX(job_desc, '【', -1), '】', 1) = %s", (
+            activity_name['activityName'],)
+        )
+        # scheduled_tasks = [{'taskName': '圣诞日榜', 'taskId': 'A@ACTIVITY_DAY_END'},
+        #                    {'taskName': '圣诞总榜', 'taskId': 'A@ACTIVITY_END'}, ]
         if not scheduled_tasks:
             self.logger.warning(f"活动: {activity_name['activityName']} 未配置定时任务")
             return []
@@ -954,22 +954,22 @@ class ActivityRewardVerification:
             "expression": task['taskId']
         }
         response = self.api_client.get(url = "/api/xxl-job/execute", params = params)
-        # try:
-        #     resp = response.json()
-        #     if resp.get('code') == 200:
-        #         self.logger.info(f"定时任务 {task['taskName']} 执行成功")
-        #     else:
-        #         self.logger.error(f"定时任务 {task['taskName']} 执行失败: {resp.get('err')}")
-        #         return False
-        # except Exception as e:
-        #     self.logger.error(f"定时任务 {task['taskName']} 执行异常: {str(e)}")
-        #     return False
+        try:
+            resp = response.json()
+            if resp.get('code') == 200:
+                self.logger.info(f"定时任务 {task['taskName']} 执行成功")
+            else:
+                self.logger.error(f"定时任务 {task['taskName']} 执行失败: {resp.get('err')}")
+                return False
+        except Exception as e:
+            self.logger.error(f"定时任务 {task['taskName']} 执行异常: {str(e)}")
+            return False
 
         return True
 
     @wait_with_jitter(base_delay = 2, jitter_factor = 0.3)
-    def validate_reward_distribution(self, ranking_data: List[Dict], activity_reward_config: List[
-        Dict[str, Any]], filter_rank_types: Optional[List[int]] = None) -> Dict[str, Any]:
+    def validate_reward_distribution(self, ranking_data: List[Dict], activity_reward_config: List[Dict[str, Any]],
+                                     filter_rank_types: Optional[List[int]] = None) -> Dict[str, Any]:
         """
         验证奖励下发情况
 
@@ -1271,10 +1271,10 @@ class ActivityRewardVerification:
         return result_dict
 
     @staticmethod
-    def _batch_validate_single_reward(user_id: int, reward_type: int, reward_id: int, valid_days: int, reward_desc: str,
-                                      dress_results: Dict, medal_results: Dict, title_results: Dict,
-                                      noble_results: Dict, vip_results: Dict, nice_number_results: Dict) -> tuple[
-        bool, str]:
+    def _batch_validate_single_reward(user_id: int, reward_type: int, reward_id: int,
+                                      valid_days: int, reward_desc: str, dress_results: Dict,
+                                      medal_results: Dict, title_results: Dict, noble_results: Dict,
+                                      vip_results: Dict, nice_number_results: Dict) -> tuple[bool, str]:
         """
         使用批量查询结果验证单个奖励
         """
