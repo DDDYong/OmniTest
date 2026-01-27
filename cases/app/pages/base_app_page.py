@@ -18,7 +18,7 @@ from selenium.common.exceptions import (
     ElementNotSelectableException,
     TimeoutException
 )
-# 简化导入，避免appium版本兼容性问题
+# 简化导入, 避免appium版本兼容性问题
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait

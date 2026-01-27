@@ -6,7 +6,7 @@ Date:           2025/12/01
 -------------------------------------------------
 Description:
 断言工具模块
-提供统一的断言方法，集成日志记录和失败截图功能适用于API、Web和App测试断言场景
+提供统一的断言方法, 集成日志记录和失败截图功能适用于API、Web和App测试断言场景
 -------------------------------------------------
 """
 from typing import Any, Optional, Union
@@ -19,7 +19,7 @@ from utils.screenshot_util import ScreenshotUtils
 class AssertUtil:
     """
     断言工具类
-    提供统一的断言方法，集成日志和失败截图功能
+    提供统一的断言方法, 集成日志和失败截图功能
     """
 
     def __init__(self, driver: Optional[Any] = None):
@@ -27,7 +27,7 @@ class AssertUtil:
         初始化断言工具
         
         Args:
-            driver: WebDriver或AppiumDriver实例，用于截图功能
+            driver: WebDriver或AppiumDriver实例, 用于截图功能
         """
         self.driver = driver
 
@@ -77,7 +77,7 @@ class AssertUtil:
             message: 自定义错误消息
             
         Returns:
-            断言工具实例，支持链式调用
+            断言工具实例, 支持链式调用
         """
         details = f"期望值={expected}, 实际值={actual}"
         self._log_assertion(actual == expected, message, details)
@@ -94,7 +94,7 @@ class AssertUtil:
             message: 自定义错误消息
             
         Returns:
-            断言工具实例，支持链式调用
+            断言工具实例, 支持链式调用
         """
         details = f"值={actual}不应等于{expected}"
         self._log_assertion(actual != expected, message, details)
@@ -112,7 +112,7 @@ class AssertUtil:
             message: 自定义错误消息
             
         Returns:
-            断言工具实例，支持链式调用
+            断言工具实例, 支持链式调用
         """
         details = f"容器={container}, 元素={item}"
         self._log_assertion(item in container, message, details)
@@ -130,7 +130,7 @@ class AssertUtil:
             message: 自定义错误消息
             
         Returns:
-            断言工具实例，支持链式调用
+            断言工具实例, 支持链式调用
         """
         details = f"容器={container}, 元素={item}"
         self._log_assertion(item not in container, message, details)
@@ -146,7 +146,7 @@ class AssertUtil:
             message: 自定义错误消息
             
         Returns:
-            断言工具实例，支持链式调用
+            断言工具实例, 支持链式调用
         """
         details = f"条件值={condition}"
         self._log_assertion(bool(condition), message, details)
@@ -162,7 +162,7 @@ class AssertUtil:
             message: 自定义错误消息
             
         Returns:
-            断言工具实例，支持链式调用
+            断言工具实例, 支持链式调用
         """
         details = f"条件值={condition}"
         self._log_assertion(not condition, message, details)
@@ -178,7 +178,7 @@ class AssertUtil:
             message: 自定义错误消息
             
         Returns:
-            断言工具实例，支持链式调用
+            断言工具实例, 支持链式调用
         """
         details = f"值={value}"
         self._log_assertion(value is None, message, details)
@@ -194,7 +194,7 @@ class AssertUtil:
             message: 自定义错误消息
             
         Returns:
-            断言工具实例，支持链式调用
+            断言工具实例, 支持链式调用
         """
         details = f"值={value}"
         self._log_assertion(value is not None, message, details)
@@ -211,7 +211,7 @@ class AssertUtil:
             message: 自定义错误消息
             
         Returns:
-            断言工具实例，支持链式调用
+            断言工具实例, 支持链式调用
         """
         details = f"对象类型={type(obj).__name__}, 期望类型={expected_type.__name__}"
         self._log_assertion(isinstance(obj, expected_type), message, details)
@@ -229,7 +229,7 @@ class AssertUtil:
             message: 自定义错误消息
             
         Returns:
-            断言工具实例，支持链式调用
+            断言工具实例, 支持链式调用
         """
         details = f"实际值={actual}, 期望值={expected}"
         self._log_assertion(actual > expected, message, details)
@@ -247,7 +247,7 @@ class AssertUtil:
             message: 自定义错误消息
             
         Returns:
-            断言工具实例，支持链式调用
+            断言工具实例, 支持链式调用
         """
         details = f"实际值={actual}, 期望值={expected}"
         self._log_assertion(actual < expected, message, details)
@@ -265,7 +265,7 @@ class AssertUtil:
             message: 自定义错误消息
             
         Returns:
-            断言工具实例，支持链式调用
+            断言工具实例, 支持链式调用
         """
         details = f"实际值={actual}, 期望值={expected}"
         self._log_assertion(actual >= expected, message, details)
@@ -283,7 +283,7 @@ class AssertUtil:
             message: 自定义错误消息
             
         Returns:
-            断言工具实例，支持链式调用
+            断言工具实例, 支持链式调用
         """
         details = f"实际值={actual}, 期望值={expected}"
         self._log_assertion(actual <= expected, message, details)
@@ -300,7 +300,7 @@ class AssertUtil:
             message: 自定义错误消息
             
         Returns:
-            断言工具实例，支持链式调用
+            断言工具实例, 支持链式调用
         """
         try:
             result = element.is_displayed()
@@ -322,7 +322,7 @@ class AssertUtil:
             message: 自定义错误消息
             
         Returns:
-            断言工具实例，支持链式调用
+            断言工具实例, 支持链式调用
         """
         try:
             result = element.is_enabled()
@@ -345,7 +345,7 @@ class AssertUtil:
             message: 自定义错误消息
             
         Returns:
-            断言工具实例，支持链式调用
+            断言工具实例, 支持链式调用
         """
         try:
             actual_text = element.text.strip() if hasattr(element, 'text') else str(element)
@@ -370,7 +370,7 @@ class AssertUtil:
             message: 自定义错误消息
             
         Returns:
-            断言工具实例，支持链式调用
+            断言工具实例, 支持链式调用
         """
         try:
             actual_value = element.get_attribute(attribute_name)
@@ -394,7 +394,7 @@ class AssertUtil:
             message: 自定义错误消息
             
         Returns:
-            断言工具实例，支持链式调用
+            断言工具实例, 支持链式调用
         """
         try:
             actual_code = response.status_code if hasattr(response, 'status_code') else int(response)
@@ -417,7 +417,7 @@ class AssertUtil:
             message: 自定义错误消息
             
         Returns:
-            断言工具实例，支持链式调用
+            断言工具实例, 支持链式调用
         """
         try:
             response_json = response.json() if hasattr(response, 'json') else response
@@ -438,11 +438,11 @@ class AssertUtil:
         Args:
             response: API响应对象
             expected_value: 期望的值
-            path: JSON路径（点分隔，如 'data.user.name'），None表示整个响应
+            path: JSON路径（点分隔, 如 'data.user.name'）, None表示整个响应
             message: 自定义错误消息
             
         Returns:
-            断言工具实例，支持链式调用
+            断言工具实例, 支持链式调用
         """
         try:
             response_json = response.json() if hasattr(response, 'json') else response
@@ -454,7 +454,7 @@ class AssertUtil:
                     if isinstance(value, dict) and part in value:
                         value = value[part]
                     else:
-                        details = f"无法在路径'{path}'找到值，响应JSON={response_json}"
+                        details = f"无法在路径'{path}'找到值, 响应JSON={response_json}"
                         self._log_assertion(False, message, details)
                         assert False, f"{message}\n{details}"
                 actual_value = value
@@ -470,7 +470,7 @@ class AssertUtil:
             assert False, f"{message}\n{details}"
         return self
 
-    # 上下文管理器方法，用于异常断言
+    # 上下文管理器方法, 用于异常断言
     def raises(self, exception_type: type, callable_obj: callable, *args, **kwargs) -> 'AssertUtil':
         """
         断言调用可调用对象时会引发指定类型的异常
@@ -482,28 +482,28 @@ class AssertUtil:
             **kwargs: 传递给可调用对象的关键字参数
             
         Returns:
-            断言工具实例，支持链式调用
+            断言工具实例, 支持链式调用
         """
         try:
             callable_obj(*args, **kwargs)
-            # 如果没有引发异常，断言失败
+            # 如果没有引发异常, 断言失败
             message = f"未引发预期的异常 {exception_type.__name__}"
             self._log_assertion(False, message)
             assert False, message
         except exception_type:
-            # 引发了预期的异常，断言通过
+            # 引发了预期的异常, 断言通过
             message = f"成功引发预期的异常 {exception_type.__name__}"
             if logger:
                 logger.info(message)
             return self
         except Exception as e:
-            # 引发了其他类型的异常，断言失败
+            # 引发了其他类型的异常, 断言失败
             message = f"引发了错误的异常类型"
             details = f"期望={exception_type.__name__}, 实际={type(e).__name__}: {str(e)}"
             self._log_assertion(False, message, details)
             assert False, f"{message}\n{details}"
 
-    # 自定义断言方法，允许用户提供自定义条件
+    # 自定义断言方法, 允许用户提供自定义条件
     def assert_that(self, condition: bool, message: str = "断言失败") -> 'AssertUtil':
         """
         自定义断言条件
@@ -513,7 +513,7 @@ class AssertUtil:
             message: 自定义错误消息
             
         Returns:
-            断言工具实例，支持链式调用
+            断言工具实例, 支持链式调用
         """
         details = f"条件值={condition}"
         self._log_assertion(condition, message, details)
@@ -529,17 +529,17 @@ class AssertUtil:
             driver: WebDriver或AppiumDriver实例
             
         Returns:
-            断言工具实例，支持链式调用
+            断言工具实例, 支持链式调用
         """
         self.driver = driver
         return self
 
 
-# 创建一个默认实例，方便直接导入使用
+# 创建一个默认实例, 方便直接导入使用
 default_assert_util = AssertUtil()
 
 
-# 模块级别的便捷函数，便于直接调用
+# 模块级别的便捷函数, 便于直接调用
 def assert_equal(actual: Any, expected: Any, message: str = "值不相等") -> None:
     """便捷函数：断言两个值相等"""
     default_assert_util.equals(actual, expected, message)

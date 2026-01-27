@@ -47,15 +47,15 @@ class ChristmasLotteryProbabilityValidator:
         初始化验证器
         
         Args:
-            account: 账号信息，包含用户名和密码
-            prize_probabilities: 奖品与预期概率映射，默认为None（从数据库获取）
-            allowed_deviation: 允许的实际概率偏差绝对值，默认为0.05
-            lottery_api: 抽奖接口URL，默认为"/api/activity/lottery/start"
-            threshold: 抽奖次数阈值，低于此值跳过概率校验，默认为50
-            times: 每次抽奖的次数，[1, 10, 50]
-            total: 抽奖总次数，默认为100
-            activity_number: 活动编号，默认为1053
-            activity_type: 活动类型，默认为10, 101
+            account: 账号信息, 包含用户名和密码
+            prize_probabilities: 奖品与预期概率映射, 默认为None（从数据库获取）
+            allowed_deviation: 允许的实际概率偏差绝对值, 默认为0.05
+            lottery_api: 抽奖接口URL, 默认为"/api/activity/lottery/start"
+            threshold: 抽奖次数阈值, 低于此值跳过概率校验, 默认为50
+            times: 每次抽奖的次数, [1, 10, 50]
+            total: 抽奖总次数, 默认为100
+            activity_number: 活动编号, 默认为1053
+            activity_type: 活动类型, 默认为10, 101
         """
         self.account = account
         self.prize_probabilities = prize_probabilities
@@ -284,7 +284,7 @@ class ChristmasLotteryProbabilityValidator:
         调用抽奖API
         
         Returns:
-            Dict[str, int]: 抽奖结果，键为奖品名称，值为获得数量
+            Dict[str, int]: 抽奖结果, 键为奖品名称, 值为获得数量
         """
         try:
             params = {
@@ -317,7 +317,7 @@ class ChristmasLotteryProbabilityValidator:
                     self.logger.info(f"抽奖结果: {lottery_result}")
                     return lottery_result
                 else:
-                    # 业务响应码不是200，说明抽奖失败
+                    # 业务响应码不是200, 说明抽奖失败
                     error_msg = response_json.get("msg", "未知错误")
                     self.logger.error(f"[失败] 抽奖失败, 错误信息: {response_json.get("code"), error_msg}")
                     return {}
@@ -414,7 +414,7 @@ def main(args = None):
     主函数
     
     Args:
-        args: 可选参数，用于直接传递参数，而不通过命令行解析
+        args: 可选参数, 用于直接传递参数, 而不通过命令行解析
     """
     import argparse
 

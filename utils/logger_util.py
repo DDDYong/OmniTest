@@ -12,6 +12,7 @@ import logging
 import os
 from datetime import datetime
 
+
 # ANSI颜色代码
 COLOR_CODES = {
     'DEBUG': '\033[0;36m',  # 青色
@@ -42,9 +43,26 @@ class ColoredFormatter(logging.Formatter):
         return log_message
 
 
-# 避免循环导入,使用默认值,在运行时动态获取配置
+def _get_default_log_config():
+    """获取默认日志级别"""
+    try:
+        # 读取配置文件
+        import yaml
+        env = os.environ.get('OMNITEST_ENV', 'test')  # 默认为test环境
+        config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config', f'{env}.yaml')
+        if os.path.exists(config_path):
+            with open(config_path, 'r', encoding = 'utf-8') as f:
+                config = yaml.safe_load(f)
+                log_level = config.get('log', {}).get('level', 'DEBUG')
+                return log_level
+    except (ImportError, FileNotFoundError, yaml.YAMLError, Exception):
+        # 读取配置文件失败，返回默认值
+        pass
+    return 'DEBUG'
+
+
 DEFAULT_LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'logs')
-DEFAULT_LOG_LEVEL = 'INFO'
+DEFAULT_LOG_LEVEL = _get_default_log_config()
 
 
 class Logger:
@@ -60,16 +78,8 @@ class Logger:
         """
         self.logger = logging.getLogger(logger_name)
 
-        # 直接导入配置，使用懒加载代理
-        try:
-            from config.config_manager import config
-            log_level = getattr(logging, config.LOG_LEVEL, getattr(logging, DEFAULT_LOG_LEVEL))
-            log_dir = config.LOG_DIR
-        except (ImportError, AttributeError):
-            # 如果无法导入配置,使用默认值
-            log_level = getattr(logging, DEFAULT_LOG_LEVEL)
-            log_dir = DEFAULT_LOG_DIR
-
+        log_level = getattr(logging, DEFAULT_LOG_LEVEL.upper(), getattr(logging, "DEBUG"))
+        log_dir = DEFAULT_LOG_DIR
         self.logger.setLevel(log_level)
 
         # 避免重复添加处理器
@@ -98,7 +108,7 @@ class Logger:
 
             # 控制台处理器
             console_handler = logging.StreamHandler()
-            console_handler.setLevel(logging.INFO)
+            console_handler.setLevel(log_level)
             console_handler.setFormatter(console_formatter)
             self.logger.addHandler(console_handler)
 
@@ -136,7 +146,7 @@ class Logger:
         self.logger.exception(message)
 
 
-# 懒加载logger实例，避免循环依赖
+# 懒加载logger实例, 避免循环依赖
 logger = None
 
 
