@@ -398,6 +398,28 @@ class ActivityRewardVerification:
         Returns:
             Dict: 按用户ID分组的预期奖励，格式: {user_id: {rank_type: {ranking: expected_rewards}}}
         """
+
+        # 构建缓存键
+        def make_hashable(obj):
+            if isinstance(obj, (list, tuple)):
+                return tuple(make_hashable(item) for item in obj)
+            elif isinstance(obj, dict):
+                return tuple(sorted((k, make_hashable(v)) for k, v in obj.items()))
+            else:
+                return obj
+
+        cache_key = (
+            make_hashable(ranking_data) if ranking_data else None,
+            make_hashable(activity_reward_config) if activity_reward_config else None,
+            tuple(filter_rank_types) if filter_rank_types else None,
+            tuple(exclude_accumulate_types) if exclude_accumulate_types else None
+        )
+
+        # 检查缓存
+        if cache_key in self._cache.get('user_expected_rewards', {}):
+            self.logger.debug("使用缓存的用户预期奖励")
+            return self._cache['user_expected_rewards'][cache_key]
+
         # 设置默认需要不累加的奖励类型
         if exclude_accumulate_types is None:
             exclude_accumulate_types = [1, 6]
@@ -458,28 +480,28 @@ class ActivityRewardVerification:
                 valid_days = reward.get('valid_days', 0)
                 reward_desc = reward.get('reward_desc', '')
 
-                # 头像框奖励区分男女用户（rewardType=2）
                 if reward_type == 2:
+                    # 头像框奖励区分男女用户
                     if ('（男）' in reward_desc and user_sex != 1) or ('（女）' in reward_desc and user_sex != 2):
                         continue
-                    filtered_rewards.append(reward)
-                # 需要累加有效期的奖励类型
-                elif reward_type not in exclude_accumulate_types and reward_type != 2:
+
+                # 检查是否需要累加有效期
+                if reward_type not in exclude_accumulate_types:
                     if user_id not in user_reward_aggregate:
                         user_reward_aggregate[user_id] = {}
-                    # 使用 (reward_type, reward_id) 作为唯一键，确保不同ID的奖励不会被错误累加
-                    key = (reward_type, reward_id)
-                    if key not in user_reward_aggregate[user_id]:
-                        user_reward_aggregate[user_id][key] = {
-                            'reward_id': reward_id,
-                            'valid_days': 0,
-                            'reward_desc': reward_desc,
-                            'accumulated_days': []  # 记录每次累加的值
-                        }
-                    # 记录每次累加的值
-                    user_reward_aggregate[user_id][key]['accumulated_days'].append(valid_days)
-                    # 累加有效期
-                    user_reward_aggregate[user_id][key]['valid_days'] += valid_days
+                    # 确保 reward_id 是可哈希的类型
+                    if isinstance(reward_id, dict):
+                        # 如果 reward_id 是字典，尝试获取其 id 键值
+                        reward_id = reward_id.get('id', str(reward_id))
+                    reward_key = (reward_type, reward_id)
+                    reward_info = user_reward_aggregate[user_id].setdefault(reward_key, {
+                        'reward_id': reward_id,
+                        'valid_days': 0,
+                        'reward_desc': reward_desc,
+                        'accumulated_days': []
+                    })
+                    reward_info['accumulated_days'].append(valid_days)
+                    reward_info['valid_days'] += valid_days
 
                     # # 陪伴师专属奖励
                     # if user_role == 5 and reward_type == 5:
@@ -508,8 +530,12 @@ class ActivityRewardVerification:
                     #     # 累加有效期
                     #     user_reward_aggregate[user_id][reward_type]['valid_days'] += valid_days
                 # 其他奖励类型直接保留
-                else:
-                    filtered_rewards.append(reward)
+            else:
+                if isinstance(reward_id, dict):
+                    reward_id = reward_id.get('id', str(reward_id))
+                    # 更新奖励中的 rewardId
+                    reward['rewardId'] = reward_id
+                filtered_rewards.append(reward)
 
         # 构建累加后的预期奖励结构
         for user_id in user_role_map.keys():
@@ -535,9 +561,9 @@ class ActivityRewardVerification:
                     accumulated_days = reward_info.get('accumulated_days', [])
                     if len(accumulated_days) > 1:
                         expr = ' + '.join(map(str, accumulated_days))
-                        self.logger.debug(f"用户{user_id}的奖励类型{reward_type}已累加，累计有效期({expr} = {reward_info['valid_days']})天")
+                        self.logger.info(f"用户[{user_id}] 奖励类型[{reward_type}] 已累加，累计有效期[{expr} = {reward_info['valid_days']}]天")
                     else:
-                        self.logger.debug(f"用户{user_id}的奖励类型{reward_type}已累加，累计有效期{reward_info['valid_days']}天")
+                        self.logger.info(f"用户[{user_id}] 奖励类型[{reward_type}] 有效期[{reward_info['valid_days']}]天")
 
         # 将原始奖励添加到预期奖励中（但不包括已经累加的奖励类型）
         for user_data in ranking_data:
@@ -559,6 +585,7 @@ class ActivityRewardVerification:
 
             for reward in expected_rewards:
                 reward_type = reward.get('rewardType')
+                reward_id = reward.get('rewardId')
                 reward_desc = reward.get('reward_desc', '')
 
                 # 跳过需要累加的奖励类型
@@ -571,6 +598,11 @@ class ActivityRewardVerification:
                         self.logger.debug(f"用户{user_id}性别{user_sex}不匹配头像框奖励{reward_desc}，跳过")
                         continue
 
+                if isinstance(reward_id, dict):
+                    reward_id = reward_id.get('id', str(reward_id))
+                    # 更新奖励中的 rewardId
+                    reward['rewardId'] = reward_id
+
                 filtered_rewards.append(reward)
 
             # 按用户ID、榜单类型、排名分组存储
@@ -580,6 +612,11 @@ class ActivityRewardVerification:
                 user_expected_rewards[user_id][rank_type] = {}
             user_expected_rewards[user_id][rank_type][ranking] = filtered_rewards
 
+        # 存入缓存
+        if 'user_expected_rewards' not in self._cache:
+            self._cache['user_expected_rewards'] = {}
+        self._cache['user_expected_rewards'][cache_key] = user_expected_rewards
+        
         return user_expected_rewards
 
     def _query_ranking_data(self, rank_category: str, stage: str, rank_coverage: int) -> List[Dict]:
