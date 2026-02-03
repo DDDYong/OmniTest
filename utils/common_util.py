@@ -118,10 +118,11 @@ class CommonUtils:
         return datetime.strptime(time_str, format_str)
 
     @staticmethod
-    def get_time_delta(days = 0, hours = 0, minutes = 0, seconds = 0):
+    def get_now_time_delta(days = 0, hours = 0, minutes = 0, seconds = 0):
         """
         获取时间增量
-        
+        计算当前时间加上指定的时间增量
+
         Args:
             days: 天数
             hours: 小时数
@@ -132,6 +133,26 @@ class CommonUtils:
             datetime: 计算后的datetime对象
         """
         return datetime.now() + timedelta(
+            days = days, hours = hours, minutes = minutes, seconds = seconds
+        )
+
+    @staticmethod
+    def get_time_delta(datetime_obj, days = 0, hours = 0, minutes = 0, seconds = 0):
+        """
+        获取时间增量
+        计算指定时间增量
+
+        Args:
+            datetime_obj: 基准时间
+            days: 天数
+            hours: 小时数
+            minutes: 分钟数
+            seconds: 秒数
+
+        Returns:
+            datetime: 计算后的datetime对象
+        """
+        return datetime_obj + timedelta(
             days = days, hours = hours, minutes = minutes, seconds = seconds
         )
 
