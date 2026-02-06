@@ -470,7 +470,7 @@ class ActivityRewardVerification:
             expected_rewards = self.get_expected_rewards_by_ranking(ranking, rank_type, activity_reward_config)
 
             # 根据用户角色、性别和榜单类型筛选奖励
-            user_role = user_role_map.get(user_id, 0)  # 默认普通用户
+            # user_role = user_role_map.get(user_id, 0)  # 默认普通用户
             user_sex = user_sex_map.get(user_id, 1)  # 默认性别男
             filtered_rewards = []
 
@@ -530,12 +530,12 @@ class ActivityRewardVerification:
                     #     # 累加有效期
                     #     user_reward_aggregate[user_id][reward_type]['valid_days'] += valid_days
                 # 其他奖励类型直接保留
-            else:
-                if isinstance(reward_id, dict):
-                    reward_id = reward_id.get('id', str(reward_id))
-                    # 更新奖励中的 rewardId
-                    reward['rewardId'] = reward_id
-                filtered_rewards.append(reward)
+                else:
+                    if isinstance(reward_id, dict):
+                        reward_id = reward_id.get('id', str(reward_id))
+                        # 更新奖励中的 rewardId
+                        reward['rewardId'] = reward_id
+                    filtered_rewards.append(reward)
 
         # 构建累加后的预期奖励结构
         for user_id in user_role_map.keys():
@@ -579,7 +579,7 @@ class ActivityRewardVerification:
             expected_rewards = self.get_expected_rewards_by_ranking(ranking, rank_type, activity_reward_config)
 
             # 根据用户角色和性别筛选奖励：只保留不需要累加的奖励类型和装扮类奖励
-            user_role = user_role_map.get(user_id, 0)  # 默认普通用户
+            # user_role = user_role_map.get(user_id, 0)  # 默认普通用户
             user_sex = user_sex_map.get(user_id, 1)  # 默认性别男
             filtered_rewards = []
 
