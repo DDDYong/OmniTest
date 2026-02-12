@@ -470,7 +470,7 @@ class ActivityRewardVerification:
             expected_rewards = self.get_expected_rewards_by_ranking(ranking, rank_type, activity_reward_config)
 
             # 根据用户角色、性别和榜单类型筛选奖励
-            # user_role = user_role_map.get(user_id, 0)  # 默认普通用户
+            user_role = user_role_map.get(user_id, 0)  # 默认普通用户
             user_sex = user_sex_map.get(user_id, 1)  # 默认性别男
             filtered_rewards = []
 
@@ -503,32 +503,38 @@ class ActivityRewardVerification:
                     reward_info['accumulated_days'].append(valid_days)
                     reward_info['valid_days'] += valid_days
 
-                    # # 陪伴师专属奖励
-                    # if user_role == 5 and reward_type == 5:
-                    #     # 超级VIP奖励，需要累加有效期
-                    #     if user_id not in user_reward_aggregate:
-                    #         user_reward_aggregate[user_id] = {}
-                    #     if reward_type not in user_reward_aggregate[user_id]:
-                    #         user_reward_aggregate[user_id][reward_type] = {
-                    #             'reward_id': reward_id,
-                    #             'valid_days': 0,
-                    #             'reward_desc': reward_desc
-                    #         }
-                    #     # 累加有效期
-                    #     user_reward_aggregate[user_id][reward_type]['valid_days'] += valid_days
-                    # # 普通用户专属奖励
-                    # elif user_role == 0 and reward_type == 16:
-                    #     # 公爵贵族奖励，需要累加有效期
-                    #     if user_id not in user_reward_aggregate:
-                    #         user_reward_aggregate[user_id] = {}
-                    #     if reward_type not in user_reward_aggregate[user_id]:
-                    #         user_reward_aggregate[user_id][reward_type] = {
-                    #             'reward_id': reward_id,
-                    #             'valid_days': 0,
-                    #             'reward_desc': reward_desc
-                    #         }
-                    #     # 累加有效期
-                    #     user_reward_aggregate[user_id][reward_type]['valid_days'] += valid_days
+                    # 陪伴师专属奖励
+                if user_role == 5 and reward_type == 5:
+                    # 超级VIP奖励，需要累加有效期
+                    if user_id not in user_reward_aggregate:
+                        user_reward_aggregate[user_id] = {}
+                    reward_key = (reward_type, reward_id)
+                    if reward_key not in user_reward_aggregate[user_id]:
+                        user_reward_aggregate[user_id][reward_key] = {
+                            'reward_id': reward_id,
+                            'valid_days': 0,
+                            'reward_desc': reward_desc,
+                            'accumulated_days': []
+                        }
+                    # 累加有效期
+                    user_reward_aggregate[user_id][reward_key]['valid_days'] += valid_days
+                    user_reward_aggregate[user_id][reward_key]['accumulated_days'].append(valid_days)
+                # 普通用户专属奖励
+                elif user_role == 0 and reward_type == 16:
+                    # 公爵贵族奖励，需要累加有效期
+                    if user_id not in user_reward_aggregate:
+                        user_reward_aggregate[user_id] = {}
+                    reward_key = (reward_type, reward_id)
+                    if reward_key not in user_reward_aggregate[user_id]:
+                        user_reward_aggregate[user_id][reward_key] = {
+                            'reward_id': reward_id,
+                            'valid_days': 0,
+                            'reward_desc': reward_desc,
+                            'accumulated_days': []
+                        }
+                    # 累加有效期
+                    user_reward_aggregate[user_id][reward_key]['valid_days'] += valid_days
+                    user_reward_aggregate[user_id][reward_key]['accumulated_days'].append(valid_days)
                 # 其他奖励类型直接保留
                 else:
                     if isinstance(reward_id, dict):
@@ -616,7 +622,7 @@ class ActivityRewardVerification:
         if 'user_expected_rewards' not in self._cache:
             self._cache['user_expected_rewards'] = {}
         self._cache['user_expected_rewards'][cache_key] = user_expected_rewards
-        
+
         return user_expected_rewards
 
     def _query_ranking_data(self, rank_category: str, stage: str, rank_coverage: int) -> List[Dict]:
@@ -760,14 +766,27 @@ class ActivityRewardVerification:
             random_users = self.db.execute_query(random_users_query, (existing_ids_str, remaining_count * 2,))
             for i in range(remaining_count):
                 if template_data['userId'] == template_data['intimateId']:  # 单人榜
-                    user_id = random_users[i]['userid']
-                    intimate_id = user_id
+                    # 生成唯一的单人记录
+                    max_attempts = 3  # 最多尝试3次
+                    for attempt in range(max_attempts):
+                        user_id = random_users[i + attempt]['userid']
+                        intimate_id = user_id
+                        user_pair = (user_id, intimate_id)
+
+                        # 检查用户对是否已存在
+                        if user_pair not in existing_user_pairs:
+                            existing_user_pairs.add(user_pair)
+                            break
+                    else:
+                        self.logger.warning(f"无法为第 {i + 1} 条记录生成唯一的单人记录，已跳过")
+                        continue
                 else:  # 双人榜
                     # 生成唯一的用户对
                     max_attempts = 3  # 最多尝试3次
                     for attempt in range(max_attempts):
-                        user_id = random_users[i]['userid']
-                        intimate_id = random_users[remaining_count + i]['userid']
+                        # 尝试不同的随机用户组合
+                        user_id = random_users[i + attempt]['userid']
+                        intimate_id = random_users[remaining_count + i + attempt]['userid']
 
                         # 跳过自己和自己的组合
                         if user_id == intimate_id:
@@ -1250,15 +1269,15 @@ class ActivityRewardVerification:
         self.logger.info("=== 奖励下发验证结果 ===")
         self.logger.info(f"总用户数: {len(validation_result['total_users'])}" + (
             f" {validation_result['total_users']}" if len(validation_result['total_users']) > 0 else ""))
-        self.logger.info(f"✅ 奖励下发正确的用户数: {len(validation_result['users_with_correct_rewards'])}" + (
-            f" {validation_result['users_with_correct_rewards']}" if len(
-                validation_result['users_with_correct_rewards']) > 0 else ""))
-        self.logger.error(f"❌ 奖励下发错误的用户数: {len(validation_result['users_with_incorrect_rewards'])}" + (
-            f" {validation_result['users_with_incorrect_rewards']}" if len(
-                validation_result['users_with_incorrect_rewards']) > 0 else ""))
-        self.logger.error(f"⚠️ 无奖励配置的用户数: {len(validation_result['users_without_rewards'])}" + (
-            f" {validation_result['users_without_rewards']}" if len(
-                validation_result['users_without_rewards']) > 0 else ""))
+        if len(validation_result['users_with_correct_rewards']) > 0:
+            self.logger.info(f"✅ 奖励下发正确的用户数: {len(validation_result['users_with_correct_rewards'])}" + (
+                f" {validation_result['users_with_correct_rewards']}"))
+        if len(validation_result['users_with_incorrect_rewards']) > 0:
+            self.logger.error(f"❌ 奖励下发错误的用户数: {len(validation_result['users_with_incorrect_rewards'])}" + (
+                f" {validation_result['users_with_incorrect_rewards']}"))
+        if len(validation_result['users_without_rewards']) > 0:
+            self.logger.error(f"⚠️ 无奖励配置的用户数: {len(validation_result['users_without_rewards'])}" + (
+                f" {validation_result['users_without_rewards']}"))
 
         # 输出详细的错误奖励信息
         if len(validation_result['users_with_incorrect_rewards']) > 0:
@@ -1671,8 +1690,10 @@ class ActivityRewardVerification:
                 self.logger.info("🎯 所有榜单奖励验证结果汇总")
                 self.logger.info(f"📊 总用户数: {total_users}")
                 self.logger.info(f"✅ 奖励下发正确的用户数: {total_correct_users}")
-                self.logger.error(f"❌ 奖励下发错误的用户数: {total_incorrect_users}")
-                self.logger.error(f"⚠️ 无奖励配置的用户数: {total_without_rewards}")
+                if total_incorrect_users > 0:
+                    self.logger.error(f"❌ 奖励下发错误的用户数: {total_incorrect_users}")
+                if total_without_rewards > 0:
+                    self.logger.error(f"⚠️ 无奖励配置的用户数: {total_without_rewards}")
                 # 按奖励类型统计错误
                 reward_error_stats = {}
                 for result in all_validation_result:
@@ -1706,16 +1727,21 @@ def main():
 
     # 创建验证器
     validator = ActivityRewardVerification(
-        activity_number = 1056,
-        activity_config_path = 'test_activity/2026_valentine_reward_config.yaml',
+        activity_number = 1057,
+        activity_config_path = 'test_activity/2026_spring_festival_reward_config.yaml',
         rank_mapping = {
-            98: "甜蜜日榜",
-            99: "甜蜜总榜",
+            300: "拜年达人榜（日榜）",
+            301: "拜年红人榜（日榜）",
+            302: "福马榜（总榜）",
         }
     )
 
     # 执行验证
     success = validator.validate()
+    if success:
+        validator.logger.info("✅ 所有奖励验证通过")
+    else:
+        validator.logger.error("❌ 存在奖励验证失败")
     return success
 
 
