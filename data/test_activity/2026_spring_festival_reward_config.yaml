@@ -1,0 +1,433 @@
+# 春节活动榜单奖励配置
+- activityType: 300
+  activityType_name: 拜年达人榜（日榜）
+  rank_category: 0
+  rank_coverage: 3  # 前3名获奖
+  reward_details:
+    - rank: 1  # 日榜冠军
+      rewards:
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104530
+          valid_days: 5
+          reward_desc: 拜年冠军称号
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2768
+          valid_days: 5
+          reward_desc: 拜年冠军头像框
+        - rewardType: 10
+          rewardType_name: MAIN_PAGE_EFFECTS
+          rewardId: 2771
+          valid_days: 5
+          reward_desc: 拜年啦主页特效
+    - rank: 2  # 日榜亚军
+      rewards:
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104531
+          valid_days: 3
+          reward_desc: 拜年亚军称号
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2769
+          valid_days: 3
+          reward_desc: 拜年亚军头像框
+        - rewardType: 10
+          rewardType_name: MAIN_PAGE_EFFECTS
+          rewardId: 2771
+          valid_days: 3
+          reward_desc: 拜年啦主页特效
+    - rank: 3  # 日榜季军
+      rewards:
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104532
+          valid_days: 2
+          reward_desc: 拜年季军称号
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2770
+          valid_days: 2
+          reward_desc: 拜年季军头像框
+        - rewardType: 10
+          rewardType_name: MAIN_PAGE_EFFECTS
+          rewardId: 2771
+          valid_days: 2
+          reward_desc: 拜年啦主页特效
+- activityType: 301
+  activityType_name: 拜年红人榜（日榜）
+  rank_category: 1
+  rank_coverage: 3  # 前3名获奖
+  reward_details:
+    - rank: 1  # 日榜冠军
+      rewards:
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104530
+          valid_days: 5
+          reward_desc: 拜年冠军称号
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2768
+          valid_days: 5
+          reward_desc: 拜年冠军头像框
+        - rewardType: 10
+          rewardType_name: MAIN_PAGE_EFFECTS
+          rewardId: 2771
+          valid_days: 5
+          reward_desc: 拜年啦主页特效
+    - rank: 2  # 日榜亚军
+      rewards:
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104531
+          valid_days: 3
+          reward_desc: 拜年亚军称号
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2769
+          valid_days: 3
+          reward_desc: 拜年亚军头像框
+        - rewardType: 10
+          rewardType_name: MAIN_PAGE_EFFECTS
+          rewardId: 2771
+          valid_days: 3
+          reward_desc: 拜年啦主页特效
+    - rank: 3  # 日榜季军
+      rewards:
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104532
+          valid_days: 2
+          reward_desc: 拜年季军称号
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2770
+          valid_days: 2
+          reward_desc: 拜年季军头像框
+        - rewardType: 10
+          rewardType_name: MAIN_PAGE_EFFECTS
+          rewardId: 2771
+          valid_days: 2
+          reward_desc: 拜年啦主页特效
+- activityType: 302
+  activityType_name: 福马总榜
+  rank_category: 5
+  rank_coverage: 10  # 前10名获奖（1-3名单独配置，4-5名、6-10名分别统一配置）
+  reward_details:
+    - rank: 1  # 总榜冠军
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 659
+          valid_days: -1
+          reward_desc: 福马榜冠军勋章（永久）
+        - rewardType: 16
+          rewardType_name: DUKE_NOBLE
+          rewardId: 0
+          valid_days: 90
+          reward_desc: 公爵贵族体验卡（普通用户专属）
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 180
+          reward_desc: 超级会员（陪伴师专属）
+        - rewardType: 6
+          rewardType_name: BRIGHT_NUMBER
+          rewardId: 746
+          valid_days: -1
+          reward_desc: 五位自选靓号
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2778
+          valid_days: 30
+          reward_desc: 福马榜冠军座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2782
+          valid_days: 30
+          reward_desc: 福马榜冠军头像框
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2786
+          valid_days: 30
+          reward_desc: 福马榜冠军房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2789
+          valid_days: 31
+          reward_desc: 福马榜冠军私聊气泡
+    - rank: 2  # 总榜亚军
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 660
+          valid_days: -1
+          reward_desc: 福马榜亚军勋章（永久）
+        - rewardType: 16
+          rewardType_name: DUKE_NOBLE
+          rewardId: 0
+          valid_days: 30
+          reward_desc: 公爵贵族体验卡（普通用户专属）
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 90
+          reward_desc: 超级会员（陪伴师专属）
+        - rewardType: 6
+          rewardType_name: BRIGHT_NUMBER
+          rewardId: 1357
+          valid_days: -1
+          reward_desc: 六位自选靓号
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2779
+          valid_days: 15
+          reward_desc: 福马榜亚军座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2783
+          valid_days: 15
+          reward_desc: 福马榜亚军头像框
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2787
+          valid_days: 15
+          reward_desc: 福马榜亚军房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2790
+          valid_days: 16
+          reward_desc: 福马榜亚军私聊气泡
+    - rank: 3  # 总榜季军
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 661
+          valid_days: -1
+          reward_desc: 福马榜季军勋章（永久）
+        - rewardType: 16
+          rewardType_name: DUKE_NOBLE
+          rewardId: 0
+          valid_days: 7
+          reward_desc: 公爵贵族体验卡（普通用户专属）
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 30
+          reward_desc: 超级会员（陪伴师专属）
+        - rewardType: 6
+          rewardType_name: BRIGHT_NUMBER
+          rewardId: 1001620
+          valid_days: -1
+          reward_desc: 七位自选靓号
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2780
+          valid_days: 15
+          reward_desc: 福马榜季军座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2784
+          valid_days: 15
+          reward_desc: 福马榜季军头像框
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2788
+          valid_days: 15
+          reward_desc: 福马榜季军房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2791
+          valid_days: 16
+          reward_desc: 福马榜季军私聊气泡
+    - rank: 4  # 总榜第4名
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 662
+          valid_days: -1
+          reward_desc: 福马榜十强勋章（永久）
+        - rewardType: 16
+          rewardType_name: DUKE_NOBLE
+          rewardId: 0
+          valid_days: 3
+          reward_desc: 公爵贵族体验卡（普通用户专属）
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 15
+          reward_desc: 超级会员（陪伴师专属）
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2781
+          valid_days: 15
+          reward_desc: 福马榜十强座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2785
+          valid_days: 15
+          reward_desc: 福马榜十强头像框
+    - rank: 5  # 总榜第5名
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 662
+          valid_days: -1
+          reward_desc: 福马榜十强勋章（永久）
+        - rewardType: 16
+          rewardType_name: DUKE_NOBLE
+          rewardId: 0
+          valid_days: 3
+          reward_desc: 公爵贵族体验卡（普通用户专属）
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 15
+          reward_desc: 超级会员（陪伴师专属）
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2781
+          valid_days: 15
+          reward_desc: 福马榜十强座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2785
+          valid_days: 15
+          reward_desc: 福马榜十强头像框
+    - rank: 6  # 总榜第6名
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 662
+          valid_days: -1
+          reward_desc: 福马榜十强勋章（永久）
+        - rewardType: 16
+          rewardType_name: DUKE_NOBLE
+          rewardId: 0
+          valid_days: 3
+          reward_desc: 公爵贵族体验卡（普通用户专属）
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 15
+          reward_desc: 超级会员（陪伴师专属）
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2781
+          valid_days: 7
+          reward_desc: 福马榜十强座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2785
+          valid_days: 7
+          reward_desc: 福马榜十强头像框
+    - rank: 7  # 总榜第7名
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 662
+          valid_days: -1
+          reward_desc: 福马榜十强勋章（永久）
+        - rewardType: 16
+          rewardType_name: DUKE_NOBLE
+          rewardId: 0
+          valid_days: 3
+          reward_desc: 公爵贵族体验卡（普通用户专属）
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 15
+          reward_desc: 超级会员（陪伴师专属）
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2781
+          valid_days: 7
+          reward_desc: 福马榜十强座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2785
+          valid_days: 7
+          reward_desc: 福马榜十强头像框
+    - rank: 8  # 总榜第8名
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 662
+          valid_days: -1
+          reward_desc: 福马榜十强勋章（永久）
+        - rewardType: 16
+          rewardType_name: DUKE_NOBLE
+          rewardId: 0
+          valid_days: 3
+          reward_desc: 公爵贵族体验卡（普通用户专属）
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 15
+          reward_desc: 超级会员（陪伴师专属）
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2781
+          valid_days: 7
+          reward_desc: 福马榜十强座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2785
+          valid_days: 7
+          reward_desc: 福马榜十强头像框
+    - rank: 9  # 总榜第9名
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 662
+          valid_days: -1
+          reward_desc: 福马榜十强勋章（永久）
+        - rewardType: 16
+          rewardType_name: DUKE_NOBLE
+          rewardId: 0
+          valid_days: 3
+          reward_desc: 公爵贵族体验卡（普通用户专属）
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 15
+          reward_desc: 超级会员（陪伴师专属）
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2781
+          valid_days: 7
+          reward_desc: 福马榜十强座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2785
+          valid_days: 7
+          reward_desc: 福马榜十强头像框
+    - rank: 10  # 总榜第10名
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 662
+          valid_days: -1
+          reward_desc: 福马榜十强勋章（永久）
+        - rewardType: 16
+          rewardType_name: DUKE_NOBLE
+          rewardId: 0
+          valid_days: 3
+          reward_desc: 公爵贵族体验卡（普通用户专属）
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 15
+          reward_desc: 超级会员（陪伴师专属）
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2781
+          valid_days: 7
+          reward_desc: 福马榜十强座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2785
+          valid_days: 7
+          reward_desc: 福马榜十强头像框
