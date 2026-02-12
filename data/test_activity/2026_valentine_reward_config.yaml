@@ -1,0 +1,462 @@
+# 情人节活动榜单奖励配置
+- activityType: 98
+  activityType_name: 甜蜜日榜
+  rank_category: 2
+  rank_coverage: 3  # 前3名获奖
+  reward_details:
+    - rank: 1  # 日榜冠军
+      rewards:
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2722
+          valid_days: 7
+          reward_desc: 日榜冠军座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2725
+          valid_days: 7
+          reward_desc: 甜蜜日榜冠军头像框（男）
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2753
+          valid_days: 7
+          reward_desc: 甜蜜日榜冠军头像框（女）
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 7
+          reward_desc: 超级会员
+    - rank: 2  # 日榜亚军
+      rewards:
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2723
+          valid_days: 3
+          reward_desc: 日榜亚军座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2726
+          valid_days: 3
+          reward_desc: 甜蜜日榜亚军头像框（男）
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2754
+          valid_days: 3
+          reward_desc: 甜蜜日榜亚军头像框（女）
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 3
+          reward_desc: 超级会员
+    - rank: 3  # 日榜季军
+      rewards:
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2724
+          valid_days: 1
+          reward_desc: 日榜季军座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2727
+          valid_days: 1
+          reward_desc: 甜蜜日榜季军头像框（男）
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2755
+          valid_days: 1
+          reward_desc: 甜蜜日榜季军头像框（女）
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 1
+          reward_desc: 超级会员
+- activityType: 99
+  activityType_name: 甜蜜总榜
+  rank_category: 2
+  rank_coverage: 10  # 前10名获奖（1-3名单独配置，4-10名统一配置）
+  reward_details:
+    - rank: 1  # 总榜冠军
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 650
+          valid_days: -1
+          reward_desc: 甜蜜总榜冠军勋章
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 180
+          reward_desc: 超级会员（陪伴师专属）
+        - rewardType: 6
+          rewardType_name: BRIGHT_NUMBER
+          rewardId: 833
+          valid_days: -1
+          reward_desc: 四位自选靓号
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2728
+          valid_days: 30
+          reward_desc: 总榜冠军座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2732
+          valid_days: 30
+          reward_desc: 甜蜜总榜冠军头像框（男）
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2749
+          valid_days: 30
+          reward_desc: 甜蜜总榜冠军头像框（女）
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2736
+          valid_days: 30
+          reward_desc: 甜蜜总榜冠军房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2740
+          valid_days: 30
+          reward_desc: 甜蜜总榜冠军私聊气泡
+    - rank: 2  # 总榜亚军
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 651
+          valid_days: -1
+          reward_desc: 甜蜜总榜亚军勋章
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 90
+          reward_desc: 超级会员（陪伴师专属）
+        - rewardType: 6
+          rewardType_name: BRIGHT_NUMBER
+          rewardId: 746
+          valid_days: -1
+          reward_desc: 五位自选靓号
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2729
+          valid_days: 15
+          reward_desc: 总榜亚军座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2733
+          valid_days: 15
+          reward_desc: 甜蜜总榜亚军头像框（男）
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2750
+          valid_days: 15
+          reward_desc: 甜蜜总榜亚军头像框（女）
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2737
+          valid_days: 15
+          reward_desc: 甜蜜总榜亚军房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2741
+          valid_days: 15
+          reward_desc: 甜蜜总榜亚军私聊气泡
+    - rank: 3  # 总榜季军
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 652
+          valid_days: -1
+          reward_desc: 甜蜜总榜季军勋章
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 30
+          reward_desc: 超级会员（陪伴师专属）
+        - rewardType: 6
+          rewardType_name: BRIGHT_NUMBER
+          rewardId: 1357
+          valid_days: -1
+          reward_desc: 六位自选靓号
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2730
+          valid_days: 15
+          reward_desc: 总榜季军座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2734
+          valid_days: 15
+          reward_desc: 甜蜜总榜季军头像框（男）
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2751
+          valid_days: 15
+          reward_desc: 甜蜜总榜季军头像框（女）
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2738
+          valid_days: 15
+          reward_desc: 甜蜜总榜季军房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2742
+          valid_days: 15
+          reward_desc: 甜蜜总榜季军私聊气泡
+    - rank: 4  # 总榜第4名
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 653
+          valid_days: -1
+          reward_desc: 甜蜜总榜十强勋章
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 15
+          reward_desc: 超级会员（陪伴师专属）
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2731
+          valid_days: 7
+          reward_desc: 总榜十强座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2735
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强头像框（男）
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2752
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强头像框（女）
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2739
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2743
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强私聊气泡
+    - rank: 5  # 总榜第5名
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 653
+          valid_days: -1
+          reward_desc: 甜蜜总榜十强勋章
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 15
+          reward_desc: 超级会员（陪伴师专属）
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2731
+          valid_days: 7
+          reward_desc: 总榜十强座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2735
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强头像框（男）
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2752
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强头像框（女）
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2739
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2743
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强私聊气泡
+    - rank: 6  # 总榜第6名
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 653
+          valid_days: -1
+          reward_desc: 甜蜜总榜十强勋章
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 15
+          reward_desc: 超级会员（陪伴师专属）
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2731
+          valid_days: 7
+          reward_desc: 总榜十强座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2735
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强头像框（男）
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2752
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强头像框（女）
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2739
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2743
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强私聊气泡
+    - rank: 7  # 总榜第7名
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 653
+          valid_days: -1
+          reward_desc: 甜蜜总榜十强勋章
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 15
+          reward_desc: 超级会员（陪伴师专属）
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2731
+          valid_days: 7
+          reward_desc: 总榜十强座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2735
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强头像框（男）
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2752
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强头像框（女）
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2739
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2743
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强私聊气泡
+    - rank: 8  # 总榜第8名
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 653
+          valid_days: -1
+          reward_desc: 甜蜜总榜十强勋章
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 15
+          reward_desc: 超级会员（陪伴师专属）
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2731
+          valid_days: 7
+          reward_desc: 总榜十强座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2735
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强头像框（男）
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2752
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强头像框（女）
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2739
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2743
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强私聊气泡
+    - rank: 9  # 总榜第9名
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 653
+          valid_days: -1
+          reward_desc: 甜蜜总榜十强勋章
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 15
+          reward_desc: 超级会员（陪伴师专属）
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2731
+          valid_days: 7
+          reward_desc: 总榜十强座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2735
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强头像框（男）
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2752
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强头像框（女）
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2739
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2743
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强私聊气泡
+    - rank: 10  # 总榜第10名
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 653
+          valid_days: -1
+          reward_desc: 甜蜜总榜十强勋章
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 15
+          reward_desc: 超级会员（陪伴师专属）
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2731
+          valid_days: 7
+          reward_desc: 总榜十强座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2735
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强头像框（男）
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2752
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强头像框（女）
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2739
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2743
+          valid_days: 7
+          reward_desc: 甜蜜总榜十强私聊气泡
