@@ -82,7 +82,6 @@ class TestAndroidAppLaunch:
         yield
 
         # 测试结束后清理资源（Appium会话已在setup_test中关闭）
-
         logger.info("=" * 60)
         logger.info("安卓应用启动测试执行完成")
         logger.info("=" * 60)
@@ -145,6 +144,22 @@ class TestAndroidAppLaunch:
 
         logger.info("测试类执行完成")
 
+    @staticmethod
+    def _get_test_scenario(scenario_name):
+        """
+        获取指定名称的测试场景配置
+        
+        Args:
+            scenario_name: 场景名称
+            
+        Returns:
+            dict: 场景配置
+        """
+        for scenario in TestAndroidAppLaunch.test_scenarios:
+            if scenario["name"] == scenario_name:
+                return scenario
+        return None
+
     @pytest.mark.smoke
     @pytest.mark.app
     def test_appium_server_connection(self):
@@ -156,7 +171,7 @@ class TestAndroidAppLaunch:
 
         # 检查Appium服务器状态
         is_connected = TestAndroidAppLaunch.appium_manager.check_server_status()
-        assert is_connected, TestAndroidAppLaunch.expected_results["error_messages"]["appium_server_down"]
+        assert is_connected, f"Appium服务器连接失败: {TestAndroidAppLaunch.expected_results['error_messages']['appium_server_down']}"
         logger.info("Appium服务器连接验证通过")
 
         # 服务器连接测试通过
@@ -172,12 +187,8 @@ class TestAndroidAppLaunch:
         logger.info("执行应用启动测试")
 
         # 获取启动应用的测试场景
-        launch_scenario = None
-        for scenario in TestAndroidAppLaunch.test_scenarios:
-            if scenario["name"] == "app_launch":
-                launch_scenario = scenario
-                break
-
+        launch_scenario = self._get_test_scenario("app_launch")
+        
         if not launch_scenario:
             pytest.fail("未找到应用启动测试场景配置")
 
@@ -193,7 +204,7 @@ class TestAndroidAppLaunch:
         logger.info(f"当前活动: {current_activity}")
 
         # 截图保存
-        screenshot_path = TestAndroidAppLaunch.base_page.take_screenshot(filename = "app_launched_" + str(time.time()))
+        screenshot_path = TestAndroidAppLaunch.base_page.take_screenshot(filename = f"app_launched_{time.time()}")
         logger.info(f"应用启动截图保存到: {screenshot_path}")
 
         # 验证应用是否正常运行
@@ -302,10 +313,6 @@ class TestAndroidAppLaunch:
             # 捕获失败截图
             timestamp = int(time.time())
             screenshot_filename = f"failed_{current_test_name}_{timestamp}.png"
-            # ScreenshotUtils().capture_screenshot(
-            #     driver=self.driver,
-            #     name=screenshot_filename
-            # )
             if TestAndroidAppLaunch.base_page:
                 TestAndroidAppLaunch.base_page.take_screenshot(screenshot_filename)
                 logger.error(f"已捕获失败截图: {screenshot_filename}")
