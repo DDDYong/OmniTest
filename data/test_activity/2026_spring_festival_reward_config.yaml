@@ -156,7 +156,7 @@
         - rewardType: 12
           rewardType_name: IM_BUBBLE
           rewardId: 2789
-          valid_days: 31
+          valid_days: 30
           reward_desc: 福马榜冠军私聊气泡
     - rank: 2  # 总榜亚军
       rewards:
@@ -198,7 +198,7 @@
         - rewardType: 12
           rewardType_name: IM_BUBBLE
           rewardId: 2790
-          valid_days: 16
+          valid_days: 15
           reward_desc: 福马榜亚军私聊气泡
     - rank: 3  # 总榜季军
       rewards:
@@ -240,7 +240,7 @@
         - rewardType: 12
           rewardType_name: IM_BUBBLE
           rewardId: 2791
-          valid_days: 16
+          valid_days: 15
           reward_desc: 福马榜季军私聊气泡
     - rank: 4  # 总榜第4名
       rewards:

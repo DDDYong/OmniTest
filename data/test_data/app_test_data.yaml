@@ -6,17 +6,17 @@ android_app_test:
   # 设备能力配置
   device_capabilities:
     platformName: Android
-    platformVersion: "13"
-    deviceName: Android Device
+    platformVersion: "12"
+    deviceName: "荣耀60 SE"
     automationName: UiAutomator2
     noReset: false
     fullReset: false
     newCommandTimeout: 60
     unicodeKeyboard: true
     resetKeyboard: true
-    appActivity: com.example.app.MainActivity
-    appPackage: com.example.app
-    appWaitActivity: com.example.app.SplashActivity
+    appPackage: com.weixiao.voice
+    appActivity: com.weixiao.voice/.ui.home.MainActivity
+    appWaitActivity: com.weixiao.voice/.ui.home.MainActivity
     systemPort: 8200
     adbPort: 5037
   
@@ -59,8 +59,8 @@ android_app_test:
         - 验证应用是否正常启动
         - 截图保存
       expected:
-        activity: com.example.app.MainActivity
-        package: com.example.app
+        activity: com.cola.xinyue.activity.LoginActivity
+        package: com.weixiao.voice
         timeout: 30
 
     - name: login_flow
@@ -134,7 +134,7 @@ android_app_test:
 generic_test_settings:
   retry_count: 2
   test_timeout: 120
-  screenshot_dir: /logs/screenshots/app
+  screenshot_dir: /reports/screenshots/app
   video_recording: false
   save_device_logs: true
   performance_monitoring: false

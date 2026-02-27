@@ -17,7 +17,6 @@ from appium import webdriver
 from appium.webdriver.appium_service import AppiumService
 from appium.webdriver.webdriver import WebDriver as AppiumDriver
 
-from utils.decorator_util import retry
 from utils.logger_util import logger
 
 
@@ -26,15 +25,61 @@ class AppiumManager:
     Appium管理器类
     """
 
-    def __init__(self):
+    def __init__(self, host: str = None, port: int = None, timeout: int = None):
         """
         初始化Appium管理器
+
+        Args:
+            host: Appium服务主机地址
+            port: Appium服务端口
+            timeout: 超时时间
         """
         self.appium_service: Optional[AppiumService] = None
         self.driver: Optional[AppiumDriver] = None
-        self.service_address: Optional[str] = None
-        self.service_port: Optional[int] = None
+        self.service_address: Optional[str] = host
+        self.service_port: Optional[int] = port
+        self.timeout: Optional[int] = timeout
         self.start_time: Optional[float] = None
+
+    def check_server_status(self, host: str = None, port: int = None) -> bool:
+        """
+        检查Appium服务器状态
+        
+        Args:
+            host: Appium服务主机地址
+            port: Appium服务端口
+            
+        Returns:
+            bool: 服务器是否可用
+        """
+        import requests
+
+        # 如果没有指定服务地址,使用默认值
+        if host is None:
+            host = self.service_address or '127.0.0.1'
+        if port is None:
+            port = self.service_port or 4723
+
+        # 尝试不同的URL路径
+        test_urls = [
+            f"http://{host}:{port}/wd/hub/status",
+            f"http://{host}:{port}/status"
+        ]
+
+        for server_url in test_urls:
+            try:
+                logger.info(f"检查Appium服务器状态: {server_url}")
+                response = requests.get(server_url, timeout = 5)
+                if response.status_code == 200:
+                    logger.info(f"Appium服务器状态检查通过: {server_url}")
+                    return True
+                else:
+                    logger.warning(f"Appium服务器状态检查失败,状态码: {response.status_code}")
+            except Exception as e:
+                logger.debug(f"Appium服务器状态检查失败: {str(e)}")
+
+        logger.error("所有Appium服务器状态检查URL都失败")
+        return False
 
     def start_appium_service(self, host: str = '127.0.0.1', port: int = 4723,
                              log_file: Optional[str] = None,
@@ -131,7 +176,7 @@ class AppiumManager:
         """
         return self.appium_service is not None and self.appium_service.is_running
 
-    @retry(max_retries = 3, delay = 1)  # 使用默认值避免循环依赖, 实际值会在函数内部记录
+    # @retry(max_retries = 3, delay = 1)
     def create_driver(self, desired_caps: Dict[str, Any],
                       host: Optional[str] = None,
                       port: Optional[int] = None) -> AppiumDriver:
@@ -147,30 +192,38 @@ class AppiumManager:
             AppiumDriver: Appium驱动实例
         """
         # 延迟导入避免循环依赖
-        from config.config_manager import config
 
         # 记录实际使用的重试配置
-        logger.debug(f"驱动创建使用重试配置: max_retries={config.DEFAULT_RETRY_COUNT}, delay={config.RETRY_INTERVAL}")
+        logger.debug(f"驱动创建使用重试配置")
 
-        # 如果没有指定服务地址,使用已启动的服务或配置文件中的默认值
+        # 如果没有指定服务地址,使用已启动的服务或默认值
         if host is None:
-            host = self.service_address or config.APPIUM_HOST
+            host = self.service_address or '127.0.0.1'
         if port is None:
-            port = self.service_port or config.APPIUM_PORT
+            port = self.service_port or 4723
 
         # 构建Appium服务器URL
-        server_url = f"http://{host}:{port}/wd/hub"
+        # 尝试不同的路径格式
+        server_url = f"http://{host}:{port}"
 
         logger.info(f"正在创建Appium驱动: {server_url}")
         logger.debug(f"期望能力配置: {desired_caps}")
 
         try:
-            # 创建驱动
-            self.driver = webdriver.Remote(command_executor = server_url, desired_capabilities = desired_caps)
+            # 创建驱动 - 使用新的参数名称
+            from appium.options.common import AppiumOptions
+
+            # 创建 AppiumOptions 对象并设置能力
+            options = AppiumOptions()
+            for key, value in desired_caps.items():
+                options.set_capability(key, value)
+
+            # 使用 options 参数创建驱动
+            self.driver = webdriver.Remote(command_executor = server_url, options = options)
 
             # 设置隐式等待
             if 'implicit_wait' not in desired_caps:
-                self.driver.implicitly_wait(config.DEFAULT_TIMEOUT)
+                self.driver.implicitly_wait(10)
 
             logger.info("Appium驱动创建成功")
             return self.driver

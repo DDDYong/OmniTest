@@ -281,6 +281,106 @@ class TestRunner:
             return False
 
     @staticmethod
+    def update_requirements() -> bool:
+        """
+        更新 requirements.txt 文件，保留注释信息
+
+        Returns:
+            bool: 是否更新成功
+        """
+        logger.info("开始更新 requirements.txt...")
+
+        try:
+            # 读取当前文件，保存注释
+            comments = []
+            requirements_path = os.path.join(path_util.get_project_root(), 'requirements.txt')
+
+            try:
+                with open(requirements_path, 'r', encoding = 'utf-8') as f:
+                    for line in f:
+                        if line.strip().startswith('#'):
+                            comments.append(line)
+                        else:
+                            break  # 只保留文件头部的注释
+            except FileNotFoundError:
+                logger.info("requirements.txt 文件不存在，将创建新文件")
+
+            # 获取当前环境的所有包
+            result = subprocess.run([sys.executable, '-m', 'pip', 'freeze'],
+                capture_output = True, text = True, cwd = path_util.get_project_root())
+
+            if result.returncode != 0:
+                logger.error(f"获取包列表失败: {result.stderr}")
+                return False
+
+            # 写入 requirements.txt
+            with open(requirements_path, 'w', encoding = 'utf-8') as f:
+                # 写回注释
+                for comment in comments:
+                    f.write(comment)
+                if comments and not comments[-1].endswith('\n'):
+                    f.write('\n')
+
+                # 写新的依赖
+                f.write(result.stdout)
+
+            logger.info(f"requirements.txt 已更新: {requirements_path}")
+            return True
+
+        except Exception as e:
+            logger.error(f"更新 requirements.txt 失败: {str(e)}")
+            return False
+
+
+    @staticmethod
+    def add_package_to_requirements(package_name: str, version: str = None) -> bool:
+        """
+        手动添加单个包到 requirements.txt
+        
+        Args:
+            package_name: 包名
+            version: 版本号（可选）
+            
+        Returns:
+            bool: 是否添加成功
+        """;
+        logger.info(f"添加包到 requirements.txt: {package_name}")
+
+        try:
+            requirements_path = os.path.join(path_util.get_project_root(), 'requirements.txt')
+
+            # 读取现有内容
+            with open(requirements_path, 'r', encoding = 'utf-8') as f:
+                lines = f.readlines()
+
+            # 构造新的包条目
+            if version:
+                package_entry = f"{package_name}=={version}\n"
+            else:
+                package_entry = f"{package_name}\n"
+
+            # 检查是否已存在
+            package_exists = any(line.strip().startswith(package_name) for line in lines)
+
+            if package_exists:
+                logger.warning(f"包 {package_name} 已存在于 requirements.txt 中")
+                return False
+
+            # 添加到文件末尾
+            lines.append(package_entry)
+
+            # 写回文件
+            with open(requirements_path, 'w', encoding = 'utf-8') as f:
+                f.writelines(lines)
+
+            logger.info(f"包 {package_name} 已添加到 requirements.txt")
+            return True
+
+        except Exception as e:
+            logger.error(f"添加包到 requirements.txt 失败: {str(e)}")
+            return False
+    
+    @staticmethod
     def open_allure_report() -> bool:
         """
         打开Allure报告
@@ -356,6 +456,18 @@ def parse_arguments():
     # 清理命令
     parser_clean = subparsers.add_parser('clean', help = '清理测试报告')
 
+    # 包管理命令
+    parser_pkg = subparsers.add_parser('package', help = '包管理命令')
+    pkg_subparsers = parser_pkg.add_subparsers(dest = 'pkg_command', help = '包管理子命令')
+
+    # 更新 requirements 命令
+    pkg_subparsers.add_parser('update-req', help = '更新 requirements.txt')
+
+    # 添加包命令
+    parser_add = pkg_subparsers.add_parser('add', help = '添加包到 requirements.txt')
+    parser_add.add_argument('package', help = '包名')
+    parser_add.add_argument('--version', help = '指定版本号')
+
     return parser.parse_args()
 
 
@@ -413,6 +525,14 @@ def main():
         runner.clean_reports()
         sys.exit(0)
 
+    elif args.command == 'package':
+        if args.pkg_command == 'update-req':
+            success = runner.update_requirements()
+            sys.exit(0 if success else 1)
+        elif args.pkg_command == 'add':
+            success = runner.add_package_to_requirements(args.package, args.version)
+            sys.exit(0 if success else 1)
+
     else:
         # 如果没有指定命令,显示帮助信息
         # 导入logger
@@ -426,6 +546,8 @@ def main():
         logger.info(f"  python {os.path.basename(__file__)} performance test_api.py --users 500  # 运行性能测试")
         logger.info(f"  python {os.path.basename(__file__)} report             # 生成并打开报告")
         logger.info(f"  python {os.path.basename(__file__)} clean              # 清理测试报告")
+        logger.info(f"  python {os.path.basename(__file__)} package update-req  # 更新 requirements.txt")
+        logger.info(f"  python {os.path.basename(__file__)} package add requests --version 2.31.0  # 添加指定包")
         sys.exit(1)
 
 
