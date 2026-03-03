@@ -25,7 +25,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from config.config_manager import config
 from utils.common_util import util
-from utils.decorator_util import retry
+from utils.decorator_util import retry, wait_after_with_jitter
 from utils.logger_util import logger
 from utils.screenshot_util import ScreenshotUtils
 
@@ -44,9 +44,9 @@ class AppBasePage:
         "id": By.ID,
         "xpath": By.XPATH,
         "class_name": By.CLASS_NAME,
-        "accessibility_id": "accessibility id",  # 简化处理
-        "android_uiautomator": "-android uiautomator",  # 简化处理
-        "ios_uiautomation": "-ios uiautomation",  # 简化处理
+        "accessibility_id": "accessibility id",
+        "android_uiautomator": "-android uiautomator",
+        "ios_uiautomation": "-ios uiautomation",
         "name": By.NAME,
         "tag_name": By.TAG_NAME,
         "link_text": By.LINK_TEXT,
@@ -65,7 +65,7 @@ class AppBasePage:
         self.utils = util
         self.screenshot_utils = ScreenshotUtils()
         # 配置
-        self.default_timeout = getattr(config, "DEFAULT_TIMEOUT", 30)
+        self.default_timeout = getattr(config, "DEFAULT_TIMEOUT", 5)
         self.implicit_wait = getattr(config, "IMPLICIT_WAIT", 10)
         self.explicit_wait = getattr(config, "EXPLICIT_WAIT", 20)
         self.polling_interval = getattr(config, "POLLING_INTERVAL", 0.5)
@@ -496,29 +496,35 @@ class AppBasePage:
             logger.error(f"获取元素文本时发生错误: {locator[0]}={locator[1]}, 错误: {str(e)}")
             return None
 
-    def is_element_displayed(self, by: str, value: str, timeout: Optional[int] = None) -> bool:
+    def is_element_displayed(self, locator: Tuple[str, str], timeout: Optional[int] = None) -> bool:
         """
         检查元素是否可见
 
         Args:
-            by: 定位方式
-            value: 定位值
+            locator: 定位器元组 (策略类型, 定位值)
             timeout: 超时时间（秒）
 
         Returns:
             bool: 元素是否可见
         """
+        strategy, value = locator
+
+        if strategy not in self.LOCATOR_STRATEGIES:
+            logger.error(f"无效的定位策略: {strategy}")
+            return False
+
         timeout = timeout or self.default_timeout
-        logger.info(f"检查元素是否可见: {by}={value}")
+        logger.info(f"检查元素是否可见: {strategy}={value}")
 
         try:
+            by = self.LOCATOR_STRATEGIES[strategy]
             element = WebDriverWait(self.driver, timeout).until(
                 EC.visibility_of_element_located((by, value))
             )
-            logger.debug(f"元素 {by}={value} 可见")
+            logger.debug(f"元素 {strategy}={value} 可见")
             return True
         except (TimeoutException, NoSuchElementException):
-            logger.debug(f"元素 {by}={value} 不可见或不存在")
+            logger.debug(f"元素 {strategy}={value} 不可见或不存在")
             return False
 
     def wait_for_element_visible(self, locator: Tuple[str, str], timeout: Optional[int] = None) -> bool:
@@ -1173,6 +1179,66 @@ class AppBasePage:
         except Exception as e:
             logger.error(f"截图时发生错误: {str(e)}")
             return None
+
+    def check_for_toast(self, message, timeout = 10):
+        """
+        检测是否出现指定的Toast消息
+        
+        Args:
+            message: 要检测的Toast消息
+            timeout: 超时时间（秒）
+            
+        Returns:
+            bool: 是否检测到指定的Toast
+        """
+        logger.info(f"检测Toast消息: {message}")
+        try:
+            # 使用UiAutomator查找Toast
+            toast_locator = (
+                "android_uiautomator",
+                f'new UiSelector().textContains("{message}")'
+            )
+            # 等待Toast出现
+            return self.wait_for_element_visible(toast_locator, timeout)
+        except Exception as e:
+            logger.error(f"检测Toast时发生错误: {str(e)}")
+            return False
+
+    @wait_after_with_jitter(1, 0.2)
+    def launch_app_by_icon(self, app_name: str = "花选") -> bool:
+        """
+        模拟手动点击app图标启动应用
+
+        Args:
+            app_name: 应用图标名称
+
+        Returns:
+            是否启动成功
+        """
+        logger.info(f"模拟手动点击app图标启动应用: {app_name}")
+
+        try:
+            # # 按Home键返回主屏幕
+            # self.press_home()
+            # time.sleep(2)
+
+            # 使用UiAutomator查找应用图标并点击
+            logger.info(f"查找应用图标: {app_name}")
+            # 构建UiAutomator表达式
+            uiautomator_expr = f'new UiSelector().text("{app_name}")'
+            # 查找并点击图标
+            if self.click_element(("android_uiautomator", uiautomator_expr), timeout = 10):
+                logger.info(f"成功点击应用图标: {app_name}")
+                # 等待应用启动
+                time.sleep(1)
+                return True
+            else:
+                logger.error(f"未找到应用图标: {app_name}")
+                return False
+
+        except Exception as e:
+            logger.error(f"启动应用时发生错误: {str(e)}")
+            return False
 
 
 # 常用的元素定位策略别名,方便使用

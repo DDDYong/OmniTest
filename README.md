@@ -265,6 +265,30 @@ class TestLogin:
 
 APP 测试用例存放在 `cases/app/` 目录下,同样推荐使用 Page Object 模式。
 
+#### 元素定位工具
+
+APP 自动化测试中，元素定位可以使用以下工具：
+
+1. **uiautomatorviewer**：Android SDK 自带的元素定位工具
+   ```bash
+   uiauto.dev
+   ```
+
+2. **weditor**：基于 Python 的 UI 查看器，支持 Android 和 iOS
+   ```bash
+   weditor
+   ```
+
+#### 测试前准备
+
+在运行 APP 测试前，需要先启动 Appium 服务：
+
+```bash
+appium --address 127.0.0.1 --port 4723 --log-level info
+```
+
+确保 Appium 服务正常运行后，再执行测试用例。
+
 ### 4. 性能测试
 
 性能测试用例存放在 `cases/performance/` 目录下,使用 Locust 框架编写。

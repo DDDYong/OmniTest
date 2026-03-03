@@ -6,8 +6,8 @@ android_app_test:
   # 设备能力配置
   device_capabilities:
     platformName: Android
-    platformVersion: "12"
-    deviceName: "荣耀60 SE"
+    platformVersion: "16"
+    deviceName: "emulator-5554"
     automationName: UiAutomator2
     noReset: false
     fullReset: false
@@ -17,8 +17,12 @@ android_app_test:
     appPackage: com.weixiao.voice
     appActivity: com.weixiao.voice/.ui.home.MainActivity
     appWaitActivity: com.weixiao.voice/.ui.home.MainActivity
-    systemPort: 8200
+    systemPort: 8202
+    disableWindowAnimation: true
+    dontStopAppOnReset: false
     adbPort: 5037
+    skipUnlock: false  # 跳过解锁（如果设备已解锁）
+    ignoreHiddenApiPolicyError: true  # 忽略隐藏 API 政策错误
   
   # Appium服务器配置
   appium_server:
@@ -34,7 +38,7 @@ android_app_test:
   
   # 应用路径
   app_paths:
-    local_app_path: /path/to/local/app.apk
+    local_app_path: ~/Downloads/huaxuan_arm64-v8a_1.3.10.2_26020902_debug.apk
     remote_app_url: null
   
   # 预期结果
