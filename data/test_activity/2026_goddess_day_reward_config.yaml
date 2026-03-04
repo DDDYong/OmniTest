@@ -1,0 +1,355 @@
+# 2026女神节活动-总决赛TOP1-7奖励配置
+- activityType: 308
+  activityType_name: 乘风破浪（总榜）
+  rank_category: 0
+  rank_coverage: 7
+  reward_details:
+    - rank: 1
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 670
+          valid_days: -1
+          reward_desc: 女团勋章
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 669
+          valid_days: -1
+          reward_desc: 队长勋章
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104541
+          valid_days: 365
+          reward_desc: 2026年第二届乘风破浪出道女神团荣誉称号
+        - rewardType: 6
+          rewardType_name: BRIGHT_NUMBER
+          rewardId: 833
+          valid_days: -1
+          reward_desc: 四位自选靓号
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 90
+          reward_desc: 超级会员
+        - rewardType: 8
+          rewardType_name: CUSTOM
+          rewardId: 0
+          valid_days: -1
+          reward_desc: 永久入驻名人堂
+        - rewardType: 8
+          rewardType_name: CUSTOM
+          rewardId: 0
+          valid_days: 3
+          reward_desc: 首页banner位展示
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2827
+          valid_days: 30
+          reward_desc: 冠军座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2831
+          valid_days: 30
+          reward_desc: 冠军头像框
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2835
+          valid_days: 30
+          reward_desc: 冠军房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2839
+          valid_days: 30
+          reward_desc: 冠军私聊气泡
+    - rank: 2
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 671
+          valid_days: -1
+          reward_desc: 女团勋章
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104541
+          valid_days: 365
+          reward_desc: 2026年第二届乘风破浪出道女神团荣誉称号
+        - rewardType: 6
+          rewardType_name: BRIGHT_NUMBER
+          rewardId: 746
+          valid_days: -1
+          reward_desc: 五位自选靓号
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 60
+          reward_desc: 超级会员
+        - rewardType: 8
+          rewardType_name: CUSTOM
+          rewardId: 0
+          valid_days: -1
+          reward_desc: 永久入驻名人堂
+        - rewardType: 8
+          rewardType_name: CUSTOM
+          rewardId: 0
+          valid_days: 3
+          reward_desc: 首页banner位展示
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2828
+          valid_days: 30
+          reward_desc: 亚军座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2832
+          valid_days: 30
+          reward_desc: 亚军头像框
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2836
+          valid_days: 30
+          reward_desc: 亚军房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2840
+          valid_days: 30
+          reward_desc: 亚军私聊气泡
+    - rank: 3
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 672
+          valid_days: -1
+          reward_desc: 女团勋章
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104541
+          valid_days: 365
+          reward_desc: 2026年第二届乘风破浪出道女神团荣誉称号
+        - rewardType: 6
+          rewardType_name: BRIGHT_NUMBER
+          rewardId: 1357
+          valid_days: -1
+          reward_desc: 六位自选靓号
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 30
+          reward_desc: 超级会员
+        - rewardType: 8
+          rewardType_name: CUSTOM
+          rewardId: 0
+          valid_days: -1
+          reward_desc: 永久入驻名人堂
+        - rewardType: 8
+          rewardType_name: CUSTOM
+          rewardId: 0
+          valid_days: 3
+          reward_desc: 首页banner位展示
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2829
+          valid_days: 30
+          reward_desc: 季军座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2833
+          valid_days: 30
+          reward_desc: 季军头像框
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2837
+          valid_days: 30
+          reward_desc: 季军房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2841
+          valid_days: 30
+          reward_desc: 季军私聊气泡
+    - rank: 4
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 673
+          valid_days: -1
+          reward_desc: 女团勋章
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104541
+          valid_days: 365
+          reward_desc: 2026年第二届乘风破浪出道女神团荣誉称号
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 15
+          reward_desc: 超级会员
+        - rewardType: 8
+          rewardType_name: CUSTOM
+          rewardId: 0
+          valid_days: -1
+          reward_desc: 永久入驻名人堂
+        - rewardType: 8
+          rewardType_name: CUSTOM
+          rewardId: 0
+          valid_days: 3
+          reward_desc: 首页banner位展示
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2830
+          valid_days: 30
+          reward_desc: 七强座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2834
+          valid_days: 30
+          reward_desc: 七强头像框
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2838
+          valid_days: 30
+          reward_desc: 七强房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2842
+          valid_days: 30
+          reward_desc: 七强私聊气泡
+    - rank: 5
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 673
+          valid_days: -1
+          reward_desc: 女团勋章
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104541
+          valid_days: 365
+          reward_desc: 2026年第二届乘风破浪出道女神团荣誉称号
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 15
+          reward_desc: 超级会员
+        - rewardType: 8
+          rewardType_name: CUSTOM
+          rewardId: 0
+          valid_days: -1
+          reward_desc: 永久入驻名人堂
+        - rewardType: 8
+          rewardType_name: CUSTOM
+          rewardId: 0
+          valid_days: 3
+          reward_desc: 首页banner位展示
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2830
+          valid_days: 30
+          reward_desc: 七强座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2834
+          valid_days: 30
+          reward_desc: 七强头像框
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2838
+          valid_days: 30
+          reward_desc: 七强房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2842
+          valid_days: 30
+          reward_desc: 七强私聊气泡
+    - rank: 6
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 673
+          valid_days: -1
+          reward_desc: 女团勋章
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104541
+          valid_days: 365
+          reward_desc: 2026年第二届乘风破浪出道女神团荣誉称号
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 15
+          reward_desc: 超级会员
+        - rewardType: 8
+          rewardType_name: CUSTOM
+          rewardId: 0
+          valid_days: -1
+          reward_desc: 永久入驻名人堂
+        - rewardType: 8
+          rewardType_name: CUSTOM
+          rewardId: 0
+          valid_days: 3
+          reward_desc: 首页banner位展示
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2830
+          valid_days: 30
+          reward_desc: 七强座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2834
+          valid_days: 30
+          reward_desc: 七强头像框
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2838
+          valid_days: 30
+          reward_desc: 七强房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2842
+          valid_days: 30
+          reward_desc: 七强私聊气泡
+    - rank: 7
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 673
+          valid_days: -1
+          reward_desc: 女团勋章
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104541
+          valid_days: 365
+          reward_desc: 2026年第二届乘风破浪出道女神团荣誉称号
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          valid_days: 15
+          reward_desc: 超级会员
+        - rewardType: 8
+          rewardType_name: CUSTOM
+          rewardId: 0
+          valid_days: -1
+          reward_desc: 永久入驻名人堂
+        - rewardType: 8
+          rewardType_name: CUSTOM
+          rewardId: 0
+          valid_days: 3
+          reward_desc: 首页banner位展示
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2830
+          valid_days: 30
+          reward_desc: 七强座驾
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2834
+          valid_days: 30
+          reward_desc: 七强头像框
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2838
+          valid_days: 30
+          reward_desc: 七强房间气泡
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2842
+          valid_days: 30
+          reward_desc: 七强私聊气泡
