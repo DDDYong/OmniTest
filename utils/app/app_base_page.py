@@ -334,12 +334,18 @@ class AppBasePage:
             # 点击元素
             element.click()
             logger.debug(f"成功点击 {desc}")
+
+            # 点击后检查502错误弹窗
+            self.check_and_terminate_on_502_error()
         except (ElementNotVisibleException, ElementNotInteractableException):
             logger.error(f"无法点击 {desc}: 元素不可见或不可交互")
             # 尝试滚动到元素并点击
             self.scroll_to_element(element)
             element.click()
             logger.debug(f"滚动后成功点击 {desc}")
+
+            # 点击后检查502错误弹窗
+            self.check_and_terminate_on_502_error()
         except Exception as e:
             logger.error(f"点击 {desc} 时发生错误: {str(e)}")
             # 失败时截图
@@ -368,6 +374,8 @@ class AppBasePage:
                 if self.wait_for_element_visible(locator, timeout):
                     logger.debug(f"点击元素: {locator[0]}={locator[1]}")
                     element.click()
+                    # 点击后检查502错误弹窗
+                    self.check_and_terminate_on_502_error()
                     return True
 
             return False
@@ -410,6 +418,9 @@ class AppBasePage:
             # 输入文本
             element.send_keys(text)
             logger.debug(f"成功在 {desc} 中输入文本")
+
+            # 输入后检查502错误弹窗
+            self.check_and_terminate_on_502_error()
         except Exception as e:
             logger.error(f"在 {desc} 中输入文本时发生错误: {str(e)}")
             # 失败时截图
@@ -1180,29 +1191,105 @@ class AppBasePage:
             logger.error(f"截图时发生错误: {str(e)}")
             return None
 
-    def check_for_toast(self, message, timeout = 10):
+    def check_for_toast(self, message, timeout = 10, interval = 0.02):
         """
-        检测是否出现指定的Toast消息
+        检测是否出现指定的Toast消息或自定义提示框
         
         Args:
             message: 要检测的Toast消息
             timeout: 超时时间（秒）
+            interval: 检测间隔（秒）
             
         Returns:
-            bool: 是否检测到指定的Toast
+            bool: 是否检测到指定的Toast或提示框
         """
-        logger.info(f"检测Toast消息: {message}")
+        logger.info(f"检测Toast消息: {message}, 超时时间: {timeout}秒")
+        import time
+        start_time = time.time()
+
+        # 增加初始延迟，等待Toast出现
+        time.sleep(0.5)
+
+        # 循环检测
+        while time.time() - start_time < timeout:
+            try:
+                # 方法1: 检查应用的日志输出（最有效的方法）
+                try:
+                    logs = self.driver.get_log('logcat')
+                    for log in logs:
+                        if message in log['message']:
+                            logger.info(f"在日志中检测到Toast消息: {message}")
+                            return True
+                except Exception as e:
+                    logger.debug(f"检查日志时发生错误: {str(e)}")
+
+                # 方法2: 使用UiAutomator查找包含指定文本的元素
+                try:
+                    ui_query = f'new UiSelector().textContains("{message}")'
+                    elements = self.driver.find_elements("android_uiautomator", ui_query)
+                    for element in elements:
+                        if element.is_displayed():
+                            logger.info(f"成功检测到包含指定文本的元素: {element.text}")
+                            return True
+                except Exception as e:
+                    logger.debug(f"查找文本元素时发生错误: {str(e)}")
+
+                # 方法3: 使用精确文本匹配查找元素
+                try:
+                    ui_query = f'new UiSelector().text("{message}")'
+                    elements = self.driver.find_elements("android_uiautomator", ui_query)
+                    for element in elements:
+                        if element.is_displayed():
+                            logger.info(f"成功检测到精确匹配的元素: {element.text}")
+                            return True
+                except Exception as e:
+                    logger.debug(f"匹配文本元素时发生错误: {str(e)}")
+
+                # 短暂等待后继续检测
+                time.sleep(interval)
+            except Exception as e:
+                logger.debug(f"检测Toast时发生错误: {str(e)}")
+                time.sleep(interval)
+
+        logger.warning(f"在{timeout}秒内未检测到Toast消息或提示框: {message}")
+        return False
+
+    def check_for_502_error(self) -> bool:
+        """
+        检测是否出现502错误弹窗
+        
+        Returns:
+            bool: 是否检测到502错误弹窗
+        """
+        logger.info("检测502错误弹窗")
+
+        # 502错误弹窗的元素定位
+        error_message_locator = ("id", "com.weixiao.voice:id/tv_dialog_msg")
+
         try:
-            # 使用UiAutomator查找Toast
-            toast_locator = (
-                "android_uiautomator",
-                f'new UiSelector().textContains("{message}")'
-            )
-            # 等待Toast出现
-            return self.wait_for_element_visible(toast_locator, timeout)
+            # 快速检查元素是否存在（不等待）
+            if self.is_element_present(error_message_locator):
+                # 获取错误信息文本
+                error_text = self.get_element_text(error_message_locator, timeout = 2)
+                if error_text and ("502" in error_text or "Bad Gateway" in error_text or "服务器走神" in error_text):
+                    logger.error(f"检测到502错误弹窗: {error_text}")
+                    # 截图保存证据
+                    self.take_screenshot("502_error_popup", "502错误弹窗")
+                    return True
         except Exception as e:
-            logger.error(f"检测Toast时发生错误: {str(e)}")
-            return False
+            logger.debug(f"检测502错误弹窗时发生错误: {str(e)}")
+
+        return False
+
+    def check_and_terminate_on_502_error(self) -> None:
+        """
+        检查是否出现502错误弹窗，如果出现则终止测试
+        
+        Raises:
+            Exception: 当检测到502错误弹窗时抛出异常
+        """
+        if self.check_for_502_error():
+            raise Exception("检测到502错误弹窗，终止测试")
 
     @wait_after_with_jitter(1, 0.2)
     def launch_app_by_icon(self, app_name: str = "花选") -> bool:

@@ -226,8 +226,8 @@ class TestLogin:
     @pytest.mark.smoke
     @pytest.mark.app
     def test_login_with_valid_phone_password(self):
-        """使用有效的手机号+密码登录"""
-        logger.info("测试使用有效的手机号+密码登录")
+        """手机号+有效的密码登录"""
+        logger.info("测试使用手机号+有效的密码登录")
 
         # 获取驱动实例
         driver = TestLogin.driver
@@ -296,11 +296,78 @@ class TestLogin:
         assert login_page.is_element_displayed(login_page.HOME_LOGO, 3), "登录失败未进入首页"
         logger.info("账号密码登录成功")
 
+    @pytest.mark.app
+    def test_login_with_invalid_phone_password(self):
+        """手机号+错误的密码登录"""
+        logger.info("测试使用手机号+错误的密码登录")
+
+        # 获取驱动实例
+        driver = TestLogin.driver
+
+        # 初始化登录页面
+        login_page = LoginPage(driver)
+
+        login_page.agree_protocol()
+        login_page.allow_permission()
+
+        # 选择账号密码登录
+        if not login_page.is_element_displayed(login_page.PASSWORD_LOGIN_BUTTON):
+            logger.error("未找到账号密码登录按钮")
+            pytest.fail("未找到账号密码登录按钮")
+
+        login_page.select_pwd_login()
+
+        # 切换环境
+        logger.info("开始环境切换流程")
+        # 检查是否需要切换环境
+        if login_page.is_element_displayed(login_page.DOKIT_BOTTON, 2):
+            logger.info("找到DoKit浮标，开始切换环境")
+
+            # 切换到测试环境
+            if login_page.switch_environment():
+                logger.info("环境切换成功，应用将自动退出")
+                # 重新启动应用
+                if login_page.launch_app_by_icon():
+                    logger.info("应用重新启动成功")
+                else:
+                    logger.error("应用重新启动失败")
+                    pytest.fail("应用重新启动失败")
+
+        # 登录操作
+        logger.info("开始登录操作流程")
+        # 选择账号密码登录
+        if not login_page.is_element_displayed(login_page.PASSWORD_LOGIN_BUTTON, 2):
+            logger.error("未找到密码登录按钮")
+            pytest.fail("未找到密码登录按钮")
+
+        login_page.select_pwd_login()
+
+        # 等待登录页面加载完成
+        if not login_page.wait_for_element_visible(login_page.LOGIN_BUTTON, timeout = 5):
+            logger.error("登录页面未显示")
+            pytest.fail("登录页面未显示")
+        logger.info("登录页面已显示")
+
+        # 选择中国大陆区号
+        if not login_page.select_country_code("中国大陆"):
+            logger.error("选择中国大陆区号失败")
+            pytest.fail("选择中国大陆区号失败")
+
+        # 输入手机号
+        login_page.input_phone("17370000003")
+        # 输入密码
+        login_page.input_password("17370000003")
+        # 点击登录按钮
+        login_page.click_login()
+
+        assert login_page.check_for_toast("账号或密码错误", 10)
+        logger.info("✅账号+错误的密码登录失败")
+
     @pytest.mark.smoke
     @pytest.mark.app
     def test_login_with_valid_phone_captcha(self):
-        """使用有效的手机号+密码登录"""
-        logger.info("测试使用有效的手机号+密码登录")
+        """使用手机号+有效验证码登录"""
+        logger.info("使用手机号+有效验证码登录")
 
         # 获取驱动实例
         driver = TestLogin.driver
@@ -385,4 +452,74 @@ class TestLogin:
             if login_page.is_element_displayed(login_page.HOME_DIALOG_CLOSE, 1):
                 login_page.click_element(login_page.HOME_DIALOG_CLOSE)
         assert login_page.is_element_displayed(login_page.HOME_LOGO, 3), "登录失败未进入首页"
-        logger.info("验证码登录成功")
+        logger.info("✅手机号+验证码登录成功")
+
+    @pytest.mark.app
+    def test_login_with_invalid_phone_captcha(self):
+        """使用手机号+错误的验证码登录"""
+        logger.info("使用手机号+错误的验证码登录")
+
+        # 获取驱动实例
+        driver = TestLogin.driver
+
+        # 初始化登录页面
+        login_page = LoginPage(driver)
+
+        login_page.agree_protocol()
+        login_page.allow_permission()
+
+        # 选择验证码登录
+        if not login_page.is_element_displayed(login_page.PHONE_LOGIN_BUTTON, 2):
+            logger.error("未找到验证码登录按钮")
+            pytest.fail("未找到验证码登录按钮")
+
+        login_page.select_captcha_login()
+
+        # 切换环境
+        logger.info("开始环境切换流程")
+
+        # 检查是否需要切换环境
+        if login_page.is_element_displayed(login_page.DOKIT_BOTTON, 2):
+            logger.info("找到DoKit浮标，开始切换环境")
+
+            # 切换到测试环境
+            if login_page.switch_environment():
+                logger.info("环境切换成功，应用将自动退出")
+                # 重新启动应用
+                if login_page.launch_app_by_icon():
+                    logger.info("应用重新启动成功")
+                else:
+                    logger.error("应用重新启动失败")
+                    pytest.fail("应用重新启动失败")
+
+        # 登录操作
+        logger.info("开始登录操作流程")
+
+        # 选择账号密码登录
+        if not login_page.is_element_displayed(login_page.PHONE_LOGIN_BUTTON, 2):
+            logger.error("未找到验证码登录按钮")
+            pytest.fail("未找到验证码登录按钮")
+
+        login_page.select_captcha_login()
+
+        # 等待登录页面加载完成
+        if not login_page.wait_for_element_visible(login_page.LOGIN_BUTTON, timeout = 5):
+            logger.error("登录页面未显示")
+            pytest.fail("登录页面未显示")
+
+        logger.info("登录页面已显示")
+
+        # 选择中国大陆区号
+        if not login_page.select_country_code("中国大陆"):
+            logger.error("选择中国大陆区号失败")
+            pytest.fail("选择中国大陆区号失败")
+
+        # 输入手机号
+        login_page.input_phone("17370000004")
+        # 获取验证码
+        login_page.click_captcha()
+        # 输入验证码
+        login_page.input_captcha("0000")
+
+        assert login_page.check_for_toast("验证码已经失效啦", 10)
+        logger.info("✅手机号+错误的验证码登录失败")
