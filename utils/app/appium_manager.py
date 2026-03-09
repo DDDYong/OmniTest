@@ -11,12 +11,13 @@ App自动化Appium管理器,负责启动Appium服务和管理驱动,提供设备
 import os
 import subprocess
 import time
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 from appium import webdriver
 from appium.webdriver.appium_service import AppiumService
 from appium.webdriver.webdriver import WebDriver as AppiumDriver
 
+from utils.file_util import FileHandler
 from utils.logger_util import logger
 
 
@@ -54,15 +55,12 @@ class AppiumManager:
         """
         import requests
 
-        # 如果没有指定服务地址,使用默认值
         if host is None:
             host = self.service_address or '127.0.0.1'
         if port is None:
             port = self.service_port or 4723
 
-        # 尝试不同的URL路径
         test_urls = [
-            # f"http://{host}:{port}/wd/hub/status",
             f"http://{host}:{port}/status"
         ]
 
@@ -96,41 +94,35 @@ class AppiumManager:
         Returns:
             bool: 是否启动成功
         """
-        # 延迟导入避免循环依赖
-        from config.config_manager import config
 
-        # 如果没有指定日志文件,使用配置文件中的路径
         if log_file is None:
-            log_file = os.path.join(config.LOGS_DIR, "appium_server.log")
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            log_dir = os.path.join(project_root, 'logs')
+            os.makedirs(log_dir, exist_ok = True)
+            log_file = os.path.join(log_dir, f"appium/appium_server_{port}.log")
 
-        # 确保日志目录存在
         os.makedirs(os.path.dirname(log_file), exist_ok = True)
 
         logger.info(f"正在启动Appium服务: {host}:{port}")
 
-        # 创建Appium服务对象
         self.appium_service = AppiumService()
 
-        # 配置服务参数
         service_args = [
             '--address', host,
             '--port', str(port),
             '--log-level', 'info',
             '--log', log_file,
-            '--relaxed-security'  # 增加安全性,允许更多操作
+            '--relaxed-security'
         ]
 
-        # 启动服务
         try:
             self.appium_service.start(
                 args = service_args,
                 override_server_config = override_server_config
             )
 
-            # 等待服务启动
             time.sleep(3)
 
-            # 检查服务是否启动成功
             if self.appium_service.is_running:
                 self.service_address = host
                 self.service_port = port
@@ -155,7 +147,6 @@ class AppiumManager:
             try:
                 self.appium_service.stop()
                 logger.info(f"Appium服务已停止: {self.service_address}:{self.service_port}")
-                # 重置服务信息
                 self.service_address = None
                 self.service_port = None
                 self.start_time = None
@@ -176,11 +167,10 @@ class AppiumManager:
         """
         return self.appium_service is not None and self.appium_service.is_running
 
-    # @retry(max_retries = 3, delay = 1)
     def create_driver(self, desired_caps: Dict[str, Any], host: Optional[str] = None, port: Optional[
         int] = None) -> AppiumDriver:
         """
-        创建Appium驱动
+        创建Appium驱动 - 简化版，不做任何清理操作
 
         Args:
             desired_caps: 期望的能力配置
@@ -190,74 +180,28 @@ class AppiumManager:
         Returns:
             AppiumDriver: Appium驱动实例
         """
-        # 记录实际使用的重试配置
-        logger.debug(f"驱动创建使用重试配置")
-
-        # 如果没有指定服务地址,使用已启动的服务或默认值
         if host is None:
             host = self.service_address or '127.0.0.1'
         if port is None:
             port = self.service_port or 4723
 
-        # 构建Appium服务器URL
-        # 尝试不同的路径格式
         server_url = f"http://{host}:{port}"
 
         logger.info(f"正在创建Appium驱动: {server_url}")
         logger.debug(f"期望能力配置: {desired_caps}")
 
-        # 彻底清理和重启设备的UI自动化服务
-        logger.info("彻底清理和重启设备的UI自动化服务...")
-        try:
-            import subprocess
-
-            # 停止UI自动化服务
-            # logger.info("停止UI自动化服务...")
-            subprocess.run(["adb", "shell", "am", "force-stop", "io.appium.uiautomator2.server"], capture_output = True)
-            subprocess.run(["adb", "shell", "am", "force-stop",
-                            "io.appium.uiautomator2.server.test"], capture_output = True)
-
-            # 清除UI自动化服务数据
-            # logger.info("清除UI自动化服务数据...")
-            subprocess.run(["adb", "shell", "pm", "clear", "io.appium.uiautomator2.server"], capture_output = True)
-            subprocess.run(["adb", "shell", "pm", "clear", "io.appium.uiautomator2.server.test"], capture_output = True)
-
-            # 重启ADB服务器
-            # logger.info("重启ADB服务器...")
-            subprocess.run(["adb", "kill-server"], capture_output = True)
-            subprocess.run(["adb", "start-server"], capture_output = True)
-
-            # 等待设备重新连接
-            logger.info("等待设备重新连接...")
-            import time
-            time.sleep(5)
-
-            # 检查设备连接状态
-            logger.info("检查设备连接状态...")
-            result = subprocess.run(["adb", "devices"], capture_output = True, text = True)
-            if "device" not in result.stdout:
-                logger.warning("设备未连接，尝试重新连接...")
-                time.sleep(3)
-        except Exception as e:
-            logger.error(f"清理和重启UI自动化服务时发生错误: {str(e)}")
-
-        # 尝试创建驱动
         max_retries = 3
         for attempt in range(max_retries):
             try:
                 logger.info(f"尝试创建驱动 (尝试 {attempt + 1}/{max_retries})")
-                # 创建驱动\
                 from appium.options.common import AppiumOptions
 
-                # 创建 AppiumOptions 对象并设置能力
                 options = AppiumOptions()
                 for key, value in desired_caps.items():
                     options.set_capability(key, value)
 
-                # 使用 options 参数创建驱动
                 self.driver = webdriver.Remote(command_executor = server_url, options = options)
 
-                # 设置隐式等待
                 if 'implicit_wait' not in desired_caps:
                     self.driver.implicitly_wait(10)
 
@@ -266,20 +210,9 @@ class AppiumManager:
             except Exception as e:
                 logger.error(f"创建Appium驱动时发生错误 (尝试 {attempt + 1}/{max_retries}): {str(e)}")
                 if attempt < max_retries - 1:
-                    logger.info("等待后重试...")
-                    import time
-                    time.sleep(3)
-                    # 再次清理和重启UI自动化服务
-                    try:
-                        import subprocess
-                        logger.info("再次清理UI自动化服务...")
-                        subprocess.run(["adb", "shell", "am", "force-stop",
-                                        "io.appium.uiautomator2.server"], capture_output = True)
-                        subprocess.run(["adb", "shell", "am", "force-stop",
-                                        "io.appium.uiautomator2.server.test"], capture_output = True)
-                        time.sleep(2)
-                    except Exception as e2:
-                        logger.error(f"重试时清理UI自动化服务失败: {str(e2)}")
+                    wait_time = 3 + attempt * 2
+                    logger.info(f"等待 {wait_time} 秒后重试...")
+                    time.sleep(wait_time)
                 else:
                     logger.error("达到最大重试次数，创建驱动失败")
                     raise
@@ -287,7 +220,7 @@ class AppiumManager:
 
     def quit_driver(self) -> bool:
         """
-        退出驱动
+        退出Appium驱动
 
         Returns:
             bool: 是否退出成功
@@ -297,28 +230,6 @@ class AppiumManager:
                 self.driver.quit()
                 logger.info("Appium驱动已退出")
                 self.driver = None
-
-                # 彻底清理UI自动化服务
-                logger.info("清理UI自动化服务...")
-                try:
-                    import subprocess
-                    # 停止UI自动化服务
-                    subprocess.run(["adb", "shell", "am", "force-stop",
-                                    "io.appium.uiautomator2.server"], capture_output = True)
-                    subprocess.run(["adb", "shell", "am", "force-stop",
-                                    "io.appium.uiautomator2.server.test"], capture_output = True)
-                    # 清除应用数据
-                    subprocess.run(["adb", "shell", "pm", "clear",
-                                    "io.appium.uiautomator2.server"], capture_output = True)
-                    subprocess.run(["adb", "shell", "pm", "clear",
-                                    "io.appium.uiautomator2.server.test"], capture_output = True)
-                    # 等待一段时间
-                    import time
-                    time.sleep(2)
-                    logger.info("UI自动化服务清理完成")
-                except Exception as e:
-                    logger.error(f"清理UI自动化服务时发生错误: {str(e)}")
-                    
                 return True
             except Exception as e:
                 logger.error(f"退出Appium驱动时发生错误: {str(e)}")
@@ -349,27 +260,23 @@ class AppiumManager:
         Returns:
             AppiumDriver: Appium驱动实例
         """
-        # 准备默认的期望能力
         desired_caps = {
             'platformName': 'Android',
-            'automationName': 'UiAutomator2',  # 使用UiAutomator2
+            'automationName': 'UiAutomator2',
             'deviceName': device_name or 'Android Device',
-            'newCommandTimeout': 3600,  # 设置命令超时时间为1小时
-            'noReset': False,  # 每次启动都重置应用
-            'fullReset': False,  # 不执行完全重置
-            'unicodeKeyboard': True,  # 使用Unicode键盘
-            'resetKeyboard': True,  # 重置键盘
+            'newCommandTimeout': 3600,
+            'noReset': False,
+            'fullReset': False,
+            'unicodeKeyboard': True,
+            'resetKeyboard': True,
         }
 
-        # 添加平台版本
         if platform_version:
             desired_caps['platformVersion'] = platform_version
 
-        # 添加设备UDID
         if udid:
             desired_caps['udid'] = udid
 
-        # 添加应用信息 - 二选一：app路径 或 package+activity
         if app_path:
             desired_caps['app'] = app_path
         elif app_package and app_activity:
@@ -379,11 +286,9 @@ class AppiumManager:
             logger.error("必须提供app_path 或 app_package+app_activity")
             raise ValueError("必须提供app_path 或 app_package+app_activity")
 
-        # 添加额外的能力配置
         if additional_caps:
             desired_caps.update(additional_caps)
 
-        # 创建驱动
         return self.create_driver(desired_caps)
 
     def get_ios_driver(self, app_path: Optional[str] = None,
@@ -410,25 +315,21 @@ class AppiumManager:
         Returns:
             AppiumDriver: Appium驱动实例
         """
-        # 准备默认的期望能力
         desired_caps = {
             'platformName': 'iOS',
-            'automationName': 'XCUITest',  # 使用XCUITest
+            'automationName': 'XCUITest',
             'deviceName': device_name or 'iPhone Simulator',
-            'newCommandTimeout': 3600,  # 设置命令超时时间为1小时
-            'noReset': False,  # 每次启动都重置应用
-            'fullReset': False,  # 不执行完全重置
+            'newCommandTimeout': 3600,
+            'noReset': False,
+            'fullReset': False,
         }
 
-        # 添加平台版本
         if platform_version:
             desired_caps['platformVersion'] = platform_version
 
-        # 添加设备UDID
         if udid:
             desired_caps['udid'] = udid
 
-        # 添加应用信息 - 二选一：app路径 或 bundle_id
         if app_path:
             desired_caps['app'] = app_path
         elif bundle_id:
@@ -437,17 +338,14 @@ class AppiumManager:
             logger.error("必须提供app_path 或 bundle_id")
             raise ValueError("必须提供app_path 或 bundle_id")
 
-        # 添加Xcode配置
         if xcode_org_id:
             desired_caps['xcodeOrgId'] = xcode_org_id
         if xcode_signing_id:
             desired_caps['xcodeSigningId'] = xcode_signing_id
 
-        # 添加额外的能力配置
         if additional_caps:
             desired_caps.update(additional_caps)
 
-        # 创建驱动
         return self.create_driver(desired_caps)
 
     def get_driver(self) -> Optional[AppiumDriver]:
@@ -481,9 +379,7 @@ class AppiumManager:
             "ios": []
         }
 
-        # 获取Android设备
         try:
-            # 使用adb命令获取设备
             result = subprocess.run(
                 ["adb", "devices"],
                 capture_output = True,
@@ -491,21 +387,18 @@ class AppiumManager:
                 check = False
             )
 
-            # 解析结果
             if result.returncode == 0:
-                for line in result.stdout.strip().split('\n')[1:]:  # 跳过第一行
+                for line in result.stdout.strip().split('\n')[1:]:
                     if line.strip():
                         parts = line.strip().split('\t')
-                        if len(parts) >= 2 and parts[1] == 'device':
+                        if len(parts) <= 2 and parts[1] == 'device':
                             devices["android"].append(parts[0])
 
                 logger.info(f"找到 {len(devices['android'])} 个Android设备")
         except Exception as e:
             logger.error(f"获取Android设备列表时发生错误: {str(e)}")
 
-        # 获取iOS设备
         try:
-            # 使用idevice_id命令获取iOS设备（需要安装libimobiledevice）
             result = subprocess.run(
                 ["idevice_id", "-l"],
                 capture_output = True,
@@ -513,7 +406,6 @@ class AppiumManager:
                 check = False
             )
 
-            # 解析结果
             if result.returncode == 0:
                 ios_devices = result.stdout.strip().split('\n')
                 ios_devices = [device for device in ios_devices if device.strip()]
@@ -557,18 +449,13 @@ class AppiumManager:
         try:
             logger.info("启动应用")
 
-            # 方法1: 尝试使用 adb 命令启动应用（推荐）
             if app_package and app_activity:
                 try:
                     logger.info(f"使用 adb 命令启动应用: {app_package}/{app_activity}")
-                    import subprocess
-                    # 构建 adb 命令
                     adb_command = f"adb shell am start -n {app_package}/{app_activity}"
-                    # 执行命令
                     result = subprocess.run(adb_command, shell = True, capture_output = True, text = True)
                     if result.returncode == 0:
                         logger.info("通过 adb 命令成功启动应用")
-                        # 等待应用启动
                         time.sleep(3)
                         return True
                     else:
@@ -576,7 +463,6 @@ class AppiumManager:
                 except Exception as e:
                     logger.warning(f"adb 命令启动失败: {str(e)}")
 
-            # 方法2: 尝试使用 start_activity 方法启动应用
             if self.driver and app_package and app_activity:
                 try:
                     logger.info(f"使用 start_activity 启动应用: {app_package}/{app_activity}")
@@ -586,10 +472,8 @@ class AppiumManager:
                     logger.warning(f"start_activity 方法失败: {str(e)}")
                     logger.info("尝试重新创建驱动")
 
-            # 方法3: 如果 start_activity 失败或驱动不存在，尝试重新创建驱动
             if app_package and app_activity:
                 try:
-                    # 准备新的能力配置
                     desired_caps = {
                         'platformName': 'Android',
                         'automationName': 'UiAutomator2',
@@ -603,7 +487,6 @@ class AppiumManager:
                         'newCommandTimeout': 3600
                     }
 
-                    # 重新创建驱动
                     self.driver = self.create_driver(desired_caps)
                     logger.info("通过重新创建驱动成功启动应用")
                     return True
@@ -635,3 +518,74 @@ class AppiumManager:
         except Exception as e:
             logger.error(f"关闭应用时发生错误: {str(e)}")
             return False
+
+    @staticmethod
+    def load_device_pool(config_path: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        从配置文件加载设备池配置
+        
+        Args:
+            config_path: 配置文件路径，默认为 data/test_data/app_test_data.yaml
+            
+        Returns:
+            List[Dict[str, Any]]: 设备池配置列表
+        """
+        if config_path is None:
+            config_path = "test_data/app_test_data.yaml"
+
+        test_data = FileHandler().read_yaml(config_path)
+        return test_data.get("parallel_devices", [])
+
+    @staticmethod
+    def get_app_config_for_device(device: Dict[str, Any], config_path: Optional[str] = None) -> Dict[str, Any]:
+        """
+        根据设备获取应用配置
+        
+        Args:
+            device: 设备配置字典
+            config_path: 配置文件路径
+            
+        Returns:
+            Dict[str, Any]: 应用配置字典
+        """
+        if config_path is None:
+            config_path = "test_data/app_test_data.yaml"
+
+        test_data = FileHandler().read_yaml(config_path)
+        app_config = test_data["android_app_test"].copy()
+
+        app_config["device_capabilities"]["deviceName"] = device["device_id"]
+        app_config["device_capabilities"]["udid"] = device["device_id"]
+        app_config["device_capabilities"]["systemPort"] = device["system_port"]
+        app_config["appium_server"]["port"] = device["appium_port"]
+
+        if "mjpeg_server_port" in device:
+            app_config["device_capabilities"]["mjpegServerPort"] = device["mjpeg_server_port"]
+
+        if "additional_caps" in device:
+            for key, value in device["additional_caps"].items():
+                app_config["device_capabilities"][key] = value
+
+        return app_config
+
+    @staticmethod
+    def get_device_for_worker(device_pool: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        根据pytest-xdist worker id获取对应的设备
+        
+        Args:
+            device_pool: 设备池配置列表
+            
+        Returns:
+            Dict[str, Any]: 分配给当前worker的设备配置
+        """
+        import os
+
+        worker_id = os.environ.get("PYTEST_XDIST_WORKER", "master")
+
+        if worker_id != "master":
+            worker_num = int(worker_id.replace("gw", ""))
+            device_idx = worker_num % len(device_pool)
+            return device_pool[device_idx]
+        else:
+            return device_pool[0]
