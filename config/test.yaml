@@ -40,7 +40,7 @@ ssh:
   default:
     ssh_host: 121.199.40.243
     ssh_username: root
-    ssh_password: p*cB1GGXGn.pKO3R
+    ssh_password: l5ZOh%Y9F+bp1DU7
     use_ssh: true
 
 # 日志配置 - 测试环境特定配置

@@ -47,15 +47,17 @@ class BaseAppPage:
         "partial_link_text": By.PARTIAL_LINK_TEXT
     }
 
-    def __init__(self, driver):  # 简化类型注解
+    def __init__(self, driver, screenshot_dir = None):  # 简化类型注解
         """
         初始化基础页面类
         
         Args:
             driver: Appium WebDriver实例
+            screenshot_dir: 截图保存目录
         """
         self.driver = driver
         self.logger = logger
+        self.screenshot_dir = screenshot_dir
 
         # 从配置获取等待时间设置
         self.implicit_wait = getattr(config, "IMPLICIT_WAIT", 10)
@@ -417,23 +419,64 @@ class BaseAppPage:
             self.logger.error(f"向上滚动页面时发生错误: {str(e)}")
             return False
 
-    def take_screenshot(self, filename: str = None) -> Optional[str]:
+    def take_screenshot(self, filename: str = None, description: str = "") -> Optional[str]:
         """
         截图
-        
+
         Args:
             filename: 文件名,如果为None则自动生成
-            
+            description: 截图描述
+
         Returns:
             截图保存路径,如果保存失败则返回None
         """
         try:
-            if filename is None:
-                filename = f"screenshot_{int(time.time())}.png"
+            import os
+            from datetime import datetime
 
-            screenshot_path = self.driver.get_screenshot_as_file(filename)
-            self.logger.debug(f"截图保存到: {filename}")
-            return filename
+            # 生成截图名称
+            if filename is None:
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
+                filename = f"screenshot_{timestamp}"
+
+            # 确保名称不包含扩展名
+            if not filename.endswith('.png'):
+                filename = f"{filename}.png"
+            from utils.path_util import path_util
+            project_root = path_util.get_project_root()
+            # 确定截图保存路径
+            if self.screenshot_dir:
+                if self.screenshot_dir.startswith('/'):
+                    screenshot_dir = os.path.join(project_root, self.screenshot_dir.lstrip('/'))
+                    # 如果是相对路径，也基于项目根目录
+                else:
+                    screenshot_dir = os.path.join(project_root, self.screenshot_dir)
+
+            else:
+                # 从项目配置获取截图保存路径
+                screenshot_dir = config.SCREENSHOT_DIR
+
+                # 如果配置中没有设置，使用默认路径
+                if not screenshot_dir:
+                    screenshot_dir = os.path.join(project_root, "reports", "screenshots", "app")
+
+            # 确保目录存在
+            os.makedirs(screenshot_dir, exist_ok = True)
+
+            # 生成截图路径
+            screenshot_path = os.path.join(screenshot_dir, filename)
+
+            # 执行截图
+            success = self.driver.save_screenshot(screenshot_path)
+
+            if success:
+                self.logger.info(f"截图成功: {screenshot_path}")
+                if description:
+                    self.logger.info(f"截图描述: {description}")
+                return screenshot_path
+            else:
+                self.logger.error("截图失败")
+                return None
 
         except Exception as e:
             self.logger.error(f"截图时发生错误: {str(e)}")

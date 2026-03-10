@@ -132,6 +132,9 @@ python run.py web
 
 # 运行特定目录的 Web 测试
 python run.py web --dir auth
+
+# 运行特定文件的 Web 测试
+python run.py web --file test_login.py
 ```
 
 #### 运行 APP 测试
@@ -142,6 +145,25 @@ python run.py app
 
 # 运行特定文件的 APP 测试
 python run.py app --file test_android_app_launch.py
+
+# 运行带标记的 APP 测试
+python run.py app --markers smoke
+```
+
+#### 运行并行测试
+
+```bash
+# 运行并行测试（默认 2 个 worker）
+python run.py parallel
+
+# 运行指定数量的 worker
+python run.py parallel --workers 3
+
+# 运行并行测试并生成 HTML 报告
+python run.py parallel --html
+
+# 运行特定文件的并行测试
+python run.py parallel --file test_app_login.py
 ```
 
 #### 运行性能测试
@@ -168,6 +190,16 @@ python run.py report --open
 
 ```bash
 python run.py clean
+```
+
+#### 包管理命令
+
+```bash
+# 更新 requirements.txt
+python run.py package update-req
+
+# 添加包到 requirements.txt
+python run.py package add requests --version 2.31.0
 ```
 
 ### 2. 编程 API 使用
@@ -205,6 +237,9 @@ ot.performance("test_api_load.py", users=200, spawn_rate=20, run_time="10m")
 
 # 生成报告但不打开
 ot.report(open=False)
+
+# 运行并行测试
+ot.parallel(workers = 3, html = True)
 ```
 
 ## 测试用例编写
@@ -265,19 +300,51 @@ class TestLogin:
 
 APP 测试用例存放在 `cases/app/` 目录下,同样推荐使用 Page Object 模式。
 
+#### 元素定位工具
+
+APP 自动化测试中，元素定位可以使用以下工具：
+
+1. **uiautomatorviewer**：Android SDK 自带的元素定位工具
+   ```bash
+   uiauto.dev
+   ```
+
+2. **weditor**：基于 Python 的 UI 查看器，支持 Android 和 iOS
+   ```bash
+   weditor
+   ```
+
+#### 测试前准备
+
+在运行 APP 测试前，需要先启动 Appium 服务：
+
+```bash
+appium --address 127.0.0.1 --port 4723 --log-level info
+```
+
+确保 Appium 服务正常运行后，再执行测试用例。
+
 ### 4. 性能测试
 
 性能测试用例存放在 `cases/performance/` 目录下,使用 Locust 框架编写。
 
+### 5. 并行测试
+
+并行测试是一种提高测试执行效率的方法，适用于大规模测试场景。在 OmniTest 中，您可以通过以下方式运行并行测试：
+
+1. 在测试用例上添加 `@pytest.mark.parallel` 标记
+2. 使用 `python run.py parallel` 命令运行
+
+并行测试会自动分配测试用例到多个 worker 进程中执行，显著减少测试执行时间。
+
 ## 配置管理
 
 OmniTest 提供了灵活强大的配置管理系统,支持 YAML 配置文件、环境变量和属性化访问,配置文件位于 `config/` 目录下：
-
 - `default.yaml`：默认配置文件,包含所有环境共享的基础配置
 - `test.yaml`：测试环境的 YAML 格式配置文件
 - `prod.yaml`：生产环境的 YAML 格式配置文件
 - `config_manager.py`：配置管理器核心实现
-- `__init__.py`：导出配置实例,提供全局访问
+- `__init__.py`：配置模块初始化文件
 
 ### 配置系统核心组件
 
@@ -289,6 +356,7 @@ ConfigManager 是配置系统的核心类,负责加载、解析和管理配置�
 - 支持环境变量覆盖配置值
 - 提供属性化访问（点号访问）配置的能力
 - 配置缓存和实时更新机制
+- 支持多种数据库和服务的配置管理
 
 #### ConfigDict 类
 
@@ -301,7 +369,7 @@ ConfigDict 是一个特殊的字典类,用于实现配置的属性化访问：
 
 ### YAML 配置文件结构
 
-配置文件使用 YAML 格式,支持多层嵌套和环境变量替换：
+配置文件使用 YAML 格式,支持多层嵌套：
 
 ```yaml
 # 日志配置
@@ -338,7 +406,7 @@ mysql:
     host: localhost
     port: 3306
     user: test_user
-    password: ${MYSQL_PASSWORD}
+    password: test_password
     database: test_db
 
 # Redis配置
@@ -346,7 +414,7 @@ redis:
   default:
     host: localhost
     port: 6379
-    password: ${REDIS_PASSWORD}
+    password:
     db: 0
 ```
 
@@ -376,17 +444,16 @@ page_timeout = config['timeout']['page_load']
 
 #### 环境变量使用
 
-环境变量可以覆盖 YAML 配置文件中的值,命名格式为：
+环境变量可以覆盖 YAML 配置文件中的值,支持以下格式：
 
-```
-OMNITEST_SECTION_SUBSECTION_KEY
-```
+- 顶级配置：`SECTION_KEY`
+- 嵌套配置：`SECTION__KEY`（双下划线表示嵌套）
 
 例如,要覆盖 MySQL 主机配置：
 
 ```bash
 # 设置环境变量
-export OMNITEST_MYSQL_DEFAULT_HOST=test-db.example.com
+export MYSQL_HOST=test-db.example.com
 
 # 在 Python 中可以直接访问更新后的值
 print(config.mysql.default.host)  # 输出: test-db.example.com
@@ -396,7 +463,7 @@ print(config.mysql.default.host)  # 输出: test-db.example.com
 
 ```python
 # 动态更新配置值
-config.update({'timeout': {'page_load': 60}})
+config.update_config({'timeout': {'page_load': 60}})
 
 # 或直接设置属性
 config.timeout.page_load = 60
@@ -406,12 +473,11 @@ config.timeout.page_load = 60
 
 配置优先级从高到低：
 
-1. 运行时通过 `update()` 方法设置的值
+1. 运行时通过 `update_config()` 方法设置的值
 2. 直接通过属性赋值修改的值
-3. 环境变量（格式：OMNITEST_SECTION_SUBSECTION_KEY）
-4. YAML 配置文件中的环境变量引用（格式：${ENV_VAR_NAME}）
-5. 环境特定配置文件（如 test.yaml）中的值
-6. 默认配置文件（default.yaml）中的值
+3. 环境变量（格式：SECTION_KEY 或 SECTION__KEY）
+4. 环境特定配置文件（如 test.yaml）中的值
+5. 默认配置文件（default.yaml）中的值
 
 ### 最佳实践
 
@@ -420,6 +486,22 @@ config.timeout.page_load = 60
 3. **默认值处理**：为可能缺失的配置项提供合理的默认值
 4. **敏感信息**：避免在配置文件中硬编码密码等敏感信息,使用环境变量
 5. **配置验证**：在应用启动时验证关键配置项是否存在和有效
+6. **路径配置**：使用相对路径时,系统会自动转换为绝对路径
+
+### 配置辅助方法
+
+ConfigManager 提供了专门的方法来获取常用服务的配置：
+
+```python
+# 获取 MySQL 配置
+mysql_config = config.get_mysql_config()
+
+# 获取 Redis 配置
+redis_config = config.get_redis_config()
+
+# 获取 SSH 配置
+ssh_config = config.get_ssh_config()
+```
 
 ## 测试数据格式
 
@@ -503,7 +585,11 @@ OmniTest 使用 Allure 生成测试报告,报告包含：
 ### 更新依赖
 
 ```bash
+# 手动更新依赖
 pip install --upgrade -r requirements.txt
+
+# 使用命令行工具更新 requirements.txt
+python run.py package update-req
 ```
 
 ### 运行代码检查
@@ -514,6 +600,13 @@ flake8 .
 
 # 运行 black 格式化
 black .
+```
+
+### 添加新依赖
+
+```bash
+# 使用命令行工具添加新依赖
+python run.py package add requests --version 2.31.0
 ```
 
 ## 贡献指南
@@ -536,8 +629,8 @@ black .
 
 ---
 
-**版本：v1.1.0**
-**更新日期：2025/12/15**
+**版本：v1.2.0**
+**更新日期：2026/03/10**
 
 ### 更新日志
 
@@ -549,3 +642,8 @@ black .
 - 支持多层嵌套配置的无缝访问
 - 改进数据库和Redis配置结构,支持多实例配置
 - 提供配置系统的完整测试用例
+- 新增并行测试功能,支持多进程并行执行测试
+- 新增包管理命令,支持更新和添加依赖
+- 优化报告生成机制,使用时间文件夹管理报告
+- 改进命令行接口,支持更多参数和选项
+- 增强配置系统的健壮性和灵活性

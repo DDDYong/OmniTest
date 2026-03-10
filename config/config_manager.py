@@ -12,6 +12,9 @@ import os
 import sys
 from typing import Dict, Any
 
+# 添加项目根目录到Python路径
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from utils.logger_util import logger
 
 # 延迟导入yaml模块
@@ -590,8 +593,8 @@ def ensure_directories():
         cm.get_config_value("data.dir", "./data"),
         cm.get_config_value("data.test_data_dir", "./data/test_data"),
         cm.get_config_value("report.dir", "./reports"),
-        cm.get_config_value("report.allure_report_dir", "./reports/allure-report"),
-        cm.get_config_value("report.allure_result_dir", "./reports/allure-results"),
+        # cm.get_config_value("report.allure_report_dir", "./reports/allure-report"),
+        # cm.get_config_value("report.allure_result_dir", "./reports/allure-results"),
         cm.get_config_value("screenshot.dir", "./reports/screenshots"),
     ]
 
