@@ -134,7 +134,7 @@ class ActivityRewardVerification:
                 for reward in reward_detail["rewards"]:
                     rewardType_doc = reward["rewardType"]
                     # 构造查询key, 榜单分类_排名_奖励类型
-                    query_key = f"{activityType_doc}_{rank_doc}_{rewardType_doc}"
+                    query_key = f"{activityType_doc}_{rank_doc}_{rewardType_doc}_{reward['rewardId']}"
 
                     # 头像框奖励(rewardType=2)可能需要根据男女区分
                     if rewardType_doc == 2:
@@ -171,7 +171,7 @@ class ActivityRewardVerification:
             rewardType_sex_db = db_item.get("sex", "")
 
             # 构造查询key, 通过两个查询key进行匹配
-            query_key = f"{activityType_db}_{rankNumber_db}_{rewardType_db}"
+            query_key = f"{activityType_db}_{rankNumber_db}_{rewardType_db}_{rewardId_db}"
 
             # 头像框奖励(rewardType=2)根据性别区分
             if rewardType_db == 2:
@@ -640,12 +640,24 @@ class ActivityRewardVerification:
         # 查询数据并按value降序排列
         query = """
                 SELECT number, userId, intimateId, category, stage, year, month, day, value
-                FROM `kong_test`.`activity_rank` 
+                FROM `kong_test`.`activity_rank`
                 WHERE number = %s and category = %s and stage = %s
                 ORDER BY value DESC LIMIT %s
             """
 
         raw_data = self.db.execute_query(query, (self.activity_number, rank_category, stage, rank_coverage))
+        # 女神节榜单数据不是在activity_rank表中, 而是activity_group_member表中
+        # query = """
+        #     select 1059 as number, userId, userId as intimateId, 0 as category, stage, -1 as year, -1 as month, -1 as day, score as value
+        #     from kong_test.activity_group_member
+        #     where groupId in (select groupId
+        #                       from kong_test.activity_group
+        #                       where activityId = 1059
+        #                         and activityType = 11
+        #                         and stage = '105905'
+        #                       order by scoreSum desc) order by score desc limit 7;
+        # """
+        # raw_data = self.db.execute_query(query, ())
         return raw_data
 
     def _insert_test_ranking_data(self, ranking_category: str, stage: str, count: int) -> int:
@@ -1727,12 +1739,10 @@ def main():
 
     # 创建验证器
     validator = ActivityRewardVerification(
-        activity_number = 1057,
-        activity_config_path = 'test_activity/2026_spring_festival_reward_config.yaml',
+        activity_number = 1059,
+        activity_config_path = 'test_activity/2026_goddess_day_reward_config.yaml',
         rank_mapping = {
-            300: "拜年达人榜（日榜）",
-            301: "拜年红人榜（日榜）",
-            302: "福马榜（总榜）",
+            308: "乘风破浪（总榜）",
         }
     )
 

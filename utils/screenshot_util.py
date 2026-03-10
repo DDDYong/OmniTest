@@ -9,6 +9,7 @@ Description:
 -------------------------------------------------
 """
 import os
+import time
 from datetime import datetime
 
 from config.config_manager import config
@@ -38,14 +39,13 @@ class ScreenshotUtils:
         """
         # 生成截图名称
         if name is None:
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
+            timestamp = int(time.time())
             name = f"screenshot_{timestamp}"
 
         # 确保名称不包含扩展名
         if not name.endswith('.png'):
             name = f"{name}.png"
 
-        # 直接使用已导入的config
         # 生成截图路径
         screenshot_path = os.path.join(config.SCREENSHOT_DIR, name)
 

@@ -22,8 +22,11 @@ data:
 
 # 超时配置
 timeout:
+  default: 30
   page_load: 60
   implicitly_wait: 10
+  explicit_wait: 20
+  polling_interval: 0.5
 
 # 重试配置
 retry:
@@ -63,10 +66,10 @@ redis:
 # SSH默认配置
 ssh:
   default:
-    ssh_host: localhost
+    ssh_host: 121.199.40.243
     ssh_port: 22
     ssh_username: root
-    ssh_password: null
+    ssh_password: l5ZOh%Y9F+bp1DU7
     ssh_key_file: null
     local_bind_address: 127.0.0.1
     local_bind_port: null

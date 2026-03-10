@@ -12,13 +12,12 @@ import os
 import sys
 from datetime import datetime
 
-import pytest
-
-from utils.screenshot_util import ScreenshotUtils
-
 # 添加项目根目录到Python路径
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import pytest
+
+from utils.screenshot_util import ScreenshotUtils
 from config.config_manager import config
 from utils.logger_util import logger
 from utils.common_util import CommonUtils
@@ -111,6 +110,57 @@ def appium_manager():
     if manager.is_service_running():
         manager.stop_appium_service()
     logger.info("Appium管理器资源已清理")
+
+
+@pytest.fixture(scope = "function")
+def parallel_appium_driver(appium_manager, request):
+    """
+    并行测试用的Appium驱动fixture（可复用）
+    每个测试函数获取独立的设备和驱动
+    
+    Args:
+        appium_manager: Appium管理器实例
+        request: pytest request对象
+        
+    Yields:
+        AppiumDriver: Appium驱动实例
+    """
+    driver = None
+    device = None
+
+    try:
+        from utils.app.appium_manager import AppiumManager
+
+        DEVICE_POOL = AppiumManager.load_device_pool()
+
+        device = AppiumManager.get_device_for_worker(DEVICE_POOL)
+
+        logger.info(f"测试 {request.node.name} 使用设备: {device['device_id']} (worker: {os.environ.get('PYTEST_XDIST_WORKER', 'master')})")
+
+        app_config = AppiumManager.get_app_config_for_device(device)
+        device_capabilities = app_config["device_capabilities"]
+        appium_server = app_config["appium_server"]
+
+        logger.info(f"连接到Appium服务器: {appium_server['host']}:{appium_server['port']}")
+
+        driver = appium_manager.create_driver(
+            device_capabilities,
+            host = appium_server["host"],
+            port = appium_server["port"]
+        )
+
+        yield driver
+
+    except Exception as e:
+        logger.error(f"初始化并行测试环境失败: {str(e)}")
+        raise
+    finally:
+        if driver:
+            try:
+                driver.quit()
+                logger.info("Appium驱动已关闭")
+            except Exception as e:
+                logger.error(f"关闭驱动时发生错误: {str(e)}")
 
 
 # WebDriver夹具需要在测试文件中根据具体浏览器类型实现
@@ -219,7 +269,16 @@ def pytest_collection_modifyitems(items, config):
     """
     测试收集完成后的钩子函数
     可以用来重新排序测试用例、过滤测试用例等
+    修复：在pytest-xdist多进程环境下，只在master进程中输出收集信息
     """
+    # 检查是否在xdist worker进程中
+    is_xdist_worker = os.environ.get("PYTEST_XDIST_WORKER") is not None
+
+    # 如果是worker进程，不输出收集信息
+    if is_xdist_worker:
+        return
+
+    # 只有在master进程中才输出收集信息
     # 获取命令行中的标记
     mark = config.getoption("-m")
     if mark:
@@ -248,7 +307,17 @@ def pytest_collection_modifyitems(items, config):
 def pytest_sessionstart(session):
     """
     测试会话开始时的钩子函数
+    修复：在pytest-xdist多进程环境下，只在master进程中输出会话开始信息
     """
+    # 检查是否在xdist worker进程中
+    is_xdist_worker = os.environ.get("PYTEST_XDIST_WORKER") is not None
+
+    # 如果是worker进程，不输出会话开始信息
+    if is_xdist_worker:
+        logger.debug(f"Worker进程 {os.environ.get('PYTEST_XDIST_WORKER')} 启动")
+        return
+
+    # 只有在master进程中才输出完整的会话开始信息
     # 确保所有必要的目录存在
     # 获取项目根目录
     project_root = os.path.dirname(os.path.abspath(__file__))
@@ -281,7 +350,18 @@ def pytest_sessionstart(session):
 def pytest_sessionfinish(session, exitstatus):
     """
     测试会话结束时的钩子函数
+    修复：在pytest-xdist多进程环境下，只在master进程中输出统计结果
     """
+    # 检查是否在xdist worker进程中
+    # worker进程有PYTEST_XDIST_WORKER环境变量
+    is_xdist_worker = os.environ.get("PYTEST_XDIST_WORKER") is not None
+
+    # 如果是worker进程，不输出统计结果
+    if is_xdist_worker:
+        logger.debug(f"Worker进程 {os.environ.get('PYTEST_XDIST_WORKER')} 结束，不输出统计结果")
+        return
+
+    # 只有在master进程中才输出完整的测试统计
     logger.info("=" * 80)
     logger.info(f"测试会话结束: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info(f"退出状态: {exitstatus}")
@@ -632,14 +712,16 @@ def allure_environment(request, env, browser, device_type):
 def pytest_configure(config):
     """
     配置pytest的钩子函数
-    强制设置Allure报告路径为项目根目录下的reports/allure-results
+    强制设置Allure报告路径为项目根目录下的reports/{时间文件夹}/allure-results
     确保无论从哪个目录运行测试, 报告都生成在正确位置
     """
     # 计算项目根目录
     import os
+    from utils.path_util import path_util
     project_root = os.path.dirname(os.path.abspath(__file__))
-    # 设置固定的Allure结果目录
-    fixed_allure_dir = os.path.join(project_root, 'reports', 'allure-results')
+
+    # 使用时间文件夹
+    fixed_allure_dir = path_util.get_allure_results_dir(use_time_folder = True)
 
     # 确保目录存在
     os.makedirs(fixed_allure_dir, exist_ok = True)

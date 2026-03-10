@@ -10,10 +10,36 @@ Description:
 """
 
 import os
+from datetime import datetime
 
 
 class PathUtil:
     """项目路径管理类"""
+
+    # 存储当前测试运行的时间文件夹名称
+    _current_test_run_dir = None
+
+    @staticmethod
+    def get_test_run_dir() -> str:
+        """
+        获取当前测试运行的时间文件夹名称（格式：YYYYMMDD_HHMM）
+
+        Returns:
+            str: 时间文件夹名称
+        """
+        if PathUtil._current_test_run_dir is None:
+            PathUtil._current_test_run_dir = datetime.now().strftime("%Y%m%d_%H%M")
+        return PathUtil._current_test_run_dir
+
+    @staticmethod
+    def set_test_run_dir(dir_name: str) -> None:
+        """
+        设置当前测试运行的时间文件夹名称
+
+        Args:
+            dir_name: 时间文件夹名称
+        """
+        PathUtil._current_test_run_dir = dir_name
 
     @staticmethod
     def get_project_root() -> str:
@@ -123,54 +149,87 @@ class PathUtil:
         return os.path.join(PathUtil.get_cases_dir(), 'performance')
 
     @staticmethod
-    def get_allure_results_dir() -> str:
+    def get_current_test_reports_dir() -> str:
+        """
+        获取当前测试运行的报告目录路径（带时间文件夹）
+        如果目录不存在则创建
+        
+        Returns:
+            str: 当前测试报告目录的绝对路径
+        """
+        test_run_dir = PathUtil.get_test_run_dir()
+        current_reports_dir = os.path.join(PathUtil.get_reports_dir(), test_run_dir)
+        PathUtil.ensure_dir_exists(current_reports_dir)
+        return current_reports_dir
+
+    @staticmethod
+    def get_allure_results_dir(use_time_folder: bool = True) -> str:
         """
         获取Allure报告结果目录路径
         如果目录不存在则创建
         
+        Args:
+            use_time_folder: 是否使用时间文件夹，默认为True
+            
         Returns:
             str: Allure报告结果目录的绝对路径
         """
-        allure_dir = os.path.join(PathUtil.get_reports_dir(), 'allure-results')
+        if use_time_folder:
+            allure_dir = os.path.join(PathUtil.get_current_test_reports_dir(), 'allure-results')
+        else:
+            allure_dir = os.path.join(PathUtil.get_reports_dir(), 'allure-results')
         PathUtil.ensure_dir_exists(allure_dir)
         return allure_dir
 
     @staticmethod
-    def get_allure_report_dir() -> str:
+    def get_allure_report_dir(use_time_folder: bool = True) -> str:
         """
         获取Allure报告目录路径
         如果目录不存在则创建
         
+        Args:
+            use_time_folder: 是否使用时间文件夹，默认为True
+            
         Returns:
             str: Allure报告目录的绝对路径
         """
-        report_dir = os.path.join(PathUtil.get_reports_dir(), 'allure-report')
+        if use_time_folder:
+            report_dir = os.path.join(PathUtil.get_current_test_reports_dir(), 'allure-report')
+        else:
+            report_dir = os.path.join(PathUtil.get_reports_dir(), 'allure-report')
         PathUtil.ensure_dir_exists(report_dir)
         return report_dir
 
     @staticmethod
-    def get_screenshots_dir() -> str:
+    def get_screenshots_dir(use_time_folder: bool = True) -> str:
         """
         获取截图目录路径
         如果目录不存在则创建
         
+        Args:
+            use_time_folder: 是否使用时间文件夹，默认为True
+            
         Returns:
             str: 截图目录的绝对路径
         """
-        screenshots_dir = os.path.join(PathUtil.get_reports_dir(), 'screenshots')
+        if use_time_folder:
+            screenshots_dir = os.path.join(PathUtil.get_current_test_reports_dir(), 'screenshots')
+        else:
+            screenshots_dir = os.path.join(PathUtil.get_reports_dir(), 'screenshots')
         PathUtil.ensure_dir_exists(screenshots_dir)
         return screenshots_dir
 
     @staticmethod
     def get_logs_dir() -> str:
         """
-        获取日志目录路径
+        获取日志目录路径（统一使用项目根目录下的logs文件夹）
         如果目录不存在则创建
         
         Returns:
             str: 日志目录的绝对路径
         """
-        logs_dir = os.path.join(PathUtil.get_reports_dir(), 'logs')
+        project_root = PathUtil.get_project_root()
+        logs_dir = os.path.join(project_root, 'logs')
         PathUtil.ensure_dir_exists(logs_dir)
         return logs_dir
 

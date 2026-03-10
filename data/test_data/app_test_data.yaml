@@ -1,24 +1,59 @@
 # APP测试数据 - YAML格式
 # OmniTest 自动化测试框架
 
-# Android应用测试配置
+# 并行测试设备池配置
+parallel_devices:
+  - device_id: "emulator-5554"
+    appium_port: 4723
+    system_port: 8200
+    mjpeg_server_port: 8090
+    additional_caps:
+      appium:ensureWebviewsHavePages: true
+      appium:nativeWebScreenshot: true
+      appium:connectHardwareKeyboard: true
+      appium:skipDeviceInitialization: false
+      appium:skipServerInstallation: false
+      appium:uiautomator2ServerLaunchTimeout: 60000
+      appium:uiautomator2ServerInstallTimeout: 60000
+      appium:adbExecTimeout: 60000
+      appium:androidInstallTimeout: 120000
+  - device_id: "emulator-5556"
+    appium_port: 4724
+    system_port: 8201
+    mjpeg_server_port: 8091
+    additional_caps:
+      appium:ensureWebviewsHavePages: true
+      appium:nativeWebScreenshot: true
+      appium:connectHardwareKeyboard: true
+      appium:skipDeviceInitialization: false
+      appium:skipServerInstallation: false
+      appium:uiautomator2ServerLaunchTimeout: 60000
+      appium:uiautomator2ServerInstallTimeout: 60000
+      appium:adbExecTimeout: 60000
+      appium:androidInstallTimeout: 120000
+
+# Android应用测试配置（单设备模式，保持兼容）
 android_app_test:
   # 设备能力配置
   device_capabilities:
     platformName: Android
-    platformVersion: "13"
-    deviceName: Android Device
+    platformVersion: "16"
+    deviceName: "emulator-5554"
     automationName: UiAutomator2
     noReset: false
     fullReset: false
     newCommandTimeout: 60
     unicodeKeyboard: true
     resetKeyboard: true
-    appActivity: com.example.app.MainActivity
-    appPackage: com.example.app
-    appWaitActivity: com.example.app.SplashActivity
-    systemPort: 8200
+    appPackage: com.weixiao.voice
+    appActivity: com.weixiao.voice/.ui.home.MainActivity
+    appWaitActivity: com.weixiao.voice/.ui.home.MainActivity
+    systemPort: 8202
+    disableWindowAnimation: true
+    dontStopAppOnReset: false
     adbPort: 5037
+    skipUnlock: false  # 跳过解锁（如果设备已解锁）
+    ignoreHiddenApiPolicyError: true  # 忽略隐藏 API 政策错误
   
   # Appium服务器配置
   appium_server:
@@ -34,7 +69,7 @@ android_app_test:
   
   # 应用路径
   app_paths:
-    local_app_path: /path/to/local/app.apk
+    local_app_path: ~/Downloads/huaxuan_arm64-v8a_1.3.10.2_26020902_debug.apk
     remote_app_url: null
   
   # 预期结果
@@ -59,8 +94,8 @@ android_app_test:
         - 验证应用是否正常启动
         - 截图保存
       expected:
-        activity: com.example.app.MainActivity
-        package: com.example.app
+        activity: com.cola.xinyue.activity.LoginActivity
+        package: com.weixiao.voice
         timeout: 30
 
     - name: login_flow
@@ -134,7 +169,7 @@ android_app_test:
 generic_test_settings:
   retry_count: 2
   test_timeout: 120
-  screenshot_dir: /logs/screenshots/app
+  screenshot_dir: /reports/screenshots/app
   video_recording: false
   save_device_logs: true
   performance_monitoring: false
