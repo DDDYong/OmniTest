@@ -593,8 +593,8 @@ def ensure_directories():
         cm.get_config_value("data.dir", "./data"),
         cm.get_config_value("data.test_data_dir", "./data/test_data"),
         cm.get_config_value("report.dir", "./reports"),
-        cm.get_config_value("report.allure_report_dir", "./reports/allure-report"),
-        cm.get_config_value("report.allure_result_dir", "./reports/allure-results"),
+        # cm.get_config_value("report.allure_report_dir", "./reports/allure-report"),
+        # cm.get_config_value("report.allure_result_dir", "./reports/allure-results"),
         cm.get_config_value("screenshot.dir", "./reports/screenshots"),
     ]
 

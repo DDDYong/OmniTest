@@ -569,6 +569,8 @@ def main():
         exit_code = runner.run_parallel_tests(
             args.dir, args.file, args.markers, args.workers, args.html)
         runner.generate_allure_report()
+        # 发送测试报告到企微/邮箱/飞书
+        # notification_util.send_report_via_email()
         sys.exit(exit_code)
 
     elif args.command == 'performance':

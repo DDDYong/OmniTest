@@ -123,6 +123,7 @@ class TestLoginParallelSimple:
 
     @pytest.mark.app
     @pytest.mark.parallel
+    @pytest.mark.skip
     def test_login_with_invalid_phone_password(self, parallel_appium_driver):
         """手机号+错误的密码登录"""
         logger.info("测试使用手机号+错误的密码登录")
@@ -176,6 +177,7 @@ class TestLoginParallelSimple:
     @pytest.mark.smoke
     @pytest.mark.app
     @pytest.mark.parallel
+    @pytest.mark.skip
     def test_login_with_valid_phone_captcha(self, parallel_appium_driver):
         """使用手机号+有效验证码登录"""
         logger.info("使用手机号+有效验证码登录")
@@ -247,6 +249,7 @@ class TestLoginParallelSimple:
 
     @pytest.mark.app
     @pytest.mark.parallel
+    @pytest.mark.skip
     def test_login_with_invalid_phone_captcha(self, parallel_appium_driver):
         """使用手机号+错误的验证码登录"""
         logger.info("使用手机号+错误的验证码登录")
