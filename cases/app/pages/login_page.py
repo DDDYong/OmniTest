@@ -120,7 +120,7 @@ class LoginPage(AppBasePage):
 
         # 点击测试环境选项
         self.click_element(self.DOKIT_ENV_TEST_BUTTON)
-        logger.info("已选择测试环境，应用将自动退出")
+        logger.info("已选择测试环境, 应用将自动退出")
         return True
 
     def select_pwd_login(self):
@@ -145,7 +145,7 @@ class LoginPage(AppBasePage):
         """
         logger.info(f"选择国家/地区: {country_name}")
 
-        # 点击区号按钮，打开弹窗
+        # 点击区号按钮, 打开弹窗
         if not self.click_element(self.COUNTRY_CODE_BUTTON):
             logger.error("点击区号按钮失败")
             return False
@@ -206,7 +206,7 @@ class LoginPage(AppBasePage):
         logger.info(f"输入验证码: {captcha}")
         # 确保验证码是4位数字
         if len(captcha) != 4:
-            logger.error(f"验证码长度错误，应为4位，实际为{len(captcha)}位")
+            logger.error(f"验证码长度错误, 应为4位, 实际为{len(captcha)}位")
             return False
 
         # 准备验证码输入框列表

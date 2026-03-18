@@ -1,0 +1,73 @@
+# 应用配置 - YAML格式
+
+# Android应用测试配置
+android_app_test:
+  # 设备能力配置
+  device_capabilities:
+    platformName: Android
+    platformVersion: "16"
+    deviceName: "emulator-5554"
+    automationName: UiAutomator2
+    noReset: false
+    fullReset: false
+    newCommandTimeout: 60
+    unicodeKeyboard: true
+    resetKeyboard: true
+    appPackage: com.weixiao.voice
+    appActivity: com.weixiao.voice/.ui.home.MainActivity
+    appWaitActivity: com.weixiao.voice/.ui.home.MainActivity
+    systemPort: 8202
+    disableWindowAnimation: true
+    dontStopAppOnReset: false
+    adbPort: 5037
+    skipUnlock: false  # 跳过解锁（如果设备已解锁）
+    ignoreHiddenApiPolicyError: true  # 忽略隐藏 API 政策错误
+  
+  # Appium服务器配置
+  appium_server:
+    host: 127.0.0.1
+    port: 4723
+    timeout: 60
+  
+  # 等待设置
+  wait_settings:
+    implicit_wait: 10
+    explicit_wait: 20
+    polling_interval: 0.5
+  
+  # 应用路径
+  app_paths:
+    local_app_path: ~/Downloads/huaxuan_arm64-v8a_1.3.10.2_26020902_debug.apk
+    remote_app_url: null
+  
+  # 预期结果（通用）
+  expected_results:
+    app_launches_successfully: true
+    login_screen_displayed: true
+    home_screen_displayed: true
+    error_messages:
+      app_not_installed: 应用未安装
+      device_not_connected: 设备未连接
+      appium_server_down: Appium服务未启动
+      app_crash: 应用崩溃
+  
+  # 设备设置
+  device_setup:
+    enable_usb_debugging: true
+    unlock_device: true
+    grant_permissions: [ ACCESS_FINE_LOCATION, CAMERA, STORAGE ]
+  
+  # 日志设置
+  logging:
+    capture_screenshots: true
+    log_commands: true
+    log_performance: true
+
+# 通用测试设置
+generic_test_settings:
+  retry_count: 2
+  test_timeout: 120
+  screenshot_dir: /reports/screenshots/app
+  video_recording: false
+  save_device_logs: true
+  performance_monitoring: false

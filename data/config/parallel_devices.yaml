@@ -1,0 +1,61 @@
+# 并行测试设备池配置
+parallel_devices:
+  - device_id: "emulator-5554"
+    appium_port: 4723
+    system_port: 8200
+    mjpeg_server_port: 8090
+    additional_caps:
+      appium:ensureWebviewsHavePages: true
+      appium:nativeWebScreenshot: true
+      appium:connectHardwareKeyboard: true
+      appium:skipDeviceInitialization: false
+      appium:skipServerInstallation: false
+      appium:uiautomator2ServerLaunchTimeout: 60000
+      appium:uiautomator2ServerInstallTimeout: 60000
+      appium:adbExecTimeout: 60000
+      appium:androidInstallTimeout: 120000
+
+  - device_id: "emulator-5556"
+    appium_port: 4724
+    system_port: 8201
+    mjpeg_server_port: 8091
+    additional_caps:
+      appium:ensureWebviewsHavePages: true
+      appium:nativeWebScreenshot: true
+      appium:connectHardwareKeyboard: true
+      appium:skipDeviceInitialization: false
+      appium:skipServerInstallation: false
+      appium:uiautomator2ServerLaunchTimeout: 60000
+      appium:uiautomator2ServerInstallTimeout: 60000
+      appium:adbExecTimeout: 60000
+      appium:androidInstallTimeout: 120000
+
+  - device_id: "emulator-5558"
+    appium_port: 4725
+    system_port: 8202
+    mjpeg_server_port: 8092
+    additional_caps:
+      appium:ensureWebviewsHavePages: true
+      appium:nativeWebScreenshot: true
+      appium:connectHardwareKeyboard: true
+      appium:skipDeviceInitialization: false
+      appium:skipServerInstallation: false
+      appium:uiautomator2ServerLaunchTimeout: 60000
+      appium:uiautomator2ServerInstallTimeout: 60000
+      appium:adbExecTimeout: 60000
+      appium:androidInstallTimeout: 120000
+
+  - device_id: "A9QLVB2126000089" # 荣耀
+    appium_port: 4726
+    system_port: 8203
+    mjpeg_server_port: 8093
+    additional_caps:
+      appium:ensureWebviewsHavePages: true
+      appium:nativeWebScreenshot: true
+      appium:connectHardwareKeyboard: true
+      appium:skipDeviceInitialization: false
+      appium:skipServerInstallation: false
+      appium:uiautomator2ServerLaunchTimeout: 60000
+      appium:uiautomator2ServerInstallTimeout: 60000
+      appium:adbExecTimeout: 60000
+      appium:androidInstallTimeout: 120000

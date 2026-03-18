@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 
 # 用于管理虚拟环境的综合脚本
 # 支持自动检测、激活、创建、退出虚拟环境
@@ -23,7 +23,7 @@ PURPLE="\033[0;35m"
 NC="\033[0m" # No Color
 
 # 脚本所在目录
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SCRIPT_DIR="$( cd "$( dirname "$0" )" && pwd )"
 
 # 项目根目录
 PROJECT_ROOT="$SCRIPT_DIR"
@@ -39,7 +39,7 @@ REQUIREMENTS_FILE="$PROJECT_ROOT/requirements.txt"
 
 # 检查是否已在虚拟环境中
 is_in_venv() {
-    if [ -n "$VIRTUAL_ENV" ] || [ -n "$CONDA_PREFIX" ]; then
+    if [[ -n "$VIRTUAL_ENV" || -n "$CONDA_PREFIX" ]]; then
         return 0
     else
         return 1
@@ -48,7 +48,7 @@ is_in_venv() {
 
 # 检查 .venv 环境是否存在
 check_venv() {
-    if [ -d "$VENV_PATH" ] && [ -f "$VENV_PATH/bin/activate" ]; then
+    if [[ -d "$VENV_PATH" && -f "$VENV_PATH/bin/activate" ]]; then
         return 0
     else
         return 1
@@ -87,7 +87,7 @@ activate_conda_env() {
 # 退出虚拟环境
 exit_venv() {
     # 先检查是否在 .venv 环境中
-    if [ -n "$VIRTUAL_ENV" ]; then
+    if [[ -n "$VIRTUAL_ENV" ]]; then
         echo -e "${YELLOW}正在退出 .venv 环境...${NC}"
         # 尝试使用 deactivate 命令
         deactivate 2>/dev/null || true
@@ -95,7 +95,7 @@ exit_venv() {
     fi
 
     # 再检查是否在 Conda 环境中
-    if [ -n "$CONDA_PREFIX" ]; then
+    if [[ -n "$CONDA_PREFIX" ]]; then
         echo -e "${YELLOW}正在退出 Conda 环境...${NC}"
         # 执行多次以完全退出到系统环境
         conda deactivate 2>/dev/null || true
@@ -111,7 +111,7 @@ exit_venv() {
     else
         echo -e "${GREEN}已成功退出所有虚拟环境${NC}"
     fi
-    echo -e "${YELLOW}注意: 脚本在子shell中执行，无法直接修改父shell环境${NC}"
+    echo -e "${YELLOW}注意: 脚本在子shell中执行, 无法直接修改父shell环境${NC}"
     echo -e "${YELLOW}请在终端中执行以下命令来完全退出环境:${NC}"
     echo ""
     echo "# 退出 .venv 环境"
@@ -126,7 +126,7 @@ exit_venv() {
     echo ""
 
     # 提示用户如何使用 source 命令来执行脚本
-    echo -e "${BLUE}提示: 您也可以使用 source 命令执行此脚本，使其在当前shell中运行:${NC}"
+    echo -e "${BLUE}提示: 您也可以使用 source 命令执行此脚本, 使其在当前shell中运行:${NC}"
     echo "source ./venv.sh --exit"
 }
 
@@ -143,8 +143,8 @@ create_venv() {
     case "$choice" in
         1)
             echo -e "${GREEN}正在创建 .venv 环境...${NC}"
-            if [ -d "$VENV_PATH" ]; then
-                echo -e "${YELLOW}警告: .venv 目录已存在，将覆盖${NC}"
+            if [[ -d "$VENV_PATH" ]]; then
+                echo -e "${YELLOW}警告: .venv 目录已存在, 将覆盖${NC}"
                 rm -rf "$VENV_PATH"
             fi
             python3 -m venv "$VENV_PATH"
@@ -153,18 +153,18 @@ create_venv() {
             echo -e "${GREEN}正在激活环境...${NC}"
             source "$VENV_PATH/bin/activate"
 
-            if [ -f "$REQUIREMENTS_FILE" ]; then
+            if [[ -f "$REQUIREMENTS_FILE" ]]; then
                 echo -e "${GREEN}正在安装依赖...${NC}"
                 pip3 install -r "$REQUIREMENTS_FILE" -i https://pypi.tuna.tsinghua.edu.cn/simple
                 echo -e "${GREEN}依赖安装成功!${NC}"
             else
-                echo -e "${YELLOW}警告: 未找到 requirements.txt 文件，跳过依赖安装${NC}"
+                echo -e "${YELLOW}警告: 未找到 requirements.txt 文件, 跳过依赖安装${NC}"
             fi
             ;;
         2)
             echo -e "${GREEN}正在创建 Conda 环境...${NC}"
             if check_conda_env; then
-                echo -e "${YELLOW}警告: Conda 环境 '$CONDA_ENV_NAME' 已存在，将覆盖${NC}"
+                echo -e "${YELLOW}警告: Conda 环境 '$CONDA_ENV_NAME' 已存在, 将覆盖${NC}"
                 conda env remove -n "$CONDA_ENV_NAME"
             fi
             conda create -n "$CONDA_ENV_NAME" python=3.12 -y
@@ -173,12 +173,12 @@ create_venv() {
             echo -e "${GREEN}正在激活环境...${NC}"
             conda activate "$CONDA_ENV_NAME"
 
-            if [ -f "$REQUIREMENTS_FILE" ]; then
+            if [[ -f "$REQUIREMENTS_FILE" ]]; then
                 echo -e "${GREEN}正在安装依赖...${NC}"
                 pip3 install -r "$REQUIREMENTS_FILE" -i https://pypi.tuna.tsinghua.edu.cn/simple
                 echo -e "${GREEN}依赖安装成功!${NC}"
             else
-                echo -e "${YELLOW}警告: 未找到 requirements.txt 文件，跳过依赖安装${NC}"
+                echo -e "${YELLOW}警告: 未找到 requirements.txt 文件, 跳过依赖安装${NC}"
             fi
             ;;
         3)
@@ -197,7 +197,7 @@ update_dependencies() {
         return 1
     fi
 
-    if [ -f "$REQUIREMENTS_FILE" ]; then
+    if [[ -f "$REQUIREMENTS_FILE" ]]; then
         echo -e "${GREEN}正在更新依赖...${NC}"
         pip3 install --upgrade -r "$REQUIREMENTS_FILE" -i https://pypi.tuna.tsinghua.edu.cn/simple
         echo -e "${GREEN}依赖更新成功!${NC}"
@@ -216,10 +216,10 @@ show_env_info() {
         echo -e "${YELLOW}Python 解释器: $(which python)${NC}"
         echo -e "${YELLOW}Python 版本: $(python --version)${NC}"
 
-        if [ -n "$VIRTUAL_ENV" ]; then
+        if [[ -n "$VIRTUAL_ENV" ]]; then
             echo -e "${YELLOW}环境类型: .venv${NC}"
             echo -e "${YELLOW}环境路径: $VIRTUAL_ENV${NC}"
-        elif [ -n "$CONDA_PREFIX" ]; then
+        elif [[ -n "$CONDA_PREFIX" ]]; then
             echo -e "${YELLOW}环境类型: Conda${NC}"
             echo -e "${YELLOW}环境路径: $CONDA_PREFIX${NC}"
             echo -e "${YELLOW}环境名称: $(basename "$CONDA_PREFIX")${NC}"
@@ -289,7 +289,7 @@ auto_activate_omnitest_venv() {
             if [[ -z "$VIRTUAL_ENV" && -z "$CONDA_PREFIX" ]]; then
                 # 检查.venv环境是否存在
                 if [[ -d "$project_root/.venv" && -f "$project_root/.venv/bin/activate" ]]; then
-                    echo "🔍 检测到OmniTest项目，自动激活虚拟环境..."
+                    echo "🔍 检测到OmniTest项目, 自动激活虚拟环境..."
                     source "$project_root/.venv/bin/activate"
                     echo "✅ 虚拟环境激活成功: $(which python)"
                 fi
@@ -322,7 +322,7 @@ function auto_activate_omnitest_venv() {
             if [[ -z "$VIRTUAL_ENV" && -z "$CONDA_PREFIX" ]]; then
                 # 检查.venv环境是否存在
                 if [[ -d "$project_root/.venv" && -f "$project_root/.venv/bin/activate" ]]; then
-                    echo "🔍 检测到OmniTest项目，自动激活虚拟环境..."
+                    echo "🔍 检测到OmniTest项目, 自动激活虚拟环境..."
                     source "$project_root/.venv/bin/activate"
                     echo "✅ 虚拟环境激活成功: $(which python)"
                 fi
@@ -339,7 +339,7 @@ EOF
     echo ""
     echo -e "${YELLOW}请将以上内容添加到您的 ~/.zshrc 文件末尾:${NC}"
     echo ""
-    echo "1. 打开终端，执行以下命令:"
+    echo "1. 打开终端, 执行以下命令:"
     echo "   echo '' >> ~/.zshrc"
     echo "   echo '# 自动激活OmniTest项目的虚拟环境' >> ~/.zshrc"
     echo "   ./venv.sh --auto >> ~/.zshrc"
@@ -347,14 +347,14 @@ EOF
     echo "2. 重新加载配置:"
     echo "   source ~/.zshrc"
     echo ""
-    echo -e "${GREEN}配置完成后，在OmniTest项目目录中打开新终端时会自动激活虚拟环境。${NC}"
+    echo -e "${GREEN}配置完成后, 在OmniTest项目目录中打开新终端时会自动激活虚拟环境。${NC}"
 }
 
 # 主函数
 main() {
     # 处理命令行参数
-    if [ $# -eq 0 ]; then
-        # 无参数时，默认激活环境
+    if [[ $# -eq 0 ]]; then
+        # 无参数时, 默认激活环境
         if is_in_venv; then
             echo -e "${YELLOW}警告: 您已经在虚拟环境中${NC}"
             echo -e "${YELLOW}当前 Python 解释器: $(which python)${NC}"
@@ -374,7 +374,7 @@ main() {
         return 0
     fi
 
-    while [ $# -gt 0 ]; do
+    while [[ $# -gt 0 ]]; do
         case "$1" in
             --venv)
                 if is_in_venv; then

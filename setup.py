@@ -23,7 +23,7 @@ setup(
     # 项目版本
     version = '1.0.0',
     # 项目描述
-    description = 'OmniTest自动化测试框架，支持API、Web、App和性能测试',
+    description = 'OmniTest自动化测试框架, 支持API、Web、App和性能测试',
     # 详细描述（从README.md读取）
     long_description = long_description,
     long_description_content_type = 'text/markdown',

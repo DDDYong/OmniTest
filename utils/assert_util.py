@@ -541,45 +541,45 @@ default_assert_util = AssertUtil()
 
 # 模块级别的便捷函数, 便于直接调用
 def assert_equal(actual: Any, expected: Any, message: str = "值不相等") -> None:
-    """便捷函数：断言两个值相等"""
+    """便捷函数: 断言两个值相等"""
     default_assert_util.equals(actual, expected, message)
 
 
 def assert_contains(container: Union[str, list, dict, set], item: Any, message: str = "不包含指定元素") -> None:
-    """便捷函数：断言容器包含指定元素"""
+    """便捷函数: 断言容器包含指定元素"""
     default_assert_util.contains(container, item, message)
 
 
 def assert_true(condition: bool, message: str = "条件应为True") -> None:
-    """便捷函数：断言条件为True"""
+    """便捷函数: 断言条件为True"""
     default_assert_util.is_true(condition, message)
 
 
 def assert_false(condition: bool, message: str = "条件应为False") -> None:
-    """便捷函数：断言条件为False"""
+    """便捷函数: 断言条件为False"""
     default_assert_util.is_false(condition, message)
 
 
 def assert_not_none(value: Any, message: str = "值不应为None") -> None:
-    """便捷函数：断言值不为None"""
+    """便捷函数: 断言值不为None"""
     default_assert_util.is_not_none(value, message)
 
 
 def assert_instance(obj: Any, expected_type: type, message: str = "类型不匹配") -> None:
-    """便捷函数：断言对象为指定类型"""
+    """便捷函数: 断言对象为指定类型"""
     default_assert_util.is_instance(obj, expected_type, message)
 
 
 def assert_status_code(response: Any, expected_code: int, message: str = "HTTP状态码不匹配") -> None:
-    """便捷函数：断言HTTP响应状态码"""
+    """便捷函数: 断言HTTP响应状态码"""
     default_assert_util.status_code_equals(response, expected_code, message)
 
 
 def assert_element_displayed(element: Any, message: str = "元素不可见") -> None:
-    """便捷函数：断言Web元素可见"""
+    """便捷函数: 断言Web元素可见"""
     default_assert_util.element_is_displayed(element, message)
 
 
 def assert_element_text(element: Any, expected_text: str, message: str = "元素文本不匹配") -> None:
-    """便捷函数：断言Web元素文本"""
+    """便捷函数: 断言Web元素文本"""
     default_assert_util.element_text_equals(element, expected_text, message)

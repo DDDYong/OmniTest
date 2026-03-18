@@ -25,19 +25,19 @@ try:
 
     logger.info("✅ yaml模块导入成功")
 except ImportError:
-    logger.warning("⚠️ yaml模块未安装，将使用空配置")
+    logger.warning("⚠️ yaml模块未安装, 将使用空配置")
 
 
     # 创建mock yaml模块
     class MockYaml:
         @staticmethod
         def safe_load(file_obj):
-            logger.error("❌ yaml模块未安装，无法加载配置文件")
+            logger.error("❌ yaml模块未安装, 无法加载配置文件")
             return {}
 
         @staticmethod
         def dump(data, file_obj, **kwargs):
-            logger.error("❌ yaml模块未安装，无法保存配置文件")
+            logger.error("❌ yaml模块未安装, 无法保存配置文件")
 
 
     yaml = MockYaml()
@@ -83,7 +83,7 @@ class ConfigDict(dict):
 class ConfigManager:
     """
     配置管理器类,用于从YAML文件加载配置并提供配置管理功能
-    支持多环境配置管理,配置优先级：环境变量 > YAML文件 > 默认值
+    支持多环境配置管理,配置优先级: 环境变量 > YAML文件 > 默认值
     """
 
     def __init__(self, config_dir: str = None, default_env: str = "test"):
@@ -106,7 +106,7 @@ class ConfigManager:
 
     def _load_all_configs(self) -> None:
         """
-        加载所有配置：默认配置和环境特定配置
+        加载所有配置: 默认配置和环境特定配置
         并应用配置优先级规则
         """
         # 先加载默认配置
@@ -115,7 +115,7 @@ class ConfigManager:
         # 再加载环境特定配置
         env_config = self._load_file_config(self.env)
 
-        # 合并配置：默认配置 -> 环境特定配置
+        # 合并配置: 默认配置 -> 环境特定配置
         merged_config = self._merge_configs(default_config, env_config)
 
         # 应用环境变量覆盖
@@ -191,7 +191,7 @@ class ConfigManager:
     def _override_with_env_vars(self, config: Dict[str, Any]) -> None:
         """
         使用环境变量覆盖配置
-        支持嵌套配置,环境变量名格式：SECTION_KEY 或 SECTION__KEY（双下划线表示嵌套）
+        支持嵌套配置,环境变量名格式: SECTION_KEY 或 SECTION__KEY（双下划线表示嵌套）
 
         Args:
             config: 要被覆盖的配置字典
@@ -606,7 +606,7 @@ def ensure_directories():
             os.makedirs(dir_path, exist_ok = True)
 
 
-# 向后兼容：创建config实例（懒加载）
+# 向后兼容: 创建config实例（懒加载）
 class LazyConfigProxy:
     """懒加载配置代理类"""
 

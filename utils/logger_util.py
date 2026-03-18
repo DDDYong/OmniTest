@@ -56,7 +56,7 @@ def _get_default_log_config():
                 log_level = config.get('log', {}).get('level', 'DEBUG')
                 return log_level
     except (ImportError, FileNotFoundError, yaml.YAMLError, Exception):
-        # 读取配置文件失败，返回默认值
+        # 读取配置文件失败, 返回默认值
         pass
     return 'DEBUG'
 
@@ -163,5 +163,5 @@ def get_logger():
     return logger
 
 
-# 向后兼容：确保直接导入logger时可用
+# 向后兼容: 确保直接导入logger时可用
 logger = get_logger()

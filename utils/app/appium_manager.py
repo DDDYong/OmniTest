@@ -167,10 +167,62 @@ class AppiumManager:
         """
         return self.appium_service is not None and self.appium_service.is_running
 
+    def _prepare_device(self, desired_caps: Dict[str, Any]) -> bool:
+        """
+        准备设备, 确保UIAutomation能够正常连接
+
+        Args:
+            desired_caps: 期望的能力配置
+
+        Returns:
+            bool: 是否准备成功
+        """
+        try:
+            # 获取设备UDID
+            udid = desired_caps.get('udid')
+            if not udid:
+                logger.warning("未指定设备UDID, 跳过设备准备")
+                return True
+
+            logger.info(f"准备设备 {udid}...")
+
+            # 1. 确保设备屏幕是打开的
+            logger.info("检查设备屏幕状态...")
+            subprocess.run(["adb", "shell", "input", "keyevent", "26"], capture_output = True, text = True)
+            time.sleep(1)
+
+            # 2. 解锁屏幕（如果需要）
+            logger.info("尝试解锁屏幕...")
+            subprocess.run(["adb", "shell", "input", "keyevent", "82"], capture_output = True, text = True)
+            time.sleep(1)
+
+            # 3. 检查UIAutomator2服务状态
+            logger.info("检查UIAutomator2服务状态...")
+            # 停止可能运行的UIAutomator2服务
+            subprocess.run(["adb", "shell", "am", "force-stop",
+                            "io.appium.uiautomator2.server"], capture_output = True, text = True)
+            subprocess.run(["adb", "shell", "am", "force-stop",
+                            "io.appium.uiautomator2.server.test"], capture_output = True, text = True)
+            time.sleep(2)
+
+            # 4. 清除UIAutomator2缓存
+            logger.info("清除UIAutomator2缓存...")
+            subprocess.run(["adb", "shell", "pm", "clear",
+                            "io.appium.uiautomator2.server"], capture_output = True, text = True)
+            subprocess.run(["adb", "shell", "pm", "clear",
+                            "io.appium.uiautomator2.server.test"], capture_output = True, text = True)
+            time.sleep(2)
+
+            logger.info("设备准备完成")
+            return True
+        except Exception as e:
+            logger.error(f"准备设备时发生错误: {str(e)}")
+            return False
+
     def create_driver(self, desired_caps: Dict[str, Any], host: Optional[str] = None, port: Optional[
         int] = None) -> AppiumDriver:
         """
-        创建Appium驱动 - 简化版，不做任何清理操作
+        创建Appium驱动 - 简化版, 不做任何清理操作
 
         Args:
             desired_caps: 期望的能力配置
@@ -194,11 +246,20 @@ class AppiumManager:
         for attempt in range(max_retries):
             try:
                 logger.info(f"尝试创建驱动 (尝试 {attempt + 1}/{max_retries})")
+
+                # 在每次尝试前准备设备
+                self._prepare_device(desired_caps)
+                
                 from appium.options.common import AppiumOptions
 
                 options = AppiumOptions()
                 for key, value in desired_caps.items():
                     options.set_capability(key, value)
+
+                # 添加一些额外的能力配置来避免UIAutomation连接问题
+                if desired_caps.get('platformName') == 'Android':
+                    options.set_capability('disableWindowAnimation', True)
+                    options.set_capability('skipUnlock', True)
 
                 self.driver = webdriver.Remote(command_executor = server_url, options = options)
 
@@ -214,9 +275,9 @@ class AppiumManager:
                     logger.info(f"等待 {wait_time} 秒后重试...")
                     time.sleep(wait_time)
                 else:
-                    logger.error("达到最大重试次数，创建驱动失败")
+                    logger.error("达到最大重试次数, 创建驱动失败")
                     raise
-        raise RuntimeError("创建 Appium 驱动失败：所有重试均已耗尽")
+        raise RuntimeError("创建 Appium 驱动失败: 所有重试均已耗尽")
 
     def quit_driver(self) -> bool:
         """
@@ -525,13 +586,13 @@ class AppiumManager:
         从配置文件加载设备池配置
         
         Args:
-            config_path: 配置文件路径，默认为 data/test_data/app_test_data.yaml
+            config_path: 配置文件路径, 默认为 data/config/parallel_devices.yaml
             
         Returns:
             List[Dict[str, Any]]: 设备池配置列表
         """
         if config_path is None:
-            config_path = "test_data/app_test_data.yaml"
+            config_path = "config/parallel_devices.yaml"
 
         test_data = FileHandler().read_yaml(config_path)
         return test_data.get("parallel_devices", [])
@@ -543,13 +604,13 @@ class AppiumManager:
         
         Args:
             device: 设备配置字典
-            config_path: 配置文件路径
+            config_path: 配置文件路径, 默认为 data/config/app_config.yaml
             
         Returns:
             Dict[str, Any]: 应用配置字典
         """
         if config_path is None:
-            config_path = "test_data/app_test_data.yaml"
+            config_path = "config/app_config.yaml"
 
         test_data = FileHandler().read_yaml(config_path)
         app_config = test_data["android_app_test"].copy()

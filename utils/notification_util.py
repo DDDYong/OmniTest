@@ -123,7 +123,7 @@ class NotificationUtil:
         获取测试摘要HTML
 
         Args:
-            summary: 测试摘要字典，如果为None则自动获取
+            summary: 测试摘要字典, 如果为None则自动获取
 
         Returns:
             str: 测试摘要HTML
@@ -232,40 +232,40 @@ class NotificationUtil:
             if report_url:
                 access_instructions += f"""
                 <div style="background-color: #e8f4ff; padding: 15px; border-radius: 5px; margin: 15px 0;">
-                    <h4 style="margin-top: 0; color: #0066cc;">🌐 方案一：在线访问（推荐）</h4>
-                    <p>直接点击以下链接访问完整的可视化测试报告：</p>
+                    <h4 style="margin-top: 0; color: #0066cc;">🌐 方案一: 在线访问（推荐）</h4>
+                    <p>直接点击以下链接访问完整的可视化测试报告: </p>
                     <p style="font-size: 16px; font-weight: bold;">
                         <a href="{report_url}" target="_blank" style="color: #0066cc; text-decoration: underline;">
                             📊 点击查看完整测试报告
                         </a>
                     </p>
-                    <p style="color: #666; font-size: 12px;">* 报告已上传至云存储，支持在线查看所有测试细节和图表</p>
+                    <p style="color: #666; font-size: 12px;">* 报告已上传至云存储, 支持在线查看所有测试细节和图表</p>
                 </div>
                 """
 
             access_instructions += f"""
             <div style="background-color: #fff9e6; padding: 15px; border-radius: 5px; margin: 15px 0;">
-                <h4 style="margin-top: 0; color: #cc8800;">📦 方案二：本地访问</h4>
-                <p><strong>重要提示：</strong>Allure报告是单页Web应用，需要通过HTTP服务器访问，直接打开index.html可能无法正常显示！</p>
+                <h4 style="margin-top: 0; color: #cc8800;">📦 方案二: 本地访问</h4>
+                <p><strong>重要提示: </strong>Allure报告是单页Web应用, 需要通过HTTP服务器访问, 直接打开index.html可能无法正常显示！</p>
                 <ol style="margin-left: 20px; padding-left: 0;">
                     <li style="margin: 10px 0;">下载邮件附件 <strong>test_report_{test_run_dir}.zip</strong></li>
                     <li style="margin: 10px 0;">解压该压缩文件到本地文件夹</li>
                     <li style="margin: 10px 0;">
-                        <strong>方式A：使用Python启动本地服务器（推荐）</strong>
+                        <strong>方式A: 使用Python启动本地服务器（推荐）</strong>
                         <div style="background-color: #f5f5f5; padding: 10px; border-radius: 3px; font-family: monospace; margin: 5px 0;">
                             cd 解压后的文件夹路径<br>
                             python -m http.server 8000
                         </div>
-                        然后在浏览器访问：<code>http://localhost:8000</code>
+                        然后在浏览器访问: <code>http://localhost:8000</code>
                     </li>
                     <li style="margin: 10px 0;">
-                        <strong>方式B：使用Allure命令行</strong>
+                        <strong>方式B: 使用Allure命令行</strong>
                         <div style="background-color: #f5f5f5; padding: 10px; border-radius: 3px; font-family: monospace; margin: 5px 0;">
                             allure serve 解压后的文件夹路径
                         </div>
                     </li>
                 </ol>
-                <p style="color: #cc0000; font-weight: bold;">⚠️ 不要直接双击打开index.html文件，这会导致JavaScript被浏览器阻止，报告无法显示！</p>
+                <p style="color: #cc0000; font-weight: bold;">⚠️ 不要直接双击打开index.html文件, 这会导致JavaScript被浏览器阻止, 报告无法显示！</p>
             </div>
             """
 
@@ -300,7 +300,7 @@ class NotificationUtil:
 
                 <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
                 <p style="color: #999; font-size: 12px; text-align: center;">
-                    此邮件由OmniTest自动化测试框架自动发送，请勿直接回复
+                    此邮件由OmniTest自动化测试框架自动发送, 请勿直接回复
                 </p>
             </body>
             </html>
@@ -320,7 +320,7 @@ class NotificationUtil:
                     )
                     msg.attach(attach)
             else:
-                logger.warning("压缩文件不存在，邮件将不包含附件")
+                logger.warning("压缩文件不存在, 邮件将不包含附件")
 
             # 发送邮件
             with smtplib.SMTP(NotificationUtil.SMTP_SERVER, NotificationUtil.SMTP_PORT) as server:
@@ -373,7 +373,7 @@ class NotificationUtil:
                             arcname = os.path.join("allure-report", os.path.relpath(file_path, allure_report_dir))
                             zipf.write(file_path, arcname)
                             file_count += 1
-                    logger.info(f"allure-report目录压缩完成，共 {file_count} 个文件")
+                    logger.info(f"allure-report目录压缩完成, 共 {file_count} 个文件")
                 else:
                     logger.warning(f"allure-report目录不存在: {allure_report_dir}")
 
@@ -388,7 +388,7 @@ class NotificationUtil:
                             zipf.write(file_path, arcname)
                             results_count += 1
                     file_count += results_count
-                    logger.info(f"allure-results目录压缩完成，共 {results_count} 个文件")
+                    logger.info(f"allure-results目录压缩完成, 共 {results_count} 个文件")
 
             # 验证压缩文件
             if os.path.exists(zip_file_path):
@@ -434,7 +434,7 @@ class NotificationUtil:
             if report_url:
                 logger.info(f"报告已上传到云存储: {report_url}")
             else:
-                logger.warning("上传到云存储失败，将只发送压缩包")
+                logger.warning("上传到云存储失败, 将只发送压缩包")
 
         # 压缩报告（包含allure-results以便可以重新生成报告）
         zip_file_path = NotificationUtil.zip_report(include_results = True)
@@ -539,9 +539,9 @@ class NotificationUtil:
                                 import time
                                 time.sleep(3)
 
-                # 如果HTTP协议失败，尝试使用SSH协议
+                # 如果HTTP协议失败, 尝试使用SSH协议
                 if not clone_success:
-                    logger.info("HTTP协议克隆失败，尝试使用SSH协议...")
+                    logger.info("HTTP协议克隆失败, 尝试使用SSH协议...")
 
                     # 重试克隆
                     max_retries = 3
@@ -591,7 +591,7 @@ class NotificationUtil:
                                 time.sleep(3)
 
                 if not clone_success:
-                    logger.error("克隆仓库失败，已尝试HTTP和SSH协议")
+                    logger.error("克隆仓库失败, 已尝试HTTP和SSH协议")
                     return None
 
                 # 检查gh-pages分支是否存在
@@ -604,8 +604,8 @@ class NotificationUtil:
                 logger.info(f"执行命令: {' '.join(checkout_cmd)}")
                 checkout_result = subprocess.run(checkout_cmd, cwd = temp_dir, capture_output = True, text = True)
                 if checkout_result.returncode != 0:
-                    # 如果分支不存在，创建新分支
-                    logger.warning(f"切换分支失败，尝试创建新分支: {checkout_result.stderr}")
+                    # 如果分支不存在, 创建新分支
+                    logger.warning(f"切换分支失败, 尝试创建新分支: {checkout_result.stderr}")
                     create_branch_cmd = ["git", "checkout", "-b", NotificationUtil.GITHUB_BRANCH]
                     create_result = subprocess.run(create_branch_cmd, cwd = temp_dir, capture_output = True, text = True)
                     if create_result.returncode != 0:
@@ -629,7 +629,7 @@ class NotificationUtil:
                 # 检查复制是否成功
                 target_index_html = os.path.join(target_dir, "index.html")
                 if not os.path.exists(target_index_html):
-                    logger.error(f"复制失败，目标文件不存在: {target_index_html}")
+                    logger.error(f"复制失败, 目标文件不存在: {target_index_html}")
                     return None
 
                 # 提交和推送更改
@@ -646,7 +646,7 @@ class NotificationUtil:
                 if commit_result.returncode != 0:
                     logger.error(f"git commit失败: {commit_result.stderr}")
                     if "nothing to commit" in commit_result.stderr:
-                        logger.info("没有更改，继续推送")
+                        logger.info("没有更改, 继续推送")
                     else:
                         return None
 
@@ -698,7 +698,7 @@ class NotificationUtil:
             }
         }
 
-        # 如果有报告URL，添加到消息中
+        # 如果有报告URL, 添加到消息中
         if report_url:
             message["markdown"]["content"] += f"**报告链接**: [查看报告]({report_url})\n"
 
@@ -708,7 +708,7 @@ class NotificationUtil:
             response.raise_for_status()
             logger.info("企业微信通知发送成功")
 
-            # 有压缩文件，发送文件
+            # 有压缩文件, 发送文件
             if zip_file_path and os.path.exists(zip_file_path):
                 with open(zip_file_path, 'rb') as f:
                     files = {'media': f}
@@ -772,7 +772,7 @@ class NotificationUtil:
             }
         }
 
-        # 如果有报告URL，添加到消息中
+        # 如果有报告URL, 添加到消息中
         if report_url:
             message["card"]["elements"].append({
                 "tag": "div",

@@ -73,7 +73,7 @@
 - activityType: 99
   activityType_name: 甜蜜总榜
   rank_category: 2
-  rank_coverage: 10  # 前10名获奖（1-3名单独配置，4-10名统一配置）
+  rank_coverage: 10  # 前10名获奖（1-3名单独配置, 4-10名统一配置）
   reward_details:
     - rank: 1  # 总榜冠军
       rewards:

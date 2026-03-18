@@ -128,5 +128,5 @@ class ScreenshotUtils:
             return None
 
 
-# 注意：不再在模块级别创建实例, 避免导入时的循环依赖问题
-# 使用时请手动初始化：screenshot_utils = ScreenshotUtils()
+# 注意: 不再在模块级别创建实例, 避免导入时的循环依赖问题
+# 使用时请手动初始化: screenshot_utils = ScreenshotUtils()

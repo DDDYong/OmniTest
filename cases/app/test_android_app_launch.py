@@ -98,7 +98,7 @@ class TestAndroidAppLaunch:
         # 检查Appium服务器状态
         is_server_running = request.cls.appium_manager.check_server_status()
         if not is_server_running:
-            logger.warning("Appium服务器未运行，尝试启动...")
+            logger.warning("Appium服务器未运行, 尝试启动...")
             # 尝试启动Appium服务器
             start_success = request.cls.appium_manager.start_appium_service(
                 host = request.cls.appium_server["host"],

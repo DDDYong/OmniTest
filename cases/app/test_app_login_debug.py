@@ -76,7 +76,7 @@ class TestLogin:
         # 检查Appium服务器状态
         is_server_running = appium_manager.check_server_status()
         if not is_server_running:
-            logger.warning("Appium服务器未运行，尝试启动...")
+            logger.warning("Appium服务器未运行, 尝试启动...")
             # 尝试启动Appium服务器
             start_success = appium_manager.start_appium_service(
                 host = appium_server["host"],
@@ -131,7 +131,7 @@ class TestLogin:
                     TestLogin.driver.quit()
                     TestLogin.driver = None
                 else:
-                    logger.info("Appium会话已终止，无需再次关闭")
+                    logger.info("Appium会话已终止, 无需再次关闭")
                     TestLogin.driver = None
             except Exception as e:
                 logger.error(f"关闭Appium会话时发生错误: {str(e)}")
@@ -165,15 +165,15 @@ class TestLogin:
 
             # 检查是否已在登录页面
             if login_page.is_element_displayed(login_page.AGREE_BUTTON, 2):
-                logger.info("已在登录页面，无需处理")
+                logger.info("已在登录页面, 无需处理")
                 return
 
-            logger.warning("清除应用数据，确保应用回到初始状态")
+            logger.warning("清除应用数据, 确保应用回到初始状态")
 
             # 清除应用数据并重新启动
             import subprocess
 
-            # 构建adb命令，指定设备ID
+            # 构建adb命令, 指定设备ID
             adb_cmd = ["adb"]
             if device_id:
                 adb_cmd.extend(["-s", device_id])
@@ -207,7 +207,7 @@ class TestLogin:
 
         except Exception as e:
             logger.error(f"测试方法设置时发生错误: {str(e)}")
-            # 如果发生错误，重新创建驱动
+            # 如果发生错误, 重新创建驱动
             try:
                 logger.info("重新创建Appium驱动")
                 # 关闭旧驱动
@@ -249,11 +249,11 @@ class TestLogin:
         logger.info("开始环境切换流程")
         # 检查是否需要切换环境
         if login_page.is_element_displayed(login_page.DOKIT_BOTTON, 2):
-            logger.info("找到DoKit浮标，开始切换环境")
+            logger.info("找到DoKit浮标, 开始切换环境")
 
             # 切换到测试环境
             if login_page.switch_environment():
-                logger.info("环境切换成功，应用将自动退出")
+                logger.info("环境切换成功, 应用将自动退出")
                 # 重新启动应用
                 if login_page.launch_app_by_icon():
                     logger.info("应用重新启动成功")
@@ -288,8 +288,8 @@ class TestLogin:
         # 点击登录按钮
         login_page.click_login()
         # 等待登录完成
-        logger.info("登录操作已执行，等待登录完成")
-        # 处理首页弹窗，最多可能有3个
+        logger.info("登录操作已执行, 等待登录完成")
+        # 处理首页弹窗, 最多可能有3个
         for _ in range(3):
             if login_page.is_element_displayed(login_page.HOME_DIALOG_CLOSE, 1):
                 login_page.click_element(login_page.HOME_DIALOG_CLOSE)
@@ -321,11 +321,11 @@ class TestLogin:
         logger.info("开始环境切换流程")
         # 检查是否需要切换环境
         if login_page.is_element_displayed(login_page.DOKIT_BOTTON, 2):
-            logger.info("找到DoKit浮标，开始切换环境")
+            logger.info("找到DoKit浮标, 开始切换环境")
 
             # 切换到测试环境
             if login_page.switch_environment():
-                logger.info("环境切换成功，应用将自动退出")
+                logger.info("环境切换成功, 应用将自动退出")
                 # 重新启动应用
                 if login_page.launch_app_by_icon():
                     logger.info("应用重新启动成功")
@@ -390,11 +390,11 @@ class TestLogin:
 
         # 检查是否需要切换环境
         if login_page.is_element_displayed(login_page.DOKIT_BOTTON, 2):
-            logger.info("找到DoKit浮标，开始切换环境")
+            logger.info("找到DoKit浮标, 开始切换环境")
 
             # 切换到测试环境
             if login_page.switch_environment():
-                logger.info("环境切换成功，应用将自动退出")
+                logger.info("环境切换成功, 应用将自动退出")
                 # 重新启动应用
                 if login_page.launch_app_by_icon():
                     logger.info("应用重新启动成功")
@@ -437,7 +437,7 @@ class TestLogin:
                 ("8617370000004",)
             )
             captcha = captcha_result["captcha"]
-            logger.info(f"获取到的验证码为：{captcha}")
+            logger.info(f"获取到的验证码为: {captcha}")
         except Exception as e:
             logger.error(e)
             pytest.fail("从数据库获取验证码失败")
@@ -446,8 +446,8 @@ class TestLogin:
         login_page.input_captcha(captcha)
 
         # 等待登录完成
-        logger.info("登录操作已执行，等待登录完成")
-        # 处理首页弹窗，最多可能有3个
+        logger.info("登录操作已执行, 等待登录完成")
+        # 处理首页弹窗, 最多可能有3个
         for _ in range(3):
             if login_page.is_element_displayed(login_page.HOME_DIALOG_CLOSE, 1):
                 login_page.click_element(login_page.HOME_DIALOG_CLOSE)
@@ -480,11 +480,11 @@ class TestLogin:
 
         # 检查是否需要切换环境
         if login_page.is_element_displayed(login_page.DOKIT_BOTTON, 2):
-            logger.info("找到DoKit浮标，开始切换环境")
+            logger.info("找到DoKit浮标, 开始切换环境")
 
             # 切换到测试环境
             if login_page.switch_environment():
-                logger.info("环境切换成功，应用将自动退出")
+                logger.info("环境切换成功, 应用将自动退出")
                 # 重新启动应用
                 if login_page.launch_app_by_icon():
                     logger.info("应用重新启动成功")

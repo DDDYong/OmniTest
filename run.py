@@ -69,7 +69,7 @@ class TestRunner:
 
             err = f"测试文件不存在: {target_path}"
             if suggestions:
-                err = f"{err}，可选相近文件: {', '.join(suggestions)}"
+                err = f"{err}, 可选相近文件: {', '.join(suggestions)}"
             return None, err
 
         if test_dir:
@@ -90,7 +90,7 @@ class TestRunner:
 
             err = f"测试目录不存在: {target_path}"
             if suggestions:
-                err = f"{err}，可选相近目录: {', '.join(suggestions)}"
+                err = f"{err}, 可选相近目录: {', '.join(suggestions)}"
             return None, err
 
         if not os.path.isdir(base_dir):
@@ -100,7 +100,7 @@ class TestRunner:
     @staticmethod
     def clean_reports() -> None:
         """
-        清理测试报告目录（不清理历史报告，只确保新报告目录是干净的）
+        清理测试报告目录（不清理历史报告, 只确保新报告目录是干净的）
         """
         logger.info("新测试报告目录已准备好（保留历史报告）")
 
@@ -245,8 +245,8 @@ class TestRunner:
         Args:
             test_dir: 测试目录
             test_file: 测试文件
-            markers: 测试标记，默认为 'parallel'
-            num_workers: worker数量，默认为2
+            markers: 测试标记, 默认为 'parallel'
+            num_workers: worker数量, 默认为2
             html_report: 是否生成HTML报告
             
         Returns:
@@ -392,7 +392,7 @@ class TestRunner:
     @staticmethod
     def update_requirements() -> bool:
         """
-        更新 requirements.txt 文件，保留注释信息
+        更新 requirements.txt 文件, 保留注释信息
 
         Returns:
             bool: 是否更新成功
@@ -400,7 +400,7 @@ class TestRunner:
         logger.info("开始更新 requirements.txt...")
 
         try:
-            # 读取当前文件，保存注释
+            # 读取当前文件, 保存注释
             comments = []
             requirements_path = os.path.join(path_util.get_project_root(), 'requirements.txt')
 
@@ -412,7 +412,7 @@ class TestRunner:
                         else:
                             break  # 只保留文件头部的注释
             except FileNotFoundError:
-                logger.info("requirements.txt 文件不存在，将创建新文件")
+                logger.info("requirements.txt 文件不存在, 将创建新文件")
 
             # 获取当前环境的所有包
             result = subprocess.run([sys.executable, '-m', 'pip', 'freeze'],

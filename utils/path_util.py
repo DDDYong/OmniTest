@@ -22,7 +22,7 @@ class PathUtil:
     @staticmethod
     def get_test_run_dir() -> str:
         """
-        获取当前测试运行的时间文件夹名称（格式：YYYYMMDD_HHMM）
+        获取当前测试运行的时间文件夹名称（格式: YYYYMMDD_HHMM）
 
         Returns:
             str: 时间文件夹名称
@@ -169,7 +169,7 @@ class PathUtil:
         如果目录不存在则创建
         
         Args:
-            use_time_folder: 是否使用时间文件夹，默认为True
+            use_time_folder: 是否使用时间文件夹, 默认为True
             
         Returns:
             str: Allure报告结果目录的绝对路径
@@ -188,7 +188,7 @@ class PathUtil:
         如果目录不存在则创建
         
         Args:
-            use_time_folder: 是否使用时间文件夹，默认为True
+            use_time_folder: 是否使用时间文件夹, 默认为True
             
         Returns:
             str: Allure报告目录的绝对路径
@@ -207,7 +207,7 @@ class PathUtil:
         如果目录不存在则创建
         
         Args:
-            use_time_folder: 是否使用时间文件夹，默认为True
+            use_time_folder: 是否使用时间文件夹, 默认为True
             
         Returns:
             str: 截图目录的绝对路径

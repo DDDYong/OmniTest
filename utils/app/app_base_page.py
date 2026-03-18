@@ -53,17 +53,20 @@ class AppBasePage:
         "partial_link_text": By.PARTIAL_LINK_TEXT
     }
 
-    def __init__(self, driver: AppiumDriver, screenshot_dir: Optional[str] = None):
+    def __init__(self, driver: AppiumDriver, screenshot_dir: Optional[str] = None, test_data: Optional[dict] = None):
         """
         初始化页面类
 
         Args:
             driver: Appium驱动实例
             screenshot_dir: 截图保存目录
+            test_data: 测试数据字典
         """
         self.driver = driver
         self.utils = util
         self.screenshot_utils = ScreenshotUtils()
+        # 测试数据
+        self.test_data = test_data or {}
         # 配置
         self.default_timeout = getattr(config, "DEFAULT_TIMEOUT", 5)
         self.implicit_wait = getattr(config, "IMPLICIT_WAIT", 10)
@@ -75,6 +78,47 @@ class AppBasePage:
         self.set_implicit_wait(self.implicit_wait)
 
         logger.info(f"初始化 {self.__class__.__name__}")
+
+    def get_test_scenario(self, scenario_name: str) -> dict:
+        """
+        根据场景名称获取测试数据
+
+        Args:
+            scenario_name: 场景名称
+
+        Returns:
+            dict: 测试场景数据
+        """
+        for scenario in self.test_data.get("test_scenarios", []):
+            if scenario.get("name") == scenario_name:
+                return scenario
+        return {}
+
+    def get_test_data(self, scenario_name: str) -> dict:
+        """
+        获取测试数据
+
+        Args:
+            scenario_name: 场景名称
+
+        Returns:
+            dict: 测试数据
+        """
+        scenario = self.get_test_scenario(scenario_name)
+        return scenario.get("test_data", {})
+
+    def get_expected_result(self, scenario_name: str) -> dict:
+        """
+        获取预期结果
+
+        Args:
+            scenario_name: 场景名称
+
+        Returns:
+            dict: 预期结果
+        """
+        scenario = self.get_test_scenario(scenario_name)
+        return scenario.get("expected", {})
 
     def set_implicit_wait(self, timeout: int = 10) -> None:
         """
@@ -1157,7 +1201,7 @@ class AppBasePage:
             if self.screenshot_dir:
                 if self.screenshot_dir.startswith('/'):
                     screenshot_dir = os.path.join(project_root, self.screenshot_dir.lstrip('/'))
-                    # 如果是相对路径，也基于项目根目录
+                    # 如果是相对路径, 也基于项目根目录
                 else:
                     screenshot_dir = os.path.join(project_root, self.screenshot_dir)
 
@@ -1165,7 +1209,7 @@ class AppBasePage:
                 # 从项目配置获取截图保存路径
                 screenshot_dir = config.SCREENSHOT_DIR
 
-                # 如果配置中没有设置，使用默认路径
+                # 如果配置中没有设置, 使用默认路径
                 if not screenshot_dir:
                     screenshot_dir = os.path.join(project_root, "reports", "screenshots", "app")
 
@@ -1207,7 +1251,7 @@ class AppBasePage:
         import time
         start_time = time.time()
 
-        # 增加初始延迟，等待Toast出现
+        # 增加初始延迟, 等待Toast出现
         time.sleep(0.5)
 
         # 循环检测
@@ -1283,13 +1327,13 @@ class AppBasePage:
 
     def check_and_terminate_on_502_error(self) -> None:
         """
-        检查是否出现502错误弹窗，如果出现则终止测试
+        检查是否出现502错误弹窗, 如果出现则终止测试
         
         Raises:
             Exception: 当检测到502错误弹窗时抛出异常
         """
         if self.check_for_502_error():
-            raise Exception("检测到502错误弹窗，终止测试")
+            raise Exception("检测到502错误弹窗, 终止测试")
 
     @wait_after_with_jitter(1, 0.2)
     def launch_app_by_icon(self, app_name: str = "花选") -> bool:
