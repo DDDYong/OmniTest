@@ -86,7 +86,7 @@ class ActivityRewardVerification:
             # 查询数据库中的奖励配置
             query = """
                 SELECT activityType, rankNumber, rewardType, rewardId, rewardCount, sex FROM `kong_test`.`reward_option_config` 
-                WHERE activityNumber = %s
+                WHERE activityNumber = %s and (rewardId != 0 and rewardType != 0) and activityType = 308
             """
             rewards = self.db.execute_query(query, (self.activity_number,))
 
@@ -638,26 +638,26 @@ class ActivityRewardVerification:
             List[Dict]: 格式化后的榜单数据
         """
         # 查询数据并按value降序排列
-        query = """
-                SELECT number, userId, intimateId, category, stage, year, month, day, value
-                FROM `kong_test`.`activity_rank`
-                WHERE number = %s and category = %s and stage = %s
-                ORDER BY value DESC LIMIT %s
-            """
-
-        raw_data = self.db.execute_query(query, (self.activity_number, rank_category, stage, rank_coverage))
-        # 女神节榜单数据不是在activity_rank表中, 而是activity_group_member表中
         # query = """
-        #     select 1059 as number, userId, userId as intimateId, 0 as category, stage, -1 as year, -1 as month, -1 as day, score as value
-        #     from kong_test.activity_group_member
-        #     where groupId in (select groupId
-        #                       from kong_test.activity_group
-        #                       where activityId = 1059
-        #                         and activityType = 11
-        #                         and stage = '105905'
-        #                       order by scoreSum desc) order by score desc limit 7;
-        # """
-        # raw_data = self.db.execute_query(query, ())
+        #         SELECT number, userId, intimateId, category, stage, year, month, day, value
+        #         FROM `kong_test`.`activity_rank`
+        #         WHERE number = %s and category = %s and stage = %s
+        #         ORDER BY value DESC LIMIT %s
+        #     """
+        #
+        # raw_data = self.db.execute_query(query, (self.activity_number, rank_category, stage, rank_coverage))
+        # 女神节榜单数据不是在activity_rank表中, 而是activity_group_member表中
+        query = """
+            select 1059 as number, userId, userId as intimateId, 0 as category, stage, -1 as year, -1 as month, -1 as day, score as value
+            from kong_test.activity_group_member
+            where groupId in (select groupId
+                              from kong_test.activity_group
+                              where activityId = 1059
+                                and activityType = 11
+                                and stage = '105905'
+                              order by scoreSum desc) order by score desc limit 7;
+        """
+        raw_data = self.db.execute_query(query, ())
         return raw_data
 
     def _insert_test_ranking_data(self, ranking_category: str, stage: str, count: int) -> int:
