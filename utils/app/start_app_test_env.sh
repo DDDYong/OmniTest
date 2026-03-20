@@ -133,14 +133,15 @@ start_appium() {
     
     # 启动Appium
     local LOG_DIR="$PROJECT_ROOT/logs"
-    mkdir -p "$LOG_DIR"
+    local APPIUM_LOG_DIR="$LOG_DIR/appium"
+    mkdir -p "$APPIUM_LOG_DIR"
     
     # 设置Appium临时目录以避免权限问题
     export APPIUM_HOME="$PROJECT_ROOT/.appium"
     mkdir -p "$APPIUM_HOME"
     
     appium --port "$appium_port" \
-           --log "$LOG_DIR/appium_${device_idx}_${device_serial}.log" \
+           --log "$APPIUM_LOG_DIR/appium_${device_idx}_${device_serial}.log" \
            --log-level info \
            --relaxed-security \
            --allow-insecure=chromedriver_autodownload &

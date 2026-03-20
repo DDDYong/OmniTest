@@ -50,6 +50,9 @@ coverage/
 .coverage.*
 .cache
 
+# Appium dependencies
+.appium/
+
 # Environment variables
 .env
 .env.local

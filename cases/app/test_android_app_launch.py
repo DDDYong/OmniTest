@@ -179,10 +179,9 @@ class TestAndroidAppLaunch:
             current_activity = base_page.get_current_activity()
             logger.info(f"当前活动: {current_activity}")
 
-        with allure.step("截图保存"):
-            screenshot_path = ScreenshotUtils().capture_screenshot(driver, name = f"app_launched_{time.time()}")
-            logger.info(f"应用启动截图保存到: {screenshot_path}")
-
+        with allure.step("验证当前活动"):
+            assert current_activity == expected["current_activity"], \
+                f"当前活动不匹配: 期望'{expected['current_activity']}', 实际'{current_activity}'"
         logger.info("应用启动测试通过")
 
     @app_test(
