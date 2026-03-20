@@ -25,7 +25,7 @@ from utils.logger_util import logger
 class MultiUserLotteryProbabilityValidator:
     """
     多用户抽奖概率验证器
-    支持两种抽奖类型：消耗抽奖材料和直接消耗抽奖次数
+    支持两种抽奖类型: 消耗抽奖材料和直接消耗抽奖次数
     支持全服概率和个人概率计算
     """
 
@@ -93,7 +93,7 @@ class MultiUserLotteryProbabilityValidator:
         """
         self.logger.info(f"开始登录 {len(self.accounts)} 个用户")
 
-        # 线程安全锁，保护self.users字典
+        # 线程安全锁, 保护self.users字典
         users_lock = threading.Lock()
         success_count = 0
 
@@ -163,7 +163,7 @@ class MultiUserLotteryProbabilityValidator:
                 return False, account
 
         # 使用线程池执行并发登录
-        # 线程池大小设置为用户数量，最多不超过20
+        # 线程池大小设置为用户数量, 最多不超过20
         max_workers = min(len(self.accounts), 20)
 
         with ThreadPoolExecutor(max_workers = max_workers, thread_name_prefix = "LoginThread") as executor:
@@ -444,12 +444,12 @@ class MultiUserLotteryProbabilityValidator:
         Returns:
             Dict[str, float]: 奖品概率映射
         """
-        # 双重检查锁定模式，避免重复查询
+        # 双重检查锁定模式, 避免重复查询
         if self.prize_probabilities:
             return self.prize_probabilities
 
         with self._probability_lock:
-            # 再次检查，确保其他线程没有已经初始化
+            # 再次检查, 确保其他线程没有已经初始化
             if self.prize_probabilities:
                 return self.prize_probabilities
 
@@ -558,7 +558,7 @@ class MultiUserLotteryProbabilityValidator:
                                     lottery_result[prize_name] = count
                         self.logger.info(f"用户 {user_id} 抽奖成功, 奖品: {lottery_result}")
                     else:
-                        # 抽奖失败，根据错误码进行分类处理
+                        # 抽奖失败, 根据错误码进行分类处理
                         error_msg = response_json.get("err", "未知错误")
                         error_code = response_json.get("code", "未知错误")
 
@@ -586,7 +586,7 @@ class MultiUserLotteryProbabilityValidator:
                     # 其他未知异常
                     self.logger.error(f"[未知异常] 用户 {user_id} 抽奖接口调用异常: {error_str} - 停止重试")
                     lottery_result = {}
-                    consecutive_failures = max_consecutive_failures  # 标记为不可重试，加速退出
+                    consecutive_failures = max_consecutive_failures  # 标记为不可重试, 加速退出
             
             if lottery_result:
                 # 更新用户抽奖结果
@@ -646,7 +646,7 @@ class MultiUserLotteryProbabilityValidator:
         self.logger.info(f"抽奖次数选项: {self.times_options}")
 
         # 使用线程池执行并发抽奖
-        # 线程池大小设置为用户数量，最多不超过20
+        # 线程池大小设置为用户数量, 最多不超过20
         max_workers = min(len(user_times), 20)
 
         with ThreadPoolExecutor(max_workers = max_workers, thread_name_prefix = "LotteryThread") as executor:

@@ -200,13 +200,13 @@ def wait_with_jitter(base_delay = 2, jitter_factor = 0.3, jitter_type = "relativ
         def wrapper(*args, **kwargs):
             # 根据抖动类型计算抖动范围
             if jitter_type == "relative":
-                # 相对抖动：jitter_factor为比例（0-1之间）
+                # 相对抖动: jitter_factor为比例（0-1之间）
                 jitter_range = base_delay * jitter_factor
                 min_delay = base_delay - jitter_range
                 max_delay = base_delay + jitter_range
                 jitter_description = f"±{jitter_factor * 100:.0f}%"
             else:
-                # 绝对抖动：jitter_factor为绝对时间（秒）, 支持正负值
+                # 绝对抖动: jitter_factor为绝对时间（秒）, 支持正负值
                 min_delay = base_delay + jitter_factor
                 max_delay = base_delay - jitter_factor
                 jitter_description = f"±{abs(jitter_factor)}秒"
@@ -309,13 +309,13 @@ def wait_after_with_jitter(base_delay = 2, jitter_factor = 0.3, jitter_type = "r
 
             # 根据抖动类型计算抖动范围
             if jitter_type == "relative":
-                # 相对抖动：jitter_factor为比例（0-1之间）
+                # 相对抖动: jitter_factor为比例（0-1之间）
                 jitter_range = base_delay * jitter_factor
                 min_delay = base_delay - jitter_range
                 max_delay = base_delay + jitter_range
                 jitter_description = f"±{jitter_factor * 100:.0f}%"
             else:
-                # 绝对抖动：jitter_factor为绝对时间（秒）, 支持正负值
+                # 绝对抖动: jitter_factor为绝对时间（秒）, 支持正负值
                 min_delay = base_delay + jitter_factor
                 max_delay = base_delay - jitter_factor
                 jitter_description = f"±{abs(jitter_factor)}秒"
@@ -546,3 +546,161 @@ def singleton(cls):
         return instances[cls]
 
     return get_instance
+
+
+# 测试相关装饰器
+def allure_test(
+        feature: str = None,
+        story: str = None,
+        step: str = None,
+        title: str = None,
+        severity: str = None,
+        description: str = None,
+        epic: str = None,
+        tag: str = None,
+        tags: list = None
+) -> callable:
+    """
+    Allure测试装饰器
+    组合常用的Allure装饰器
+    
+    Args:
+        feature: 功能名称
+        story: 故事名称
+        step: 步骤描述
+        title: 测试标题
+        severity: 严重程度 (blocker, critical, normal, minor, trivial)
+        description: 测试描述
+        epic: 史诗名称
+        tag: 单个标签
+        tags: 标签列表
+        
+    Returns:
+        function: 装饰后的函数
+    """
+
+    def decorator(func):
+        import allure
+
+        if feature:
+            func = allure.feature(feature)(func)
+        if story:
+            func = allure.story(story)(func)
+        if step:
+            func = allure.step(step)(func)
+        if title:
+            func = allure.title(title)(func)
+        if severity:
+            func = allure.severity(severity)(func)
+        if description:
+            func = allure.description(description)(func)
+        if epic:
+            func = allure.epic(epic)(func)
+        if tag:
+            func = allure.tag(tag)(func)
+        if tags:
+            for t in tags:
+                func = allure.tag(t)(func)
+        return func
+
+    return decorator
+
+
+def app_test(smoke: bool = False, **kwargs) -> callable:
+    """
+    App测试装饰器
+    组合常用的App测试装饰器
+    
+    Args:
+        smoke: 是否为冒烟测试
+        **kwargs: 传递给allure_test的参数
+        
+    Returns:
+        function: 装饰后的函数
+    """
+
+    def decorator(func):
+        import pytest
+
+        if smoke:
+            func = pytest.mark.smoke(func)
+        func = pytest.mark.app(func)
+        func = allure_test(**kwargs)(func)
+        return func
+
+    return decorator
+
+
+def web_test(smoke: bool = False, **kwargs) -> callable:
+    """
+    Web测试装饰器
+    组合常用的Web测试装饰器
+    
+    Args:
+        smoke: 是否为冒烟测试
+        **kwargs: 传递给allure_test的参数
+        
+    Returns:
+        function: 装饰后的函数
+    """
+
+    def decorator(func):
+        import pytest
+
+        if smoke:
+            func = pytest.mark.smoke(func)
+        func = pytest.mark.web(func)
+        func = allure_test(**kwargs)(func)
+        return func
+
+    return decorator
+
+
+def api_test(smoke: bool = False, **kwargs) -> callable:
+    """
+    API测试装饰器
+    组合常用的API测试装饰器
+    
+    Args:
+        smoke: 是否为冒烟测试
+        **kwargs: 传递给allure_test的参数
+        
+    Returns:
+        function: 装饰后的函数
+    """
+
+    def decorator(func):
+        import pytest
+
+        if smoke:
+            func = pytest.mark.smoke(func)
+        func = pytest.mark.api(func)
+        func = allure_test(**kwargs)(func)
+        return func
+
+    return decorator
+
+
+def performance_test(smoke: bool = False, **kwargs) -> callable:
+    """
+    性能测试装饰器
+    组合常用的性能测试装饰器
+    
+    Args:
+        smoke: 是否为冒烟测试
+        **kwargs: 传递给allure_test的参数
+        
+    Returns:
+        function: 装饰后的函数
+    """
+
+    def decorator(func):
+        import pytest
+
+        if smoke:
+            func = pytest.mark.smoke(func)
+        func = pytest.mark.performance(func)
+        func = allure_test(**kwargs)(func)
+        return func
+
+    return decorator

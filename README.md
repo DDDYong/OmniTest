@@ -13,6 +13,43 @@ OmniTest 是一个全面的自动化测试框架,支持 API、Web、APP 和性�
 - **灵活配置管理**：支持环境配置、参数化和测试标记
 - **数据驱动测试**：内置数据处理工具,支持多种数据源
 
+## 配置与日志
+
+### 环境变量
+
+- `OMNITEST_ENV`：选择配置环境（如 `dev` / `test` / `prod`），对应加载 `config/{env}.yaml`
+- `LOG_LEVEL`：动态控制日志级别（`DEBUG` / `INFO` / `WARNING` / `ERROR`），优先级高于配置文件
+    - `LOG_LEVEL=DEBUG`：打印加载路径、重试细节与异常堆栈
+    - `LOG_LEVEL=INFO`：仅打印真正发生加载动作的一行摘要（reload 会带 `[Reload]` 前缀）
+    - `LOG_LEVEL>=WARNING`：仅在加载失败或配置校验不通过时输出
+- 启用 logging.yaml（两种方式都支持）：
+    - `LOG_CONFIG_PATH=/绝对路径/config/logging.yaml`
+    - `OMNITEST_USE_LOGGING_YAML=1`（默认读取项目内置的 `config/logging.yaml`）
+
+日志级别优先级（由高到低）：
+
+- `LOG_LEVEL` 环境变量
+- `config/{env}.yaml` 中的 `log.level`
+- `logging.yaml` 中 logger/handler 的默认 level
+
+### reload 用法
+
+`ConfigManager` 支持运行时热更新配置（成功后替换缓存，失败回滚）：
+
+```python
+from config.config_manager import get_config_manager
+
+cm = get_config_manager()
+cm.reload()  # 使用当前 config_dir 重载
+cm.reload("config")  # 指定目录重载（读取该目录下 default.yaml 与 {env}.yaml）
+cm.reload("config/test.yaml")  # 指定文件重载（该文件视为环境配置文件）
+```
+
+### 日志模板示例
+
+项目提供了示例配置 [logging.yaml](file:///Users/apple/duanyang/PyProduct/OmniTest/config/logging.yaml)，展示如何把
+`config_alias/reload/module_name/lineno` 等字段注入到统一格式中。
+
 ## 项目结构
 
 ```

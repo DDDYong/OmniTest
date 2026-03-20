@@ -17,7 +17,7 @@ api:
 web:
   # Web应用基础URL
   base_url: http://web.example.com
-  # 浏览器类型：chrome, firefox, edge, safari
+  # 浏览器类型: chrome, firefox, edge, safari
   browser: chrome
 
 # APP配置 - 生产环境特定配置

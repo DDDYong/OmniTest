@@ -42,7 +42,7 @@ class ActivityRewardVerification:
         self.db = MySQLClient(config_manager.get_mysql_config())
         self.reward_mapper = RewardTypeMapper()
 
-        # 缓存字典，减少重复的文件读取和数据库查询
+        # 缓存字典, 减少重复的文件读取和数据库查询
         self._cache = {
             'activity_reward_config_doc': [],
             'activity_reward_config_db': [],
@@ -61,7 +61,7 @@ class ActivityRewardVerification:
         Returns:
             dict: 奖励配置
         """
-        # 检查缓存中是否已有文档配置，避免重复读取YAML文件
+        # 检查缓存中是否已有文档配置, 避免重复读取YAML文件
         if not self._cache['activity_reward_config_doc']:
             self.logger.info("获取活动文档中的奖励配置")
             activity_reward_config = self.filehandler.read_yaml(activity_config_path)
@@ -79,14 +79,14 @@ class ActivityRewardVerification:
         Returns:
             List[Dict]: 处理后的奖励配置列表
         """
-        # 检查缓存中是否已有数据库配置，避免重复查询数据库
+        # 检查缓存中是否已有数据库配置, 避免重复查询数据库
         if not self._cache['activity_reward_config_db']:
             self.logger.info("获取数据库中的奖励配置")
 
             # 查询数据库中的奖励配置
             query = """
                 SELECT activityType, rankNumber, rewardType, rewardId, rewardCount, sex FROM `kong_test`.`reward_option_config` 
-                WHERE activityNumber = %s
+                WHERE activityNumber = %s and (rewardId != 0 and rewardType != 0) and activityType = 308
             """
             rewards = self.db.execute_query(query, (self.activity_number,))
 
@@ -217,7 +217,7 @@ class ActivityRewardVerification:
                 })
 
             # rewardID一致, 进一步校验奖励有效期(valid_days vs rewardCount)是否一致
-            # 特殊处理：勋章(Type=1)和靓号(Type=6)是永久奖励, 跳过有效期校验
+            # 特殊处理: 勋章(Type=1)和靓号(Type=6)是永久奖励, 跳过有效期校验
             if rewardType_db in {1, 6}:
                 if rewardCount_db == 1:
                     continue
@@ -297,11 +297,11 @@ class ActivityRewardVerification:
         """
         获取活动榜单数据 - 用户排名及对应奖励
         Args:
-            filter_rank_types: 可选，要获取的榜单类型列表
+            filter_rank_types: 可选, 要获取的榜单类型列表
         Returns:
             List[Dict]: 格式化后的榜单数据
         """
-        # 构建缓存键，包括过滤条件
+        # 构建缓存键, 包括过滤条件
         cache_key = (tuple(filter_rank_types) if filter_rank_types else None)
 
         # 检查缓存中是否已有对应过滤条件的榜单数据
@@ -333,13 +333,13 @@ class ActivityRewardVerification:
                 result = self.db.get_one(query, (self.activity_number,))
                 stage = util.format_time(util.get_time_delta(datetime_obj = result.get('nowTime'), days = -1), format_str = '%Y%m%d')
             elif '总榜' in activity_type_name:
-                # 只有一个赛段时, stage设为-1, TODO 多赛段时，stage的值
+                # 只有一个赛段时, stage设为-1, TODO 多赛段时, stage的值
                 stage = "-1"
             else:
                 self.logger.warning(f"未知榜单类型: {activity_type_name}, 跳过处理")
                 continue
 
-            self.logger.info(f"处理榜单配置：{activity_type_name}, 阶段={stage}, TopN={rank_coverage}")
+            self.logger.info(f"处理榜单配置: {activity_type_name}, 阶段={stage}, TopN={rank_coverage}")
 
             try:
                 # 按条件查询榜单数据
@@ -387,16 +387,16 @@ class ActivityRewardVerification:
                                   filter_rank_types: Optional[List[int]] = None,
                                   exclude_accumulate_types: Optional[List[int]] = None) -> Dict:
         """
-        获取用户预期奖励，按用户ID分组
+        获取用户预期奖励, 按用户ID分组
 
         Args:
             ranking_data: 榜单数据
             activity_reward_config: 活动奖励配置
-            filter_rank_types: 可选，要获取的榜单类型列表
-            exclude_accumulate_types: 可选，不需要累加有效期的奖励类型列表，默认[1, 6]（勋章、靓号）
+            filter_rank_types: 可选, 要获取的榜单类型列表
+            exclude_accumulate_types: 可选, 不需要累加有效期的奖励类型列表, 默认[1, 6]（勋章、靓号）
 
         Returns:
-            Dict: 按用户ID分组的预期奖励，格式: {user_id: {rank_type: {ranking: expected_rewards}}}
+            Dict: 按用户ID分组的预期奖励, 格式: {user_id: {rank_type: {ranking: expected_rewards}}}
         """
 
         # 构建缓存键
@@ -430,7 +430,7 @@ class ActivityRewardVerification:
             user_id = user_data.get('user_id')
             rank_type = user_data.get('rank_type')
 
-            # 指定过滤条件，只处理指定的榜单类型
+            # 指定过滤条件, 只处理指定的榜单类型
             if filter_rank_types and rank_type not in filter_rank_types:
                 continue
 
@@ -462,7 +462,7 @@ class ActivityRewardVerification:
             ranking = user_data.get('ranking')
             rank_type = user_data.get('rank_type')
 
-            # 指定过滤条件，只处理指定的榜单类型
+            # 指定过滤条件, 只处理指定的榜单类型
             if filter_rank_types and rank_type not in filter_rank_types:
                 continue
 
@@ -491,7 +491,7 @@ class ActivityRewardVerification:
                         user_reward_aggregate[user_id] = {}
                     # 确保 reward_id 是可哈希的类型
                     if isinstance(reward_id, dict):
-                        # 如果 reward_id 是字典，尝试获取其 id 键值
+                        # 如果 reward_id 是字典, 尝试获取其 id 键值
                         reward_id = reward_id.get('id', str(reward_id))
                     reward_key = (reward_type, reward_id)
                     reward_info = user_reward_aggregate[user_id].setdefault(reward_key, {
@@ -505,7 +505,7 @@ class ActivityRewardVerification:
 
                     # 陪伴师专属奖励
                 if user_role == 5 and reward_type == 5:
-                    # 超级VIP奖励，需要累加有效期
+                    # 超级VIP奖励, 需要累加有效期
                     if user_id not in user_reward_aggregate:
                         user_reward_aggregate[user_id] = {}
                     reward_key = (reward_type, reward_id)
@@ -521,7 +521,7 @@ class ActivityRewardVerification:
                     user_reward_aggregate[user_id][reward_key]['accumulated_days'].append(valid_days)
                 # 普通用户专属奖励
                 elif user_role == 0 and reward_type == 16:
-                    # 公爵贵族奖励，需要累加有效期
+                    # 公爵贵族奖励, 需要累加有效期
                     if user_id not in user_reward_aggregate:
                         user_reward_aggregate[user_id] = {}
                     reward_key = (reward_type, reward_id)
@@ -551,7 +551,7 @@ class ActivityRewardVerification:
             # 添加需要累加的奖励
             if user_id in user_reward_aggregate:
                 for key, reward_info in user_reward_aggregate[user_id].items():
-                    reward_type, reward_id = key  # 解包键，获取 reward_type 和 reward_id
+                    reward_type, reward_id = key  # 解包键, 获取 reward_type 和 reward_id
                     if 'aggregate' not in user_expected_rewards[user_id]:
                         user_expected_rewards[user_id]['aggregate'] = {}
                     # 使用0作为排名标识
@@ -567,7 +567,7 @@ class ActivityRewardVerification:
                     accumulated_days = reward_info.get('accumulated_days', [])
                     if len(accumulated_days) > 1:
                         expr = ' + '.join(map(str, accumulated_days))
-                        self.logger.info(f"用户[{user_id}] 奖励类型[{reward_type}] 已累加，累计有效期[{expr} = {reward_info['valid_days']}]天")
+                        self.logger.info(f"用户[{user_id}] 奖励类型[{reward_type}] 已累加, 累计有效期[{expr} = {reward_info['valid_days']}]天")
                     else:
                         self.logger.info(f"用户[{user_id}] 奖励类型[{reward_type}] 有效期[{reward_info['valid_days']}]天")
 
@@ -577,14 +577,14 @@ class ActivityRewardVerification:
             ranking = user_data.get('ranking')
             rank_type = user_data.get('rank_type')
 
-            # 指定过滤条件，只处理指定的榜单类型
+            # 指定过滤条件, 只处理指定的榜单类型
             if filter_rank_types and rank_type not in filter_rank_types:
                 continue
 
             # 获取用户应得奖励
             expected_rewards = self.get_expected_rewards_by_ranking(ranking, rank_type, activity_reward_config)
 
-            # 根据用户角色和性别筛选奖励：只保留不需要累加的奖励类型和装扮类奖励
+            # 根据用户角色和性别筛选奖励: 只保留不需要累加的奖励类型和装扮类奖励
             # user_role = user_role_map.get(user_id, 0)  # 默认普通用户
             user_sex = user_sex_map.get(user_id, 1)  # 默认性别男
             filtered_rewards = []
@@ -601,7 +601,7 @@ class ActivityRewardVerification:
                 # 头像框奖励区分男女用户
                 if reward_type == 2:  # AVATAR_COVER
                     if ('（男）' in reward_desc and user_sex != 1) or ('（女）' in reward_desc and user_sex != 2):
-                        self.logger.debug(f"用户{user_id}性别{user_sex}不匹配头像框奖励{reward_desc}，跳过")
+                        self.logger.debug(f"用户{user_id}性别{user_sex}不匹配头像框奖励{reward_desc}, 跳过")
                         continue
 
                 if isinstance(reward_id, dict):
@@ -638,26 +638,26 @@ class ActivityRewardVerification:
             List[Dict]: 格式化后的榜单数据
         """
         # 查询数据并按value降序排列
-        query = """
-                SELECT number, userId, intimateId, category, stage, year, month, day, value
-                FROM `kong_test`.`activity_rank`
-                WHERE number = %s and category = %s and stage = %s
-                ORDER BY value DESC LIMIT %s
-            """
-
-        raw_data = self.db.execute_query(query, (self.activity_number, rank_category, stage, rank_coverage))
-        # 女神节榜单数据不是在activity_rank表中, 而是activity_group_member表中
         # query = """
-        #     select 1059 as number, userId, userId as intimateId, 0 as category, stage, -1 as year, -1 as month, -1 as day, score as value
-        #     from kong_test.activity_group_member
-        #     where groupId in (select groupId
-        #                       from kong_test.activity_group
-        #                       where activityId = 1059
-        #                         and activityType = 11
-        #                         and stage = '105905'
-        #                       order by scoreSum desc) order by score desc limit 7;
-        # """
-        # raw_data = self.db.execute_query(query, ())
+        #         SELECT number, userId, intimateId, category, stage, year, month, day, value
+        #         FROM `kong_test`.`activity_rank`
+        #         WHERE number = %s and category = %s and stage = %s
+        #         ORDER BY value DESC LIMIT %s
+        #     """
+        #
+        # raw_data = self.db.execute_query(query, (self.activity_number, rank_category, stage, rank_coverage))
+        # 女神节榜单数据不是在activity_rank表中, 而是activity_group_member表中
+        query = """
+            select 1059 as number, userId, userId as intimateId, 0 as category, stage, -1 as year, -1 as month, -1 as day, score as value
+            from kong_test.activity_group_member
+            where groupId in (select groupId
+                              from kong_test.activity_group
+                              where activityId = 1059
+                                and activityType = 11
+                                and stage = '105905'
+                              order by scoreSum desc) order by score desc limit 7;
+        """
+        raw_data = self.db.execute_query(query, ())
         return raw_data
 
     def _insert_test_ranking_data(self, ranking_category: str, stage: str, count: int) -> int:
@@ -717,7 +717,7 @@ class ActivityRewardVerification:
         if other_stage_data:
             # 先复制所有可用的其他榜单数据
             copy_count = min(len(other_stage_data), count)
-            self.logger.info(f"发现同一类型的其他榜单有{len(other_stage_data)}条数据，复制其中{copy_count}条")
+            self.logger.info(f"发现同一类型的其他榜单有{len(other_stage_data)}条数据, 复制其中{copy_count}条")
 
             for i in range(copy_count):
                 insert_query = """
@@ -754,14 +754,14 @@ class ActivityRewardVerification:
 
             self.logger.info(f"已复制插入 {inserted_count} 条测试数据")
 
-            # 满足榜单数量要求，直接返回
+            # 满足榜单数量要求, 直接返回
             if inserted_count >= count:
                 return inserted_count
             else:
                 # 还需要生成的随机数据数量
                 remaining_count = count - inserted_count
         else:
-            # 没有其他榜单数据，全部使用随机数据生成
+            # 没有其他榜单数据, 全部使用随机数据生成
             remaining_count = count
 
         # 生成剩余的随机数据
@@ -790,7 +790,7 @@ class ActivityRewardVerification:
                             existing_user_pairs.add(user_pair)
                             break
                     else:
-                        self.logger.warning(f"无法为第 {i + 1} 条记录生成唯一的单人记录，已跳过")
+                        self.logger.warning(f"无法为第 {i + 1} 条记录生成唯一的单人记录, 已跳过")
                         continue
                 else:  # 双人榜
                     # 生成唯一的用户对
@@ -814,7 +814,7 @@ class ActivityRewardVerification:
                             existing_user_pairs.add(user_pair)
                             break
                     else:
-                        self.logger.warning(f"无法为第 {i + 1} 条记录生成唯一的用户对，已跳过")
+                        self.logger.warning(f"无法为第 {i + 1} 条记录生成唯一的用户对, 已跳过")
                         continue
 
                 # 构建复制插入SQL, 只修改关键字段
@@ -922,7 +922,7 @@ class ActivityRewardVerification:
             self.logger.error(f"无效的排名或榜单类型参数: ranking={ranking}, activity_type={activity_type}, 错误: {str(e)}")
             return []
 
-        # 检查缓存中是否已有结果，避免重复计算
+        # 检查缓存中是否已有结果, 避免重复计算
         cache_key = (ranking, activity_type)
         if cache_key in self._cache['expected_rewards']:
             return self._cache['expected_rewards'][cache_key]
@@ -930,7 +930,7 @@ class ActivityRewardVerification:
         expected_rewards = []
         self.logger.debug(f"查找排名 {ranking} 在榜单类型 {activity_type} 的奖励配置")
 
-        # 构建榜单类型到配置的映射，提高查找效率
+        # 构建榜单类型到配置的映射, 提高查找效率
         activity_config_map = {int(cfg.get('activityType')): cfg for cfg in activity_reward_config}
 
         # 查找对应榜单类型的配置
@@ -948,7 +948,7 @@ class ActivityRewardVerification:
                 reward_detail = reward_detail_dict[target_ranking]
                 rewards = reward_detail.get('rewards', [])
                 expected_rewards.extend(rewards)
-                self.logger.debug(f"找到排名 {ranking} 的奖励配置，共 {len(rewards)} 个奖励")
+                self.logger.debug(f"找到排名 {ranking} 的奖励配置, 共 {len(rewards)} 个奖励")
             else:
                 self.logger.warning(f"在榜单类型 {activity_type} 中未找到排名 {ranking} 的奖励配置")
                 # 列出该榜单所有可用的排名
@@ -973,7 +973,7 @@ class ActivityRewardVerification:
         Args:
             ranking_data: 榜单数据
             activity_reward_config: 活动奖励配置
-            filter_rank_types: 可选，要清除的榜单类型列表
+            filter_rank_types: 可选, 要清除的榜单类型列表
         """
         # 获取用户预期奖励（使用缓存）
         user_expected_rewards = self.get_user_expected_rewards(ranking_data, activity_reward_config, filter_rank_types)
@@ -987,13 +987,13 @@ class ActivityRewardVerification:
         super_vip_to_clear = []
         nice_number_to_clear = []
 
-        # 遍历用户数据，收集需要清除的奖励
+        # 遍历用户数据, 收集需要清除的奖励
         for user_data in ranking_data:
             user_id = user_data.get('user_id')
             ranking = user_data.get('ranking')
             activity_type = user_data.get('rank_type')
 
-            # 指定过滤条件，只处理指定的榜单类型
+            # 指定过滤条件, 只处理指定的榜单类型
             if filter_rank_types and activity_type not in filter_rank_types:
                 continue
 
@@ -1023,7 +1023,7 @@ class ActivityRewardVerification:
                     # 荣誉称号
                     title_to_clear.append((user_id, reward_id))
                 elif reward_type in {16, 17}:
-                    # 贵族 - 16为公爵，17为子爵
+                    # 贵族 - 16为公爵, 17为子爵
                     nobleman_id = 7 if reward_type == 16 else 4
                     noble_to_clear.append((user_id, nobleman_id))
                 elif reward_type == 4:
@@ -1036,43 +1036,43 @@ class ActivityRewardVerification:
                     # 靓号
                     nice_number_to_clear.append((user_id, reward_id))
                 else:
-                    self.logger.warning(f"未知的奖励类型: {reward_type}，无法清除")
+                    self.logger.warning(f"未知的奖励类型: {reward_type}, 无法清除")
 
         # 批量执行清除操作
         if dress_to_clear:
             query = "DELETE FROM `kong_test`.`user_dress` WHERE userId = %s and dressId = %s"
             affected_rows = self.db.execute_many(query, dress_to_clear)
-            self.logger.info(f"批量清除装扮奖励，共影响 {affected_rows} 条记录")
+            self.logger.info(f"批量清除装扮奖励, 共影响 {affected_rows} 条记录")
 
         if medal_to_clear:
             query = "DELETE FROM `kong_test`.`user_medal` WHERE userId = %s and medalId = %s"
             affected_rows = self.db.execute_many(query, medal_to_clear)
-            self.logger.info(f"批量清除勋章奖励，共影响 {affected_rows} 条记录")
+            self.logger.info(f"批量清除勋章奖励, 共影响 {affected_rows} 条记录")
 
         if title_to_clear:
             query = "DELETE FROM `kong_test`.`user_honor_title` WHERE userId = %s and titleId = %s"
             affected_rows = self.db.execute_many(query, title_to_clear)
-            self.logger.info(f"批量清除荣誉称号奖励，共影响 {affected_rows} 条记录")
+            self.logger.info(f"批量清除荣誉称号奖励, 共影响 {affected_rows} 条记录")
 
         if noble_to_clear:
             query = "UPDATE `kong_test`.`user_nobleman_level` SET isNobleman = 0, noblemanExpire = DATE_SUB(NOW(), INTERVAL 1 DAY) WHERE userId = %s and noblemanId = %s"
             affected_rows = self.db.execute_many(query, noble_to_clear)
-            self.logger.info(f"批量清除贵族奖励，共影响 {affected_rows} 条记录")
+            self.logger.info(f"批量清除贵族奖励, 共影响 {affected_rows} 条记录")
 
         if vip_to_clear:
             query = "UPDATE `kong_test`.`user` SET isVip = 0, vipExpire = UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 1 DAY)) * 1000 WHERE userId = %s"
             affected_rows = self.db.execute_many(query, vip_to_clear)
-            self.logger.info(f"批量清除VIP奖励，共影响 {affected_rows} 条记录")
+            self.logger.info(f"批量清除VIP奖励, 共影响 {affected_rows} 条记录")
 
         if super_vip_to_clear:
             query = "UPDATE `kong_test`.`user` SET isSuperVip = 0, superVipExpire = UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL 1 DAY)) * 1000 WHERE userId = %s"
             affected_rows = self.db.execute_many(query, super_vip_to_clear)
-            self.logger.info(f"批量清除超级VIP奖励，共影响 {affected_rows} 条记录")
+            self.logger.info(f"批量清除超级VIP奖励, 共影响 {affected_rows} 条记录")
 
         if nice_number_to_clear:
             query = "DELETE FROM `kong_test`.`user_gift` WHERE userId = %s and giftId = %s"
             affected_rows = self.db.execute_many(query, nice_number_to_clear)
-            self.logger.info(f"批量清除靓号奖励，共影响 {affected_rows} 条记录")
+            self.logger.info(f"批量清除靓号奖励, 共影响 {affected_rows} 条记录")
 
     def get_scheduled_tasks(self) -> List[Dict]:
         """
@@ -1130,7 +1130,7 @@ class ActivityRewardVerification:
         Args:
             ranking_data: 榜单数据
             activity_reward_config: 活动奖励配置
-            filter_rank_types: 可选，要验证的榜单类型列表
+            filter_rank_types: 可选, 要验证的榜单类型列表
 
         Returns:
             Dict[str, Any]: 验证结果
@@ -1143,7 +1143,7 @@ class ActivityRewardVerification:
             "reward_validation_details": []
         }
 
-        # 按用户ID分组处理，过滤符合filter_rank_types的榜单数据
+        # 按用户ID分组处理, 过滤符合filter_rank_types的榜单数据
         user_ranking_dict = {}
         for data in ranking_data:
             rank_type = data.get('rank_type')
@@ -1158,7 +1158,7 @@ class ActivityRewardVerification:
 
         validation_result["total_users"] = list(user_ranking_dict.keys())
 
-        # 如果没有用户数据，直接返回
+        # 如果没有用户数据, 直接返回
         if not user_ranking_dict:
             return validation_result
 
@@ -1300,7 +1300,7 @@ class ActivityRewardVerification:
                 rankings_info = []
                 for rank_info in user_validation['rankings']:
                     rankings_info.append(f"{rank_info['rank_type_name']}第{rank_info['rank']}名")
-                rankings_str = "，".join(rankings_info)
+                rankings_str = ", ".join(rankings_info)
 
                 self.logger.error(f"  用户ID: {user_id} ({rankings_str})")
                 for reward_validation in user_validation['validation_results']:
@@ -1340,7 +1340,7 @@ class ActivityRewardVerification:
             if dress_id not in result_dict[user_id]:
                 result_dict[user_id][dress_id] = {}
 
-            # 如果相同装扮已存在，累计有效期；否则直接设置
+            # 如果相同装扮已存在, 累计有效期; 否则直接设置
             if category in result_dict[user_id][dress_id]:
                 result_dict[user_id][dress_id][category] += valid_day
             else:
@@ -1661,7 +1661,7 @@ class ActivityRewardVerification:
                 # 获取当前任务对应的榜单类型
                 rank_types = task_rank_type_map.get(task_id)
                 if not rank_types:
-                    self.logger.warning(f"无法识别定时任务 {task_name} 对应的榜单类型，跳过执行")
+                    self.logger.warning(f"无法识别定时任务 {task_name} 对应的榜单类型, 跳过执行")
                     continue
                 rank_type_names = [self.rank_mapping.get(rank_type) for rank_type in rank_types]
 
@@ -1676,7 +1676,7 @@ class ActivityRewardVerification:
                 # 6.3、执行定时任务
                 self.logger.info(f"开始执行定时任务: {task_name}")
                 if not self.execute_scheduled_task(task):
-                    self.logger.error(f"定时任务 {task_name} 执行失败，跳过该榜单验证")
+                    self.logger.error(f"定时任务 {task_name} 执行失败, 跳过该榜单验证")
                     all_tasks_successful = False
                     continue
 
