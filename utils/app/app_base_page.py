@@ -53,17 +53,20 @@ class AppBasePage:
         "partial_link_text": By.PARTIAL_LINK_TEXT
     }
 
-    def __init__(self, driver: AppiumDriver, screenshot_dir: Optional[str] = None):
+    def __init__(self, driver: AppiumDriver, screenshot_dir: Optional[str] = None, test_data: Optional[dict] = None):
         """
         初始化页面类
 
         Args:
             driver: Appium驱动实例
             screenshot_dir: 截图保存目录
+            test_data: 测试数据字典
         """
         self.driver = driver
         self.utils = util
         self.screenshot_utils = ScreenshotUtils()
+        # 测试数据
+        self.test_data = test_data or {}
         # 配置
         self.default_timeout = getattr(config, "DEFAULT_TIMEOUT", 5)
         self.implicit_wait = getattr(config, "IMPLICIT_WAIT", 10)
@@ -75,6 +78,47 @@ class AppBasePage:
         self.set_implicit_wait(self.implicit_wait)
 
         logger.info(f"初始化 {self.__class__.__name__}")
+
+    def get_test_scenario(self, scenario_name: str) -> dict:
+        """
+        根据场景名称获取测试数据
+
+        Args:
+            scenario_name: 场景名称
+
+        Returns:
+            dict: 测试场景数据
+        """
+        for scenario in self.test_data.get("test_scenarios", []):
+            if scenario.get("name") == scenario_name:
+                return scenario
+        return {}
+
+    def get_test_data(self, scenario_name: str) -> dict:
+        """
+        获取测试数据
+
+        Args:
+            scenario_name: 场景名称
+
+        Returns:
+            dict: 测试数据
+        """
+        scenario = self.get_test_scenario(scenario_name)
+        return scenario.get("test_data", {})
+
+    def get_expected_result(self, scenario_name: str) -> dict:
+        """
+        获取预期结果
+
+        Args:
+            scenario_name: 场景名称
+
+        Returns:
+            dict: 预期结果
+        """
+        scenario = self.get_test_scenario(scenario_name)
+        return scenario.get("expected", {})
 
     def set_implicit_wait(self, timeout: int = 10) -> None:
         """
@@ -823,24 +867,19 @@ class AppBasePage:
             logger.error(f"执行返回操作时发生错误: {str(e)}")
             return False
 
-    def press_home(self) -> None:
+    def press_home(self) -> bool:
         """
         按Home键
-        """
-        logger.info("按Home键")
-        self.driver.press_keycode(3) if self.driver.capabilities['platformName'].lower() == 'android' else \
-            self.driver.execute_script("mobile: pressButton", {"name": "home"})
-
-    def press_home_button(self) -> bool:
-        """
-        按下Home键
 
         Returns:
             操作是否成功
         """
         try:
-            logger.debug("按下Home键")
-            self.driver.press_keycode(3)  # Android Home键的keycode是3
+            logger.info("按Home键")
+            if self.driver.capabilities['platformName'].lower() == 'android':
+                self.driver.press_keycode(3)  # Android Home键的keycode是3
+            else:
+                self.driver.execute_script("mobile: pressButton", {"name": "home"})
             return True
         except Exception as e:
             logger.error(f"按下Home键时发生错误: {str(e)}")
@@ -871,25 +910,9 @@ class AppBasePage:
         except Exception as e:
             logger.warning(f"隐藏键盘时发生错误（可能键盘已隐藏）: {str(e)}")
 
-    def tap_screen(self, x: int, y: int, duration: Optional[int] = None) -> None:
+    def tap_screen(self, x: int, y: int, duration: Optional[int] = None) -> bool:
         """
         点击屏幕指定坐标
-
-        Args:
-            x: X坐标
-            y: Y坐标
-            duration: 点击持续时间（毫秒）
-        """
-        logger.info(f"点击屏幕坐标: ({x}, {y})")
-
-        if duration:
-            self.driver.tap([(x, y)], duration)
-        else:
-            self.driver.tap([(x, y)])
-
-    def tap_coordinates(self, x: int, y: int, duration: int = 100) -> bool:
-        """
-        在指定坐标处点击
 
         Args:
             x: X坐标
@@ -900,8 +923,11 @@ class AppBasePage:
             点击是否成功
         """
         try:
-            logger.debug(f"点击坐标: ({x}, {y}), 持续时间={duration}毫秒")
-            self.driver.tap([(x, y)], duration)
+            logger.info(f"点击屏幕坐标: ({x}, {y})")
+            if duration:
+                self.driver.tap([(x, y)], duration)
+            else:
+                self.driver.tap([(x, y)])
             return True
         except Exception as e:
             logger.error(f"点击坐标时发生错误: ({x}, {y}), 错误: {str(e)}")
@@ -1113,80 +1139,25 @@ class AppBasePage:
 
         return False
 
-    def capture_screenshot(self, filename: Optional[str] = None) -> str:
+    def capture_screenshot(self, filename: Optional[str] = None, description: str = "") -> Optional[str]:
         """
         截取当前屏幕
 
         Args:
             filename: 截图文件名（不含路径和扩展名）
-
-        Returns:
-            str: 截图文件路径
-        """
-        return self.screenshot_utils.capture_screenshot(
-            driver = self.driver,
-            name = filename or f"app_screenshot_{self.utils.get_timestamp()}"
-        )
-
-    def take_screenshot(self, filename: str = None, description: str = "") -> Optional[str]:
-        """
-        截图
-
-        Args:
-            filename: 文件名,如果为None则自动生成
             description: 截图描述
 
         Returns:
-            截图保存路径,如果保存失败则返回None
+            str: 截图文件路径，如果失败则返回None
         """
         try:
-            import os
-            from datetime import datetime
-
-            # 生成截图名称
-            if filename is None:
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
-                filename = f"screenshot_{timestamp}"
-
-            # 确保名称不包含扩展名
-            if not filename.endswith('.png'):
-                filename = f"{filename}.png"
-            from utils.path_util import path_util
-            project_root = path_util.get_project_root()
-            # 确定截图保存路径
-            if self.screenshot_dir:
-                if self.screenshot_dir.startswith('/'):
-                    screenshot_dir = os.path.join(project_root, self.screenshot_dir.lstrip('/'))
-                    # 如果是相对路径，也基于项目根目录
-                else:
-                    screenshot_dir = os.path.join(project_root, self.screenshot_dir)
-
-            else:
-                # 从项目配置获取截图保存路径
-                screenshot_dir = config.SCREENSHOT_DIR
-
-                # 如果配置中没有设置，使用默认路径
-                if not screenshot_dir:
-                    screenshot_dir = os.path.join(project_root, "reports", "screenshots", "app")
-
-            # 确保目录存在
-            os.makedirs(screenshot_dir, exist_ok = True)
-
-            # 生成截图路径
-            screenshot_path = os.path.join(screenshot_dir, filename)
-
-            # 执行截图
-            success = self.driver.save_screenshot(screenshot_path)
-
-            if success:
-                logger.info(f"截图成功: {screenshot_path}")
-                if description:
-                    logger.info(f"截图描述: {description}")
-                return screenshot_path
-            else:
-                logger.error("截图失败")
-                return None
-
+            screenshot_path = self.screenshot_utils.capture_screenshot(
+                driver = self.driver,
+                name = filename or f"app_screenshot_{self.utils.get_timestamp()}"
+            )
+            if screenshot_path and description:
+                logger.info(f"截图描述: {description}")
+            return screenshot_path
         except Exception as e:
             logger.error(f"截图时发生错误: {str(e)}")
             return None
@@ -1207,7 +1178,7 @@ class AppBasePage:
         import time
         start_time = time.time()
 
-        # 增加初始延迟，等待Toast出现
+        # 增加初始延迟, 等待Toast出现
         time.sleep(0.5)
 
         # 循环检测
@@ -1283,13 +1254,13 @@ class AppBasePage:
 
     def check_and_terminate_on_502_error(self) -> None:
         """
-        检查是否出现502错误弹窗，如果出现则终止测试
+        检查是否出现502错误弹窗, 如果出现则终止测试
         
         Raises:
             Exception: 当检测到502错误弹窗时抛出异常
         """
         if self.check_for_502_error():
-            raise Exception("检测到502错误弹窗，终止测试")
+            raise Exception("检测到502错误弹窗, 终止测试")
 
     @wait_after_with_jitter(1, 0.2)
     def launch_app_by_icon(self, app_name: str = "花选") -> bool:

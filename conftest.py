@@ -157,10 +157,14 @@ def parallel_appium_driver(appium_manager, request):
     finally:
         if driver:
             try:
-                driver.quit()
-                logger.info("Appium驱动已关闭")
+                # 检查会话是否仍然有效
+                if hasattr(driver, 'session_id') and driver.session_id:
+                    driver.quit()
+                    logger.info("Appium驱动已关闭")
+                else:
+                    logger.info("Appium会话已终止, 无需再次关闭")
             except Exception as e:
-                logger.error(f"关闭驱动时发生错误: {str(e)}")
+                logger.warning(f"关闭驱动时发生错误（会话可能已终止）: {str(e)}")
 
 
 # WebDriver夹具需要在测试文件中根据具体浏览器类型实现
@@ -207,7 +211,7 @@ def setup_teardown(request):
     logger.info(f"测试用例 {full_test_name} 执行{test_result},耗时: {duration:.2f}秒")
 
 
-# 钩子函数：记录测试结果
+# 钩子函数: 记录测试结果
 @pytest.hookimpl(tryfirst = True, hookwrapper = True)
 def pytest_runtest_makereport(item, call):
     """
@@ -263,18 +267,18 @@ def pytest_runtest_makereport(item, call):
         )
 
 
-# 钩子函数：测试收集完成
+# 钩子函数: 测试收集完成
 @pytest.hookimpl(tryfirst = True)
 def pytest_collection_modifyitems(items, config):
     """
     测试收集完成后的钩子函数
     可以用来重新排序测试用例、过滤测试用例等
-    修复：在pytest-xdist多进程环境下，只在master进程中输出收集信息
+    修复: 在pytest-xdist多进程环境下, 只在master进程中输出收集信息
     """
     # 检查是否在xdist worker进程中
     is_xdist_worker = os.environ.get("PYTEST_XDIST_WORKER") is not None
 
-    # 如果是worker进程，不输出收集信息
+    # 如果是worker进程, 不输出收集信息
     if is_xdist_worker:
         return
 
@@ -302,17 +306,17 @@ def pytest_collection_modifyitems(items, config):
     )
 
 
-# 钩子函数：测试会话开始
+# 钩子函数: 测试会话开始
 @pytest.hookimpl(tryfirst = True)
 def pytest_sessionstart(session):
     """
     测试会话开始时的钩子函数
-    修复：在pytest-xdist多进程环境下，只在master进程中输出会话开始信息
+    修复: 在pytest-xdist多进程环境下, 只在master进程中输出会话开始信息
     """
     # 检查是否在xdist worker进程中
     is_xdist_worker = os.environ.get("PYTEST_XDIST_WORKER") is not None
 
-    # 如果是worker进程，不输出会话开始信息
+    # 如果是worker进程, 不输出会话开始信息
     if is_xdist_worker:
         logger.debug(f"Worker进程 {os.environ.get('PYTEST_XDIST_WORKER')} 启动")
         return
@@ -345,20 +349,20 @@ def pytest_sessionstart(session):
     logger.info("=" * 80)
 
 
-# 钩子函数：测试会话结束
+# 钩子函数: 测试会话结束
 @pytest.hookimpl(trylast = True)
 def pytest_sessionfinish(session, exitstatus):
     """
     测试会话结束时的钩子函数
-    修复：在pytest-xdist多进程环境下，只在master进程中输出统计结果
+    修复: 在pytest-xdist多进程环境下, 只在master进程中输出统计结果
     """
     # 检查是否在xdist worker进程中
     # worker进程有PYTEST_XDIST_WORKER环境变量
     is_xdist_worker = os.environ.get("PYTEST_XDIST_WORKER") is not None
 
-    # 如果是worker进程，不输出统计结果
+    # 如果是worker进程, 不输出统计结果
     if is_xdist_worker:
-        logger.debug(f"Worker进程 {os.environ.get('PYTEST_XDIST_WORKER')} 结束，不输出统计结果")
+        logger.debug(f"Worker进程 {os.environ.get('PYTEST_XDIST_WORKER')} 结束, 不输出统计结果")
         return
 
     # 只有在master进程中才输出完整的测试统计
@@ -389,7 +393,7 @@ def pytest_sessionfinish(session, exitstatus):
     logger.info("=" * 80)
 
 
-# 钩子函数：添加自定义命令行参数
+# 钩子函数: 添加自定义命令行参数
 def pytest_addoption(parser):
     """
     添加自定义命令行参数
@@ -581,7 +585,7 @@ def skip_if_not_app(request):
 def test_data(request, data_handler):
     """
     根据测试用例名称自动加载对应的测试数据
-    数据文件应该放在data目录下,命名格式为：模块名_类名_方法名.json/yaml
+    数据文件应该放在data目录下,命名格式为: 模块名_类名_方法名.json/yaml
     
     Args:
         request: pytest request对象

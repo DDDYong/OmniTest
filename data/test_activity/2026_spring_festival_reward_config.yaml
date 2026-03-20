@@ -114,7 +114,7 @@
 - activityType: 302
   activityType_name: 福马总榜
   rank_category: 5
-  rank_coverage: 10  # 前10名获奖（1-3名单独配置，4-5名、6-10名分别统一配置）
+  rank_coverage: 10  # 前10名获奖（1-3名单独配置, 4-5名、6-10名分别统一配置）
   reward_details:
     - rank: 1  # 总榜冠军
       rewards:

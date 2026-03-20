@@ -1,0 +1,81 @@
+# 应用测试用例数据 - YAML格式
+
+# 测试场景列表
+test_scenarios:
+  - name: app_launch
+    description: 启动应用并验证主界面
+    priority: high
+    steps:
+      - 连接到Appium服务器
+      - 启动安卓应用
+      - 验证应用是否正常启动
+      - 截图保存
+    expected:
+      activity: com.weixiao.voice/.ui.home.MainActivity
+      package: com.weixiao.voice
+      timeout: 30
+
+  - name: login_flow
+    description: 验证登录流程
+    priority: high
+    steps:
+      - 启动应用
+      - 输入用户名和密码
+      - 点击登录按钮
+      - 验证是否登录成功
+    test_data:
+      valid_username: testuser
+      valid_password: password123
+      invalid_username: wronguser
+      invalid_password: wrongpass
+    expected:
+      success_message: 登录成功
+      error_message: 用户名或密码错误
+
+  - name: password_login_valid
+    description: 使用有效的手机号和密码登录
+    priority: high
+    test_data:
+      phone: "17370000003"
+      password: "123456"
+      country_code: "中国大陆"
+    expected:
+      success: true
+      toast_message: ""
+      home_screen_displayed: true
+
+  - name: password_login_invalid
+    description: 使用有效的手机号和错误的密码登录
+    priority: high
+    test_data:
+      phone: "17370000003"
+      password: "17370000003"
+      country_code: "中国大陆"
+    expected:
+      success: false
+      toast_message: "账号或密码错误"
+
+  - name: captcha_login_valid
+    description: 使用有效的手机号和验证码登录
+    priority: high
+    test_data:
+      phone: "17370000004"
+      country_code: "中国大陆"
+      db_query: "select captcha from kong_test.captcha where mobile = %s and type = 10"
+      db_params: [ "8617370000004" ]
+    expected:
+      success: true
+      toast_message: ""
+      home_screen_displayed: true
+
+  - name: captcha_login_invalid
+    description: 使用有效的手机号和错误的验证码登录
+    priority: high
+    test_data:
+      phone: "17370000004"
+      country_code: "中国大陆"
+      invalid_captcha: "0000"
+    expected:
+      success: false
+      toast_message: "验证码已经失效啦"
+

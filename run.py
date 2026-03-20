@@ -10,6 +10,7 @@ OmniTest项目入口文件,提供命令行接口运行不同类型的测试,包�
 """
 
 import argparse
+import difflib
 import os
 import shutil
 import subprocess
@@ -32,10 +33,74 @@ class TestRunner:
     提供不同类型测试的运行功能
     """
 
+    INVALID_TEST_TARGET_EXIT_CODE = 4
+
+    @staticmethod
+    def _suggest_close_matches(input_name: str, candidates: list, n: int = 3) -> list:
+        try:
+            return difflib.get_close_matches(input_name, candidates, n = n, cutoff = 0.4)
+        except Exception:
+            return []
+
+    @staticmethod
+    def _resolve_test_target(base_dir: str, test_dir: str = None, test_file: str = None):
+        if test_file:
+            target_path = test_file if os.path.isabs(test_file) else os.path.join(base_dir, test_file)
+            if os.path.isfile(target_path):
+                return target_path, None
+
+            suggestions = []
+            if os.path.isdir(base_dir) and not os.path.isabs(test_file):
+                try:
+                    file_candidates = [
+                        name for name in os.listdir(base_dir)
+                        if os.path.isfile(os.path.join(base_dir, name))
+                    ]
+                except Exception:
+                    file_candidates = []
+
+                if not test_file.endswith('.py'):
+                    py_name = f"{test_file}.py"
+                    if py_name in file_candidates:
+                        suggestions.append(py_name)
+
+                suggestions.extend([s for s in TestRunner._suggest_close_matches(test_file, file_candidates) if
+                                    s not in suggestions])
+
+            err = f"测试文件不存在: {target_path}"
+            if suggestions:
+                err = f"{err}, 可选相近文件: {', '.join(suggestions)}"
+            return None, err
+
+        if test_dir:
+            target_path = test_dir if os.path.isabs(test_dir) else os.path.join(base_dir, test_dir)
+            if os.path.isdir(target_path):
+                return target_path, None
+
+            suggestions = []
+            if os.path.isdir(base_dir) and not os.path.isabs(test_dir):
+                try:
+                    dir_candidates = [
+                        name for name in os.listdir(base_dir)
+                        if os.path.isdir(os.path.join(base_dir, name))
+                    ]
+                except Exception:
+                    dir_candidates = []
+                suggestions = TestRunner._suggest_close_matches(test_dir, dir_candidates)
+
+            err = f"测试目录不存在: {target_path}"
+            if suggestions:
+                err = f"{err}, 可选相近目录: {', '.join(suggestions)}"
+            return None, err
+
+        if not os.path.isdir(base_dir):
+            return None, f"测试目录不存在: {base_dir}"
+        return base_dir, None
+
     @staticmethod
     def clean_reports() -> None:
         """
-        清理测试报告目录（不清理历史报告，只确保新报告目录是干净的）
+        清理测试报告目录（不清理历史报告, 只确保新报告目录是干净的）
         """
         logger.info("新测试报告目录已准备好（保留历史报告）")
 
@@ -60,12 +125,11 @@ class TestRunner:
         cmd = [sys.executable, '-m', 'pytest']
 
         # 添加测试路径
-        if test_file:
-            cmd.append(os.path.join(path_util.get_api_cases_dir(), test_file))
-        elif test_dir:
-            cmd.append(os.path.join(path_util.get_api_cases_dir(), test_dir))
-        else:
-            cmd.append(path_util.get_api_cases_dir())
+        target_path, err = TestRunner._resolve_test_target(path_util.get_api_cases_dir(), test_dir, test_file)
+        if err:
+            logger.error(err)
+            return TestRunner.INVALID_TEST_TARGET_EXIT_CODE
+        cmd.append(target_path)
 
         # 添加标记
         if markers:
@@ -106,12 +170,11 @@ class TestRunner:
         cmd = [sys.executable, '-m', 'pytest']
 
         # 添加测试路径
-        if test_file:
-            cmd.append(os.path.join(path_util.get_web_cases_dir(), test_file))
-        elif test_dir:
-            cmd.append(os.path.join(path_util.get_web_cases_dir(), test_dir))
-        else:
-            cmd.append(path_util.get_web_cases_dir())
+        target_path, err = TestRunner._resolve_test_target(path_util.get_web_cases_dir(), test_dir, test_file)
+        if err:
+            logger.error(err)
+            return TestRunner.INVALID_TEST_TARGET_EXIT_CODE
+        cmd.append(target_path)
 
         # 添加标记
         if markers:
@@ -150,12 +213,11 @@ class TestRunner:
         cmd = [sys.executable, '-m', 'pytest']
 
         # 添加测试路径
-        if test_file:
-            cmd.append(os.path.join(path_util.get_app_cases_dir(), test_file))
-        elif test_dir:
-            cmd.append(os.path.join(path_util.get_app_cases_dir(), test_dir))
-        else:
-            cmd.append(path_util.get_app_cases_dir())
+        target_path, err = TestRunner._resolve_test_target(path_util.get_app_cases_dir(), test_dir, test_file)
+        if err:
+            logger.error(err)
+            return TestRunner.INVALID_TEST_TARGET_EXIT_CODE
+        cmd.append(target_path)
 
         # 添加标记
         if markers:
@@ -183,8 +245,8 @@ class TestRunner:
         Args:
             test_dir: 测试目录
             test_file: 测试文件
-            markers: 测试标记，默认为 'parallel'
-            num_workers: worker数量，默认为2
+            markers: 测试标记, 默认为 'parallel'
+            num_workers: worker数量, 默认为2
             html_report: 是否生成HTML报告
             
         Returns:
@@ -197,12 +259,11 @@ class TestRunner:
         cmd = [sys.executable, '-m', 'pytest']
 
         # 添加测试路径
-        if test_file:
-            cmd.append(os.path.join(path_util.get_app_cases_dir(), test_file))
-        elif test_dir:
-            cmd.append(os.path.join(path_util.get_app_cases_dir(), test_dir))
-        else:
-            cmd.append(path_util.get_app_cases_dir())
+        target_path, err = TestRunner._resolve_test_target(path_util.get_app_cases_dir(), test_dir, test_file)
+        if err:
+            logger.error(err)
+            return TestRunner.INVALID_TEST_TARGET_EXIT_CODE
+        cmd.append(target_path)
 
         # 添加标记
         if markers:
@@ -301,6 +362,7 @@ class TestRunner:
         Returns:
             bool: 是否生成成功
         """
+        import os
         logger.info("开始生成Allure报告...")
 
         # 获取当前测试运行的时间文件夹路径
@@ -323,6 +385,47 @@ class TestRunner:
             logger.info(f"执行命令: {' '.join(cmd)}")
             subprocess.run(cmd, check = True, cwd = path_util.get_project_root(), text = True)
             logger.info(f"Allure报告已生成: {allure_report_dir}")
+
+            # 启动本地HTTP服务器来提供报告
+            import http.server
+            import socketserver
+            import threading
+            import socket
+
+            # 查找可用端口
+            def find_free_port():
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.bind(('', 0))
+                    return s.getsockname()[1]
+
+            port = find_free_port()
+            server_address = ('127.0.0.1', port)
+
+            # 设置HTTP服务器
+            class ReportHandler(http.server.SimpleHTTPRequestHandler):
+                def __init__(self, *args, **kwargs):
+                    super().__init__(*args, directory = allure_report_dir, **kwargs)
+
+            # 创建服务器
+            httpd = socketserver.TCPServer(server_address, ReportHandler)
+
+            # 在后台启动服务器
+            server_thread = threading.Thread(target = httpd.serve_forever, daemon = True)
+            server_thread.start()
+
+            # 生成HTTP链接
+            report_url = f"http://{server_address[0]}:{server_address[1]}"
+            logger.info(f"Allure报告HTTP服务已启动: {report_url}")
+            logger.info(f"请在浏览器中打开以下链接查看报告: 🌐 {report_url}")
+            logger.info(f"按 Enter 键停止服务器...")
+            
+            # 等待用户输入以保持服务器运行
+            input("")
+
+            # 关闭服务器
+            httpd.shutdown()
+            httpd.server_close()
+            
             return True
         except Exception as e:
             logger.error(f"生成Allure报告失败: {str(e)}")
@@ -331,7 +434,7 @@ class TestRunner:
     @staticmethod
     def update_requirements() -> bool:
         """
-        更新 requirements.txt 文件，保留注释信息
+        更新 requirements.txt 文件, 保留注释信息
 
         Returns:
             bool: 是否更新成功
@@ -339,7 +442,7 @@ class TestRunner:
         logger.info("开始更新 requirements.txt...")
 
         try:
-            # 读取当前文件，保存注释
+            # 读取当前文件, 保存注释
             comments = []
             requirements_path = os.path.join(path_util.get_project_root(), 'requirements.txt')
 
@@ -351,7 +454,7 @@ class TestRunner:
                         else:
                             break  # 只保留文件头部的注释
             except FileNotFoundError:
-                logger.info("requirements.txt 文件不存在，将创建新文件")
+                logger.info("requirements.txt 文件不存在, 将创建新文件")
 
             # 获取当前环境的所有包
             result = subprocess.run([sys.executable, '-m', 'pip', 'freeze'],
@@ -549,26 +652,30 @@ def main():
     elif args.command == 'api':
         runner.clean_reports()
         exit_code = runner.run_api_tests(args.dir, args.file, args.markers)
-        runner.generate_allure_report()
+        if exit_code != runner.INVALID_TEST_TARGET_EXIT_CODE:
+            runner.generate_allure_report()
         sys.exit(exit_code)
 
     elif args.command == 'web':
         runner.clean_reports()
         exit_code = runner.run_web_tests(args.dir, args.file, args.markers)
-        runner.generate_allure_report()
+        if exit_code != runner.INVALID_TEST_TARGET_EXIT_CODE:
+            runner.generate_allure_report()
         sys.exit(exit_code)
 
     elif args.command == 'app':
         runner.clean_reports()
         exit_code = runner.run_app_tests(args.dir, args.file, args.markers)
-        runner.generate_allure_report()
+        if exit_code != runner.INVALID_TEST_TARGET_EXIT_CODE:
+            runner.generate_allure_report()
         sys.exit(exit_code)
 
     elif args.command == 'parallel':
         runner.clean_reports()
         exit_code = runner.run_parallel_tests(
             args.dir, args.file, args.markers, args.workers, args.html)
-        runner.generate_allure_report()
+        if exit_code != runner.INVALID_TEST_TARGET_EXIT_CODE:
+            runner.generate_allure_report()
         # 发送测试报告到企微/邮箱/飞书
         # notification_util.send_report_via_email()
         sys.exit(exit_code)
