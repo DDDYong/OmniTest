@@ -157,10 +157,14 @@ def parallel_appium_driver(appium_manager, request):
     finally:
         if driver:
             try:
-                driver.quit()
-                logger.info("Appium驱动已关闭")
+                # 检查会话是否仍然有效
+                if hasattr(driver, 'session_id') and driver.session_id:
+                    driver.quit()
+                    logger.info("Appium驱动已关闭")
+                else:
+                    logger.info("Appium会话已终止, 无需再次关闭")
             except Exception as e:
-                logger.error(f"关闭驱动时发生错误: {str(e)}")
+                logger.warning(f"关闭驱动时发生错误（会话可能已终止）: {str(e)}")
 
 
 # WebDriver夹具需要在测试文件中根据具体浏览器类型实现

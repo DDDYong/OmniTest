@@ -75,6 +75,35 @@ class TestLoginParallel:
         logger.info("测试方法设置完成")
         logger.info("-" * 50)
 
+    def _setup_login_environment(self, login_page, scenario_name):
+        """
+        登录前的环境准备工作
+        """
+        # 获取测试数据和预期结果
+        test_data = login_page.get_test_data(scenario_name)
+        expected = login_page.get_expected_result(scenario_name)
+
+        # 同意协议和权限
+        login_page.agree_protocol_and_permission()
+
+        return test_data, expected
+
+    def _switch_test_environment(self, login_page):
+        """
+        切换到测试环境
+        """
+        if login_page.is_element_displayed(login_page.DOKIT_BOTTON, 2):
+            logger.info("找到DoKit浮标, 开始切换环境")
+            if login_page.switch_environment():
+                logger.info("环境切换成功, 应用将自动退出")
+                if login_page.launch_app_by_icon():
+                    logger.info("应用重新启动成功")
+                    return True
+                else:
+                    logger.error("应用重新启动失败")
+                    pytest.fail("应用重新启动失败")
+        return False
+
     @app_test(
         smoke = True,
         feature = "登录功能",
@@ -92,15 +121,8 @@ class TestLoginParallel:
         driver = parallel_appium_driver
         login_page = LoginPage(driver, test_data = self.__class__.test_data)
 
-        # 获取测试数据和预期结果
         with allure.step("密码登录测试"):
-            test_data = login_page.get_test_data(scenario_name)
-            expected = login_page.get_expected_result(scenario_name)
-
-        with allure.step("同意协议"):
-            login_page.agree_protocol()
-        with allure.step("同意权限"):
-            login_page.allow_permission()
+            test_data, expected = self._setup_login_environment(login_page, scenario_name)
 
         with allure.step("选择密码登录"):
             if not login_page.is_element_displayed(login_page.PASSWORD_LOGIN_BUTTON):
@@ -108,54 +130,42 @@ class TestLoginParallel:
                 pytest.fail("未找到账号密码登录按钮")
             login_page.select_pwd_login()
 
-        with allure.step("开始环境切换流程"):
-            logger.info("开始环境切换流程")
-            if login_page.is_element_displayed(login_page.DOKIT_BOTTON, 2):
-                with allure.step("点击DoKit浮标"):
-                    logger.info("找到DoKit浮标, 开始切换环境")
-                with allure.step("切换环境"):
-                    if login_page.switch_environment():
-                        with allure.step("环境切换成功, 重新启动"):
-                            logger.info("环境切换成功, 应用将自动退出")
-                            if login_page.launch_app_by_icon():
-                                logger.info("应用重新启动成功")
-                            else:
-                                logger.error("应用重新启动失败")
-                                pytest.fail("应用重新启动失败")
-        with allure.step("开始登录操作流程"):
-            logger.info("开始登录操作流程")
+        with allure.step("切换测试环境"):
+            self._switch_test_environment(login_page)
+
+        with allure.step("重新选择密码登录"):
             if not login_page.is_element_displayed(login_page.PASSWORD_LOGIN_BUTTON, 5):
                 logger.error("未找到密码登录按钮")
                 pytest.fail("未找到密码登录按钮")
-        with allure.step("选择密码登录"):
             login_page.select_pwd_login()
-        
-        if not login_page.wait_for_element_visible(login_page.LOGIN_BUTTON, timeout = 5):
-            logger.error("登录页面未显示")
-            pytest.fail("登录页面未显示")
-        logger.info("登录页面已显示")
+
+        with allure.step("等待登录页面加载"):
+            if not login_page.wait_for_element_visible(login_page.LOGIN_BUTTON, timeout = 5):
+                logger.error("登录页面未显示")
+                pytest.fail("登录页面未显示")
+            logger.info("登录页面已显示")
 
         with allure.step("选择国家区号"):
             country_code = test_data.get("country_code", "中国大陆")
-            if not login_page.select_country_code(country_code):
-                logger.error(f"选择{country_code}区号失败")
-                pytest.fail(f"选择{country_code}区号失败")
+            # 如果是中国大陆，使用默认值，无需额外选择
+            if country_code == "中国大陆":
+                logger.info("使用默认的中国大陆区号")
+            else:
+                if not login_page.select_country_code(country_code):
+                    logger.error(f"选择{country_code}区号失败")
+                    pytest.fail(f"选择{country_code}区号失败")
 
-        with allure.step("输入手机号"):
-            phone = test_data.get("phone", "")
-            login_page.input_phone(phone)
-        with allure.step("输入密码"):
-            password = test_data.get("password", "")
-            login_page.input_password(password)
-        with allure.step("点击登录按钮"):
+        with allure.step("输入登录信息"):
+            login_page.input_phone(test_data.get("phone", ""))
+            login_page.input_password(test_data.get("password", ""))
             login_page.click_login()
 
-        with allure.step("等待登录完成"):
+        with allure.step("验证登录结果"):
             logger.info("登录操作已执行, 等待登录完成")
+            # 处理首页弹窗
             for _ in range(3):
                 if login_page.is_element_displayed(login_page.HOME_DIALOG_CLOSE, 1):
                     login_page.click_element(login_page.HOME_DIALOG_CLOSE)
-        with allure.step("验证是否登录成功进入首页"):
             assert login_page.is_element_displayed(login_page.HOME_LOGO, 3) == expected[
                 "home_screen_displayed"], "登录失败未进入首页"
             logger.info("账号密码登录成功")
@@ -176,15 +186,8 @@ class TestLoginParallel:
         driver = parallel_appium_driver
         login_page = LoginPage(driver, test_data = self.__class__.test_data)
 
-        # 获取测试数据和预期结果
         with allure.step("错误密码登录测试"):
-            test_data = login_page.get_test_data(scenario_name)
-            expected = login_page.get_expected_result(scenario_name)
-
-        with allure.step("同意协议"):
-            login_page.agree_protocol()
-        with allure.step("同意权限"):
-            login_page.allow_permission()
+            test_data, expected = self._setup_login_environment(login_page, scenario_name)
 
         with allure.step("选择密码登录"):
             if not login_page.is_element_displayed(login_page.PASSWORD_LOGIN_BUTTON):
@@ -192,31 +195,16 @@ class TestLoginParallel:
                 pytest.fail("未找到账号密码登录按钮")
             login_page.select_pwd_login()
 
-        with allure.step("开始环境切换流程"):
-            logger.info("开始环境切换流程")
-            if login_page.is_element_displayed(login_page.DOKIT_BOTTON, 2):
-                with allure.step("点击DoKit浮标"):
-                    logger.info("找到DoKit浮标, 开始切换环境")
-                with allure.step("切换环境"):
-                    if login_page.switch_environment():
-                        with allure.step("环境切换成功, 重新启动"):
-                            logger.info("环境切换成功, 应用将自动退出")
-                            if login_page.launch_app_by_icon():
-                                logger.info("应用重新启动成功")
-                            else:
-                                logger.error("应用重新启动失败")
-                                pytest.fail("应用重新启动失败")
+        with allure.step("切换测试环境"):
+            self._switch_test_environment(login_page)
 
-        with allure.step("开始登录操作流程"):
-            logger.info("开始登录操作流程")
+        with allure.step("重新选择密码登录"):
             if not login_page.is_element_displayed(login_page.PASSWORD_LOGIN_BUTTON, 5):
                 logger.error("未找到密码登录按钮")
                 pytest.fail("未找到密码登录按钮")
-
-        with allure.step("选择密码登录"):
             login_page.select_pwd_login()
 
-        with allure.step("等待登录按钮可见"):
+        with allure.step("等待登录页面加载"):
             if not login_page.wait_for_element_visible(login_page.LOGIN_BUTTON, timeout = 5):
                 logger.error("登录页面未显示")
                 pytest.fail("登录页面未显示")
@@ -224,17 +212,17 @@ class TestLoginParallel:
 
         with allure.step("选择国家区号"):
             country_code = test_data.get("country_code", "中国大陆")
-            if not login_page.select_country_code(country_code):
-                logger.error(f"选择{country_code}区号失败")
-                pytest.fail(f"选择{country_code}区号失败")
+            # 如果是中国大陆，使用默认值，无需额外选择
+            if country_code == "中国大陆":
+                logger.info("使用默认的中国大陆区号")
+            else:
+                if not login_page.select_country_code(country_code):
+                    logger.error(f"选择{country_code}区号失败")
+                    pytest.fail(f"选择{country_code}区号失败")
 
-        with allure.step("输入手机号"):
-            phone = test_data.get("phone", "")
-            login_page.input_phone(phone)
-        with allure.step("输入错误密码"):
-            password = test_data.get("password", "")
-            login_page.input_password(password)
-        with allure.step("点击登录按钮"):
+        with allure.step("输入登录信息"):
+            login_page.input_phone(test_data.get("phone", ""))
+            login_page.input_password(test_data.get("password", ""))
             login_page.click_login()
 
         with allure.step("验证错误提示"):
@@ -259,15 +247,8 @@ class TestLoginParallel:
         driver = parallel_appium_driver
         login_page = LoginPage(driver, test_data = self.__class__.test_data)
 
-        # 获取测试数据和预期结果
         with allure.step("验证码登录测试"):
-            test_data = login_page.get_test_data(scenario_name)
-            expected = login_page.get_expected_result(scenario_name)
-
-        with allure.step("同意协议"):
-            login_page.agree_protocol()
-        with allure.step("同意权限"):
-            login_page.allow_permission()
+            test_data, expected = self._setup_login_environment(login_page, scenario_name)
 
         with allure.step("选择验证码登录"):
             if not login_page.is_element_displayed(login_page.PHONE_LOGIN_BUTTON, 5):
@@ -275,31 +256,16 @@ class TestLoginParallel:
                 pytest.fail("未找到验证码登录按钮")
             login_page.select_captcha_login()
 
-        with allure.step("开始环境切换流程"):
-            logger.info("开始环境切换流程")
-            if login_page.is_element_displayed(login_page.DOKIT_BOTTON, 2):
-                with allure.step("点击DoKit浮标"):
-                    logger.info("找到DoKit浮标, 开始切换环境")
-                with allure.step("切换环境"):
-                    if login_page.switch_environment():
-                        with allure.step("环境切换成功, 重新启动"):
-                            logger.info("环境切换成功, 应用将自动退出")
-                            if login_page.launch_app_by_icon():
-                                logger.info("应用重新启动成功")
-                            else:
-                                logger.error("应用重新启动失败")
-                                pytest.fail("应用重新启动失败")
+        with allure.step("切换测试环境"):
+            self._switch_test_environment(login_page)
 
-        with allure.step("开始登录操作流程"):
-            logger.info("开始登录操作流程")
+        with allure.step("重新选择验证码登录"):
             if not login_page.is_element_displayed(login_page.PHONE_LOGIN_BUTTON, 5):
-                logger.error("未找到验证码登录按钮-2")
-                pytest.fail("未找到验证码登录按钮-2")
-
-        with allure.step("选择验证码登录"):
+                logger.error("未找到验证码登录按钮")
+                pytest.fail("未找到验证码登录按钮")
             login_page.select_captcha_login()
 
-        with allure.step("等待登录按钮可见"):
+        with allure.step("等待登录页面加载"):
             if not login_page.wait_for_element_visible(login_page.LOGIN_BUTTON, timeout = 5):
                 logger.error("登录页面未显示")
                 pytest.fail("登录页面未显示")
@@ -307,14 +273,16 @@ class TestLoginParallel:
 
         with allure.step("选择国家区号"):
             country_code = test_data.get("country_code", "中国大陆")
-            if not login_page.select_country_code(country_code):
-                logger.error(f"选择{country_code}区号失败")
-                pytest.fail(f"选择{country_code}区号失败")
+            # 如果是中国大陆，使用默认值，无需额外选择
+            if country_code == "中国大陆":
+                logger.info("使用默认的中国大陆区号")
+            else:
+                if not login_page.select_country_code(country_code):
+                    logger.error(f"选择{country_code}区号失败")
+                    pytest.fail(f"选择{country_code}区号失败")
 
-        with allure.step("输入手机号"):
-            phone = test_data.get("phone", "")
-            login_page.input_phone(phone)
-        with allure.step("点击获取验证码"):
+        with allure.step("输入手机号并获取验证码"):
+            login_page.input_phone(test_data.get("phone", ""))
             login_page.click_captcha()
 
         with allure.step("从数据库获取验证码"):
@@ -330,16 +298,17 @@ class TestLoginParallel:
                 logger.error(e)
                 pytest.fail("从数据库获取验证码失败")
 
-        with allure.step("输入验证码"):
+        with allure.step("输入验证码并登录"):
             login_page.input_captcha(captcha)
 
-        with allure.step("等待登录完成"):
+        with allure.step("验证登录结果"):
             logger.info("登录操作已执行, 等待登录完成")
+            # 处理首页弹窗
             for _ in range(3):
                 if login_page.is_element_displayed(login_page.HOME_DIALOG_CLOSE, 1):
                     login_page.click_element(login_page.HOME_DIALOG_CLOSE)
-        with allure.step("验证是否登录成功进入首页"):
-            assert login_page.is_element_displayed(login_page.HOME_LOGO, 3), "登录失败未进入首页"
+            assert login_page.is_element_displayed(login_page.HOME_LOGO, 3) == expected[
+                "home_screen_displayed"], "登录失败未进入首页"
             logger.info("✅手机号+验证码登录成功")
 
     @app_test(
@@ -358,15 +327,8 @@ class TestLoginParallel:
         driver = parallel_appium_driver
         login_page = LoginPage(driver, test_data = self.__class__.test_data)
 
-        # 获取测试数据和预期结果
         with allure.step("错误验证码登录测试"):
-            test_data = login_page.get_test_data(scenario_name)
-            expected = login_page.get_expected_result(scenario_name)
-
-        with allure.step("同意协议"):
-            login_page.agree_protocol()
-        with allure.step("同意权限"):
-            login_page.allow_permission()
+            test_data, expected = self._setup_login_environment(login_page, scenario_name)
 
         with allure.step("选择验证码登录"):
             if not login_page.is_element_displayed(login_page.PHONE_LOGIN_BUTTON, 5):
@@ -374,31 +336,16 @@ class TestLoginParallel:
                 pytest.fail("未找到验证码登录按钮")
             login_page.select_captcha_login()
 
-        with allure.step("开始环境切换流程"):
-            logger.info("开始环境切换流程")
-            if login_page.is_element_displayed(login_page.DOKIT_BOTTON, 2):
-                with allure.step("点击DoKit浮标"):
-                    logger.info("找到DoKit浮标, 开始切换环境")
-                with allure.step("切换环境"):
-                    if login_page.switch_environment():
-                        with allure.step("环境切换成功, 重新启动"):
-                            logger.info("环境切换成功, 应用将自动退出")
-                            if login_page.launch_app_by_icon():
-                                logger.info("应用重新启动成功")
-                            else:
-                                logger.error("应用重新启动失败")
-                                pytest.fail("应用重新启动失败")
+        with allure.step("切换测试环境"):
+            self._switch_test_environment(login_page)
 
-        with allure.step("开始登录操作流程"):
-            logger.info("开始登录操作流程")
+        with allure.step("重新选择验证码登录"):
             if not login_page.is_element_displayed(login_page.PHONE_LOGIN_BUTTON, 5):
                 logger.error("未找到验证码登录按钮")
                 pytest.fail("未找到验证码登录按钮")
-
-        with allure.step("选择验证码登录"):
             login_page.select_captcha_login()
 
-        with allure.step("等待登录按钮可见"):
+        with allure.step("等待登录页面加载"):
             if not login_page.wait_for_element_visible(login_page.LOGIN_BUTTON, timeout = 5):
                 logger.error("登录页面未显示")
                 pytest.fail("登录页面未显示")
@@ -406,18 +353,18 @@ class TestLoginParallel:
 
         with allure.step("选择国家区号"):
             country_code = test_data.get("country_code", "中国大陆")
-            if not login_page.select_country_code(country_code):
-                logger.error(f"选择{country_code}区号失败")
-                pytest.fail(f"选择{country_code}区号失败")
+            # 如果是中国大陆，使用默认值，无需额外选择
+            if country_code == "中国大陆":
+                logger.info("使用默认的中国大陆区号")
+            else:
+                if not login_page.select_country_code(country_code):
+                    logger.error(f"选择{country_code}区号失败")
+                    pytest.fail(f"选择{country_code}区号失败")
 
-        with allure.step("输入手机号"):
-            phone = test_data.get("phone", "")
-            login_page.input_phone(phone)
-        with allure.step("点击获取验证码"):
+        with allure.step("输入手机号并获取验证码"):
+            login_page.input_phone(test_data.get("phone", ""))
             login_page.click_captcha()
-        with allure.step("输入错误验证码"):
-            invalid_captcha = test_data.get("invalid_captcha", "0000")
-            login_page.input_captcha(invalid_captcha)
+            login_page.input_captcha(test_data.get("invalid_captcha", "0000"))
 
         with allure.step("验证错误提示"):
             expected_toast = expected.get("toast_message", "验证码已经失效啦")

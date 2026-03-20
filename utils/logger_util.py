@@ -9,6 +9,7 @@ Description:
 -------------------------------------------------
 """
 import logging
+import logging.config
 import os
 from datetime import datetime
 
@@ -45,6 +46,9 @@ class ColoredFormatter(logging.Formatter):
 
 def _get_default_log_config():
     """获取默认日志级别"""
+    env_override = os.environ.get("LOG_LEVEL") or os.environ.get("OMNITEST_LOG_LEVEL")
+    if env_override:
+        return env_override
     try:
         # 读取配置文件
         import yaml
@@ -55,14 +59,86 @@ def _get_default_log_config():
                 config = yaml.safe_load(f)
                 log_level = config.get('log', {}).get('level', 'DEBUG')
                 return log_level
-    except (ImportError, FileNotFoundError, yaml.YAMLError, Exception):
-        # 读取配置文件失败, 返回默认值
+    except Exception:
         pass
-    return 'DEBUG'
+    env = os.environ.get('OMNITEST_ENV', 'test')
+    env_defaults = {"dev": "DEBUG", "test": "INFO", "prod": "WARNING"}
+    return env_defaults.get(str(env).lower(), "INFO")
 
 
 DEFAULT_LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'logs')
 DEFAULT_LOG_LEVEL = _get_default_log_config()
+_LOGGING_INITIALIZED = False
+
+
+class _ExtraDefaultFilter(logging.Filter):
+    def filter(self, record):
+        if not hasattr(record, "config_alias"):
+            record.config_alias = "-"
+        if not hasattr(record, "reload"):
+            record.reload = "-"
+        if not hasattr(record, "module_name"):
+            record.module_name = record.name
+        return True
+
+
+def _attach_default_filters() -> None:
+    default_filter = _ExtraDefaultFilter()
+    root = logging.getLogger()
+    for handler in root.handlers:
+        handler.addFilter(default_filter)
+    root.addFilter(default_filter)
+
+    app = logging.getLogger("OmniTest")
+    for handler in app.handlers:
+        handler.addFilter(default_filter)
+    app.addFilter(default_filter)
+
+
+def init_logging() -> bool:
+    global _LOGGING_INITIALIZED
+    if _LOGGING_INITIALIZED:
+        return True
+
+    config_path = os.environ.get("LOG_CONFIG_PATH") or os.environ.get("OMNITEST_LOGGING_CONFIG")
+    if not config_path and str(os.environ.get("OMNITEST_USE_LOGGING_YAML", "")).strip() in {"1", "true", "True"}:
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        config_path = os.path.join(project_root, "config", "logging.yaml")
+
+    if not config_path:
+        return False
+
+    abs_path = os.path.abspath(config_path)
+    try:
+        import yaml
+
+        with open(abs_path, "r", encoding = "utf-8") as f:
+            config = yaml.safe_load(f) or {}
+        if not isinstance(config, dict):
+            return False
+        logging.config.dictConfig(config)
+        _attach_default_filters()
+        _LOGGING_INITIALIZED = True
+        return True
+    except Exception:
+        return False
+
+
+def set_log_level(level: str) -> None:
+    target = get_logger()
+    try:
+        numeric = getattr(logging, str(level).upper())
+    except Exception:
+        numeric = logging.INFO
+    target.setLevel(numeric)
+    for handler in target.handlers:
+        handler.setLevel(numeric)
+
+
+def refresh_log_level() -> str:
+    level = _get_default_log_config()
+    set_log_level(level)
+    return level
 
 
 class Logger:
@@ -76,6 +152,7 @@ class Logger:
             logger_name: 日志记录器名称
             log_file: 日志文件路径,默认为None使用配置中的日志文件
         """
+        init_logging()
         self.logger = logging.getLogger(logger_name)
 
         log_level = getattr(logging, DEFAULT_LOG_LEVEL.upper(), getattr(logging, "DEBUG"))
@@ -104,13 +181,16 @@ class Logger:
             file_handler = logging.FileHandler(self.log_file, encoding = 'utf-8')
             file_handler.setLevel(log_level)
             file_handler.setFormatter(file_formatter)
+            file_handler.addFilter(_ExtraDefaultFilter())
             self.logger.addHandler(file_handler)
 
             # 控制台处理器
             console_handler = logging.StreamHandler()
             console_handler.setLevel(log_level)
             console_handler.setFormatter(console_formatter)
+            console_handler.addFilter(_ExtraDefaultFilter())
             self.logger.addHandler(console_handler)
+            self.logger.addFilter(_ExtraDefaultFilter())
 
     def get_logger(self):
         """

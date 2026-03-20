@@ -5,42 +5,47 @@ Author:         duanyang
 Date:           2025/11/27
 -------------------------------------------------
 Description:
-配置管理模块,提供配置加载、解析和管理功能
+配置管理模块，提供 YAML 配置加载、解析与管理能力。
+
+核心特性：
+- 线程安全懒加载单例：同一进程多次获取不会重复读盘、不会重复打印成功日志
+- 可追溯错误日志：即使 LOG_LEVEL=ERROR 也能看到路径、异常类型、行号与修复建议
+- 支持 reload(path=None)：热更新成功后再切换缓存，失败回滚并告警
+- 日志字段标准化：通过 LoggerAdapter 注入 config_alias/reload/module_name 额外字段
 -------------------------------------------------
 """
+from __future__ import annotations
+
+import logging
 import os
 import sys
-from typing import Dict, Any
+import threading
+import time
+import traceback
+from typing import Any, Dict, Optional, Tuple
 
 # 添加项目根目录到Python路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import yaml
 from utils.logger_util import logger
 
-# 延迟导入yaml模块
-yaml = None
-
-try:
-    import yaml
-
-    logger.info("✅ yaml模块导入成功")
-except ImportError:
-    logger.warning("⚠️ yaml模块未安装, 将使用空配置")
-
-
-    # 创建mock yaml模块
-    class MockYaml:
-        @staticmethod
-        def safe_load(file_obj):
-            logger.error("❌ yaml模块未安装, 无法加载配置文件")
-            return {}
-
-        @staticmethod
-        def dump(data, file_obj, **kwargs):
-            logger.error("❌ yaml模块未安装, 无法保存配置文件")
+__all__ = [
+    "ConfigDict",
+    "ConfigManager",
+    "get_config_manager",
+    "ensure_directories",
+    "config",
+    "config_manager",
+]
 
 
-    yaml = MockYaml()
+class _ConfigLoggerAdapter(logging.LoggerAdapter):
+    def process(self, msg, kwargs):
+        extra = kwargs.get("extra") or {}
+        merged = {"module_name": __name__, **self.extra, **extra}
+        kwargs["extra"] = merged
+        return msg, kwargs
 
 
 class ConfigDict(dict):
@@ -82,88 +87,131 @@ class ConfigDict(dict):
 
 class ConfigManager:
     """
-    配置管理器类,用于从YAML文件加载配置并提供配置管理功能
-    支持多环境配置管理,配置优先级: 环境变量 > YAML文件 > 默认值
+    配置管理器：从 YAML 加载配置并提供读取、覆盖与热重载能力。
+
+    配置优先级（由高到低）：
+    - 环境变量（按既定前缀/规则）
+    - 环境 YAML（如 test.yaml）
+    - 默认 YAML（default.yaml）
+
+    日志策略（由 LOG_LEVEL 或日志系统级别共同决定）：
+    - DEBUG：打印路径、耗时、异常堆栈与重试细节
+    - INFO：仅打印“真正发生加载动作”的一次性摘要；reload 时打印带 [Reload] 的摘要
+    - WARNING 及以上：仅在加载失败或校验不通过时输出
     """
 
-    def __init__(self, config_dir: str = None, default_env: str = "test"):
-        """
-        初始化配置管理器
+    _DEFAULT_YAML_NAME = "default.yaml"
+    _ENV_VAR_NAME = "OMNITEST_ENV"
+    _MAX_DEBUG_KEYS = 500
+    _LARGE_FILE_BYTES = 1024 * 1024
 
-        Args:
-            config_dir: 配置文件目录,如果不指定则使用默认目录
-            default_env: 默认环境名称
-        """
-        self.config_dir = config_dir or os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-        )
+    def __init__(self, config_dir: Optional[str] = None, default_env: str = "test"):
+        self.config_dir = config_dir or os.path.join(os.path.dirname(os.path.abspath(__file__)))
         self.default_env = default_env
-        self.env = os.environ.get("OMNITEST_ENV", self.default_env)
-        self.config_cache: Dict[str, Dict[str, Any]] = {}
-        self._load_all_configs()
-        # 创建配置对象用于属性访问
-        self._config_obj = ConfigDict(self._config)
+        self.env = os.environ.get(self._ENV_VAR_NAME, self.default_env)
+        self._lock = threading.RLock()
+        self._config: Dict[str, Any] = {}
+        self._config_obj = ConfigDict({})
+        self._load_successfully = False
+        self._adapter = _ConfigLoggerAdapter(logger, {"config_alias": self.env})
+        self._load(reload_flag = False, path_override = None)
 
-    def _load_all_configs(self) -> None:
+    def reload(self, path: Optional[str] = None) -> bool:
         """
-        加载所有配置: 默认配置和环境特定配置
-        并应用配置优先级规则
+        运行时热重载配置。
+
+        - 若 path 为目录：从该目录读取 default.yaml 与 {env}.yaml
+        - 若 path 为文件：从该文件所在目录读取 default.yaml，同时将该文件视为环境配置文件
+        - 成功：校验通过后再替换内部缓存
+        - 失败：保持旧缓存并记录 WARNING
         """
-        # 先加载默认配置
-        default_config = self._load_file_config("default")
+        with self._lock:
+            old_config = self._config
+            old_obj = self._config_obj
+            old_dir = self.config_dir
+            try:
+                self._load(reload_flag = True, path_override = path)
+                return True
+            except Exception as exc:
+                self._config = old_config
+                self._config_obj = old_obj
+                self.config_dir = old_dir
+                self._adapter.warning(
+                    f"[Reload] 配置重载失败，已回滚 | env={self.env} | reason={type(exc).__name__}: {exc}",
+                    extra = {"reload": "1"},
+                )
+                return False
 
-        # 再加载环境特定配置
-        env_config = self._load_file_config(self.env)
+    def _resolve_paths(self, path_override: Optional[str]) -> Tuple[str, str, str]:
+        if not path_override:
+            base_dir = self.config_dir
+            default_path = os.path.join(base_dir, self._DEFAULT_YAML_NAME)
+            env_path = os.path.join(base_dir, f"{self.env}.yaml")
+            return base_dir, default_path, env_path
 
-        # 合并配置: 默认配置 -> 环境特定配置
-        merged_config = self._merge_configs(default_config, env_config)
+        abs_path = os.path.abspath(path_override)
+        if os.path.isdir(abs_path):
+            base_dir = abs_path
+            default_path = os.path.join(base_dir, self._DEFAULT_YAML_NAME)
+            env_path = os.path.join(base_dir, f"{self.env}.yaml")
+            return base_dir, default_path, env_path
 
-        # 应用环境变量覆盖
-        self._override_with_env_vars(merged_config)
+        base_dir = os.path.dirname(abs_path)
+        default_path = os.path.join(base_dir, self._DEFAULT_YAML_NAME)
+        env_path = abs_path
+        return base_dir, default_path, env_path
 
-        # 保存到缓存
-        self.config_cache[self.env] = merged_config
+    def _load(self, reload_flag: bool, path_override: Optional[str]) -> None:
+        base_dir, default_path, env_path = self._resolve_paths(path_override)
+        self.config_dir = base_dir
 
-        # 设置为当前配置
-        self._config = merged_config
-        # 更新配置对象
-        self._config_obj = ConfigDict(self._config)
-
-    def _load_file_config(self, env: str) -> Dict[str, Any]:
-        """
-        从YAML文件加载配置
-
-        Args:
-            env: 环境名称
-
-        Returns:
-            Dict[str, Any]: 加载的配置字典
-        """
-        # 检查缓存
-        if env in self.config_cache:
-            return self.config_cache[env].copy()
-
-        # 构建配置文件路径
-        config_file = os.path.join(self.config_dir, f"{env}.yaml")
-
-        # 如果文件不存在,返回空字典
-        if not os.path.exists(config_file):
-            logger.warning(f"配置文件不存在: {config_file}")
-            return {}
-
-        # 加载配置文件
+        extra = {"reload": "1" if reload_flag else "0"}
+        default_ok = True
+        env_ok = True
         try:
-            with open(config_file, "r", encoding = "utf-8") as f:
-                config = yaml.safe_load(f) or {}
+            default_cfg, _default_meta = self._read_yaml_file(default_path, alias = "default", reload_flag = reload_flag)
+        except Exception:
+            default_cfg = {}
+            default_ok = False
+            if reload_flag:
+                raise
 
-            logger.info(f"成功加载配置文件: {config_file}")
-            return config
-        except yaml.YAMLError as e:
-            logger.error(f"加载YAML配置文件失败: {str(e)}")
-            return {}
-        except Exception as e:
-            logger.error(f"加载配置文件时发生错误: {str(e)}")
-            return {}
+        try:
+            env_cfg, _env_meta = self._read_yaml_file(env_path, alias = self.env, reload_flag = reload_flag)
+        except Exception:
+            env_cfg = {}
+            env_ok = False
+            if reload_flag:
+                raise
+
+        merged_config = self._merge_configs(default_cfg, env_cfg)
+        self._override_with_env_vars(merged_config)
+        self._validate_root_mapping(merged_config, source = "merged")
+
+        self._config = merged_config
+        self._config_obj = ConfigDict(self._config)
+        self._load_successfully = True
+
+        total_keys = self._count_keys(self._config)
+        if logger.isEnabledFor(logging.DEBUG) and total_keys > self._MAX_DEBUG_KEYS:
+            top_keys = list(self._config.keys())
+            preview = top_keys[:50]
+            suffix = "..." if len(top_keys) > 50 else ""
+            self._adapter.debug(
+                f"配置键数量摘要 | env={self.env} | total_keys={total_keys} | top_level_keys={preview}{suffix}",
+                extra = extra,
+            )
+
+        if logger.isEnabledFor(logging.INFO) and (default_ok or env_ok):
+            sources = [
+                os.path.basename(default_path),
+                os.path.basename(env_path),
+            ]
+            prefix = "[Reload] " if reload_flag else ""
+            self._adapter.info(
+                f"{prefix}配置加载摘要 | env={self.env} | dir={os.path.abspath(base_dir)} | sources={sources} | total_keys={total_keys}",
+                extra = extra,
+            )
 
     def _merge_configs(self, base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -187,6 +235,128 @@ class ConfigManager:
                 result[key] = value
 
         return result
+
+    def _validate_root_mapping(self, config: Any, source: str) -> None:
+        if config is None:
+            return
+        if not isinstance(config, dict):
+            raise ValueError(f"{source} 配置根节点必须为 dict，实际为 {type(config).__name__}")
+
+    def _count_keys(self, data: Any) -> int:
+        if isinstance(data, dict):
+            total = len(data)
+            for value in data.values():
+                total += self._count_keys(value)
+            return total
+        if isinstance(data, list):
+            total = 0
+            for item in data:
+                total += self._count_keys(item)
+            return total
+        return 0
+
+    def _read_yaml_file(self, path: str, alias: str, reload_flag: bool, attempts: int = 2) -> Tuple[
+        Dict[str, Any], Dict[str, Any]]:
+        abs_path = os.path.abspath(path)
+        extra = {"reload": "1" if reload_flag else "0"}
+
+        file_size = None
+        try:
+            if os.path.exists(abs_path):
+                file_size = os.path.getsize(abs_path)
+        except Exception:
+            file_size = None
+
+        last_exc: Optional[BaseException] = None
+        for attempt in range(1, attempts + 1):
+            start = time.perf_counter()
+            try:
+                with open(abs_path, "r", encoding = "utf-8") as f:
+                    loaded = yaml.safe_load(f)
+                elapsed_ms = int((time.perf_counter() - start) * 1000)
+                if loaded is None:
+                    loaded = {}
+                self._validate_root_mapping(loaded, source = alias)
+
+                if logger.isEnabledFor(logging.DEBUG):
+                    self._adapter.debug(
+                        f"读取配置文件成功 | alias={alias} | path={abs_path} | elapsed_ms={elapsed_ms} | size_bytes={file_size}",
+                        extra = extra,
+                    )
+                    if file_size is not None and file_size > self._LARGE_FILE_BYTES:
+                        self._adapter.debug(
+                            f"大文件加载耗时 | alias={alias} | path={abs_path} | elapsed_ms={elapsed_ms} | size_bytes={file_size}",
+                            extra = extra,
+                        )
+
+                return loaded, {"path": abs_path, "elapsed_ms": elapsed_ms, "size_bytes": file_size}
+            except (FileNotFoundError, PermissionError, IsADirectoryError, OSError, yaml.YAMLError, ValueError) as exc:
+                last_exc = exc
+                if attempt < attempts and logger.isEnabledFor(logging.DEBUG):
+                    self._adapter.debug(
+                        f"读取配置文件失败，准备重试 | alias={alias} | path={abs_path} | attempt={attempt}/{attempts} | exc={type(exc).__name__}: {exc}",
+                        extra = extra,
+                    )
+                    time.sleep(0.05)
+                    continue
+
+                self._log_load_error(abs_path = abs_path, alias = alias, exc = exc, attempts = attempts, extra = extra)
+                raise
+
+        self._log_load_error(abs_path = abs_path, alias = alias, exc = last_exc or RuntimeError("unknown"), attempts = attempts, extra = extra)
+        raise last_exc or RuntimeError("unknown")
+
+    def _log_load_error(self, abs_path: str, alias: str, exc: BaseException, attempts: int, extra: Dict[
+        str, Any]) -> None:
+        tb_line = self._extract_tb_line(exc)
+        yaml_line, yaml_col = self._extract_yaml_mark(exc)
+        hint = self._hint_for_exception(abs_path, exc)
+
+        parts = [
+            f"配置加载失败 | alias={alias}",
+            f"path={abs_path}",
+            f"exc_type={type(exc).__name__}",
+            f"tb_line={tb_line}",
+            f"yaml_line={yaml_line}",
+            f"yaml_col={yaml_col}",
+            f"attempts={attempts}",
+            f"hint={hint}",
+        ]
+        self._adapter.error(" | ".join(parts), extra = extra, exc_info = logger.isEnabledFor(logging.DEBUG))
+
+    def _extract_tb_line(self, exc: BaseException) -> Optional[int]:
+        try:
+            tb = exc.__traceback__
+            if not tb:
+                return None
+            frames = traceback.extract_tb(tb)
+            if not frames:
+                return None
+            return frames[-1].lineno
+        except Exception:
+            return None
+
+    def _extract_yaml_mark(self, exc: BaseException) -> Tuple[Optional[int], Optional[int]]:
+        if isinstance(exc, yaml.YAMLError) and hasattr(exc, "problem_mark") and exc.problem_mark is not None:
+            try:
+                return int(exc.problem_mark.line) + 1, int(exc.problem_mark.column) + 1
+            except Exception:
+                return None, None
+        return None, None
+
+    def _hint_for_exception(self, abs_path: str, exc: BaseException) -> str:
+        base_name = os.path.basename(abs_path)
+        if isinstance(exc, FileNotFoundError):
+            return f"文件不存在，请检查 {base_name} 是否被移动或未同步到 config 目录"
+        if isinstance(exc, PermissionError):
+            return f"权限不足，请检查 {base_name} 的读权限或运行用户权限"
+        if isinstance(exc, IsADirectoryError):
+            return f"路径指向目录，请检查配置路径是否误传为目录：{abs_path}"
+        if isinstance(exc, yaml.YAMLError):
+            return "YAML 语法错误，请检查缩进、冒号与列表符号是否正确"
+        if isinstance(exc, ValueError):
+            return "配置格式校验失败，请确保 YAML 根节点为映射(dict)"
+        return "请检查路径、编码与 YAML 内容是否有效"
 
     def _override_with_env_vars(self, config: Dict[str, Any]) -> None:
         """
@@ -316,6 +486,9 @@ class ConfigManager:
             logger.debug(f"未找到配置项: {key_path},使用默认值")
             return default
 
+    def __getitem__(self, key: str) -> Any:
+        return self._config[key]
+
     def update_config(self, updates: Dict[str, Any]) -> None:
         """
         更新当前配置
@@ -323,10 +496,9 @@ class ConfigManager:
         Args:
             updates: 要更新的配置
         """
-        self._config = self._merge_configs(self._config, updates)
-        self.config_cache[self.env] = self._config
-        # 更新配置对象
-        self._config_obj = ConfigDict(self._config)
+        with self._lock:
+            self._config = self._merge_configs(self._config, updates)
+            self._config_obj = ConfigDict(self._config)
 
     def save_config(self, config: Dict[str, Any] = None) -> bool:
         """
@@ -562,11 +734,12 @@ class ConfigManager:
 
 
 # 实际的配置管理器实例（私有变量）
-_actual_config_manager = None
+_actual_config_manager: Optional[ConfigManager] = None
+_actual_config_manager_lock = threading.RLock()
 
 
 # 懒加载配置管理器实例
-def get_config_manager():
+def get_config_manager(config_dir: Optional[str] = None, default_env: str = "test") -> ConfigManager:
     """
     懒加载获取配置管理器实例
     
@@ -575,7 +748,9 @@ def get_config_manager():
     """
     global _actual_config_manager
     if _actual_config_manager is None:
-        _actual_config_manager = ConfigManager()
+        with _actual_config_manager_lock:
+            if _actual_config_manager is None:
+                _actual_config_manager = ConfigManager(config_dir = config_dir, default_env = default_env)
     return _actual_config_manager
 
 
@@ -629,10 +804,6 @@ class LazyConfigProxy:
 config = LazyConfigProxy()
 
 # 全局配置管理器实例（懒加载）
-# 直接使用ConfigManager实例, 不再使用LazyConfigManager包装
-config_manager = None
-
-
 # 确保在第一次访问时初始化
 class LazyConfigManagerProxy:
     """懒加载配置管理器代理类"""
@@ -657,6 +828,6 @@ try:
     # 仅在主线程中调用, 避免在导入时执行
     if __name__ == '__main__' or not hasattr(sys, 'argv'):
         ensure_directories()
-except:
+except Exception:
     # 如果在导入时调用失败, 忽略错误, 稍后在实际使用时再调用
     pass

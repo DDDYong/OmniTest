@@ -204,7 +204,7 @@ trap stop_all SIGINT SIGTERM
 # 获取可用的模拟器列表
 echo ""
 echo "📋  可用的Android模拟器: "
-local AVDS=()
+AVDS=()
 if command -v emulator &> /dev/null; then
     AVDS=($(emulator -list-avds 2>/dev/null || true))
 fi
@@ -226,14 +226,14 @@ fi
 # 获取已连接的设备
 echo ""
 echo "📱  已连接的设备: "
-local CONNECTED_DEVICES=()
+CONNECTED_DEVICES=()
 if command -v adb &> /dev/null; then
     # 直接解析adb devices输出
     while read -r line; do
         # 跳过空行和标题行
         if [[ -n "$line" && ! "$line" =~ "List of devices" ]]; then
             # 提取设备ID
-            local device_id=$(echo "$line" | awk '{print $1}')
+            device_id=$(echo "$line" | awk '{print $1}')
             if [[ -n "$device_id" ]]; then
                 CONNECTED_DEVICES+=($device_id)
                 echo "  添加设备: $device_id"
@@ -251,7 +251,7 @@ if [[ ${#CONNECTED_DEVICES[@]} -eq 0 ]]; then
         exit 1
     fi
 else
-    local index=1
+    index=1
     for device in "${CONNECTED_DEVICES[@]}"; do
         echo "  $index. $device"
         index=$((index + 1))
@@ -265,10 +265,10 @@ echo "🚀  开始启动服务..."
 echo ""
 
 # 管理设备和服务
-local device_serials=()
+device_serials=()
 
 # 1. 使用已连接的设备
-local count=0
+count=0
 for device in "${CONNECTED_DEVICES[@]}"; do
     if [[ $count -lt $NUM_DEVICES ]]; then
         # 在zsh中, 使用+=来添加元素
@@ -281,13 +281,13 @@ done
 
 # 2. 如果需要, 启动模拟器
 if [[ ${#device_serials[@]} -lt $NUM_DEVICES && "$START_EMULATORS" = "true" ]]; then
-    local start_idx=${#device_serials[@]}
+    start_idx=${#device_serials[@]}
     for ((i=start_idx; i<NUM_DEVICES; i++)); do
-        local AVD_NAME=${AVDS[i]:-}
+        AVD_NAME=${AVDS[i]:-}
         if [[ -n "$AVD_NAME" ]]; then
             start_emulator $i "$AVD_NAME"
-            local emulator_port=$((BASE_EMULATOR_PORT + i * 2))
-            local device_serial="emulator-$emulator_port"
+            emulator_port=$((BASE_EMULATOR_PORT + i * 2))
+            device_serial="emulator-$emulator_port"
             device_serials+=($device_serial)
         else
             echo "⚠️  没有足够的模拟器可用, 将使用已连接的设备"
@@ -303,7 +303,7 @@ if [[ ${#device_serials[@]} -eq 0 ]]; then
 fi
 
 # 启动Appium服务
-local device_idx=0
+device_idx=0
 for device in "${device_serials[@]}"; do
     echo "--- 设备 $device_idx ---"
     echo "  设备ID: $device"
@@ -317,10 +317,10 @@ echo "  ✅ 测试环境启动完成"
 echo "======================================"
 echo ""
 echo "设备配置: "
-local i=0
+i=0
 for device in "${device_serials[@]}"; do
-    local APPIUM_PORT=$((BASE_APPIUM_PORT + i))
-    local SYSTEM_PORT=$((BASE_SYSTEM_PORT + i))
+    APPIUM_PORT=$((BASE_APPIUM_PORT + i))
+    SYSTEM_PORT=$((BASE_SYSTEM_PORT + i))
     echo "  设备 $i:"
     echo "    设备ID: $device"
     echo "    Appium端口: $APPIUM_PORT"

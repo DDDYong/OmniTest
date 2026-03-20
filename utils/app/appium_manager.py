@@ -288,13 +288,20 @@ class AppiumManager:
         """
         if self.driver:
             try:
-                self.driver.quit()
-                logger.info("Appium驱动已退出")
+                # 检查会话是否仍然有效
+                if hasattr(self.driver, 'session_id') and self.driver.session_id:
+                    self.driver.quit()
+                    logger.info("Appium驱动已退出")
+                    self.driver = None
+                    return True
+                else:
+                    logger.info("Appium会话已终止, 无需再次关闭")
+                    self.driver = None
+                    return True
+            except Exception as e:
+                logger.warning(f"退出Appium驱动时发生错误（会话可能已终止）: {str(e)}")
                 self.driver = None
                 return True
-            except Exception as e:
-                logger.error(f"退出Appium驱动时发生错误: {str(e)}")
-                return False
         else:
             logger.warning("驱动未初始化")
             return True
@@ -510,53 +517,55 @@ class AppiumManager:
         try:
             logger.info("启动应用")
 
-            if app_package and app_activity:
-                try:
-                    logger.info(f"使用 adb 命令启动应用: {app_package}/{app_activity}")
-                    adb_command = f"adb shell am start -n {app_package}/{app_activity}"
-                    result = subprocess.run(adb_command, shell = True, capture_output = True, text = True)
-                    if result.returncode == 0:
-                        logger.info("通过 adb 命令成功启动应用")
-                        time.sleep(3)
-                        return True
-                    else:
-                        logger.warning(f"adb 命令执行失败: {result.stderr}")
-                except Exception as e:
-                    logger.warning(f"adb 命令启动失败: {str(e)}")
+            if not app_package or not app_activity:
+                logger.error("无法获取应用包名和活动名")
+                return False
 
-            if self.driver and app_package and app_activity:
+            # 尝试使用start_activity方法
+            if self.driver:
                 try:
                     logger.info(f"使用 start_activity 启动应用: {app_package}/{app_activity}")
                     self.driver.start_activity(app_package, app_activity)
                     return True
                 except Exception as e:
                     logger.warning(f"start_activity 方法失败: {str(e)}")
-                    logger.info("尝试重新创建驱动")
 
-            if app_package and app_activity:
-                try:
-                    desired_caps = {
-                        'platformName': 'Android',
-                        'automationName': 'UiAutomator2',
-                        'deviceName': 'Android Device',
-                        'appPackage': app_package,
-                        'appActivity': app_activity,
-                        'noReset': False,
-                        'fullReset': False,
-                        'unicodeKeyboard': True,
-                        'resetKeyboard': True,
-                        'newCommandTimeout': 3600
-                    }
-
-                    self.driver = self.create_driver(desired_caps)
-                    logger.info("通过重新创建驱动成功启动应用")
+            # 尝试使用adb命令
+            try:
+                logger.info(f"使用 adb 命令启动应用: {app_package}/{app_activity}")
+                adb_command = f"adb shell am start -n {app_package}/{app_activity}"
+                result = subprocess.run(adb_command, shell = True, capture_output = True, text = True)
+                if result.returncode == 0:
+                    logger.info("通过 adb 命令成功启动应用")
+                    time.sleep(3)
                     return True
-                except Exception as e:
-                    logger.error(f"重新创建驱动时发生错误: {str(e)}")
-                    return False
-            else:
-                logger.error("无法获取应用包名和活动名")
+                else:
+                    logger.warning(f"adb 命令执行失败: {result.stderr}")
+            except Exception as e:
+                logger.warning(f"adb 命令启动失败: {str(e)}")
+
+            # 尝试重新创建驱动
+            try:
+                desired_caps = {
+                    'platformName': 'Android',
+                    'automationName': 'UiAutomator2',
+                    'deviceName': 'Android Device',
+                    'appPackage': app_package,
+                    'appActivity': app_activity,
+                    'noReset': False,
+                    'fullReset': False,
+                    'unicodeKeyboard': True,
+                    'resetKeyboard': True,
+                    'newCommandTimeout': 3600
+                }
+
+                self.driver = self.create_driver(desired_caps)
+                logger.info("通过重新创建驱动成功启动应用")
+                return True
+            except Exception as e:
+                logger.error(f"重新创建驱动时发生错误: {str(e)}")
                 return False
+
         except Exception as e:
             logger.error(f"启动应用时发生错误: {str(e)}")
             return False

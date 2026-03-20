@@ -39,6 +39,7 @@ class LoginPage(AppBasePage):
     COUNTRY_CODE_BUTTON = ("xpath", "//*[@text=\"+86\"]")
     COUNTRY_CODE_LIST = ("id", "com.weixiao.voice:id/side_bar_country")
     CHINA_COUNTRY_CODE = ("xpath", "(//android.widget.FrameLayout)[19]")
+    CANCEL_COUNTRY_SELECT = ("id", "com.weixiao.voice:id/tv_cancel")
     PHONE_INPUT = ("xpath", "//*[@text=\"请输入手机号码\"]")
     # 密码登录
     PASSWORD_INPUT = ("id", "com.weixiao.voice:id/et_login_input_pwd")
@@ -62,30 +63,21 @@ class LoginPage(AppBasePage):
     HOME_LOGO = ("id", "com.weixiao.voice:id/iv_logo")
     HOME_DIALOG_CLOSE = ("id", "com.weixiao.voice:id/iv_home_dialog_close")
 
-    def agree_protocol(self) -> bool:
+    def agree_protocol_and_permission(self) -> bool:
         """
-        同意协议
+        同意协议和权限
 
         Returns:
             是否同意成功
         """
-        logger.info("同意协议")
-        # 点击协议按钮
+        logger.info("同意协议和权限")
+
+        # 同意协议
         if not self.click_element(self.AGREE_BUTTON):
             logger.error("点击协议按钮失败")
             return False
 
-        return True
-
-    def allow_permission(self) -> bool:
-        """
-        同意权限
-
-        Returns:
-            是否同意成功
-        """
-        logger.info("同意通知权限")
-        # 点击同意按钮
+        # 同意通知权限
         if not self.click_element(self.NOTIFICATION_AGREE_BUTTON):
             logger.error("点击同意按钮失败")
             return False
@@ -172,6 +164,8 @@ class LoginPage(AppBasePage):
                 time.sleep(0.5)
 
             logger.error(f"未找到国家/地区: {country_name}")
+            # 点击取消按钮，使用默认的+86
+            self.click_element(self.CANCEL_COUNTRY_SELECT)
             return False
 
         except Exception as e:

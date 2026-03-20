@@ -362,6 +362,7 @@ class TestRunner:
         Returns:
             bool: 是否生成成功
         """
+        import os
         logger.info("开始生成Allure报告...")
 
         # 获取当前测试运行的时间文件夹路径
@@ -384,6 +385,47 @@ class TestRunner:
             logger.info(f"执行命令: {' '.join(cmd)}")
             subprocess.run(cmd, check = True, cwd = path_util.get_project_root(), text = True)
             logger.info(f"Allure报告已生成: {allure_report_dir}")
+
+            # 启动本地HTTP服务器来提供报告
+            import http.server
+            import socketserver
+            import threading
+            import socket
+
+            # 查找可用端口
+            def find_free_port():
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.bind(('', 0))
+                    return s.getsockname()[1]
+
+            port = find_free_port()
+            server_address = ('127.0.0.1', port)
+
+            # 设置HTTP服务器
+            class ReportHandler(http.server.SimpleHTTPRequestHandler):
+                def __init__(self, *args, **kwargs):
+                    super().__init__(*args, directory = allure_report_dir, **kwargs)
+
+            # 创建服务器
+            httpd = socketserver.TCPServer(server_address, ReportHandler)
+
+            # 在后台启动服务器
+            server_thread = threading.Thread(target = httpd.serve_forever, daemon = True)
+            server_thread.start()
+
+            # 生成HTTP链接
+            report_url = f"http://{server_address[0]}:{server_address[1]}"
+            logger.info(f"Allure报告HTTP服务已启动: {report_url}")
+            logger.info(f"请在浏览器中打开以下链接查看报告: 🌐 {report_url}")
+            logger.info(f"按 Enter 键停止服务器...")
+            
+            # 等待用户输入以保持服务器运行
+            input("")
+
+            # 关闭服务器
+            httpd.shutdown()
+            httpd.server_close()
+            
             return True
         except Exception as e:
             logger.error(f"生成Allure报告失败: {str(e)}")

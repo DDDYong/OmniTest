@@ -11,7 +11,7 @@ test_scenarios:
       - 验证应用是否正常启动
       - 截图保存
     expected:
-      activity: com.cola.xinyue.activity.LoginActivity
+      activity: com.weixiao.voice/.ui.home.MainActivity
       package: com.weixiao.voice
       timeout: 30
 
