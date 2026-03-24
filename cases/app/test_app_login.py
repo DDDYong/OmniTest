@@ -13,9 +13,10 @@ import pytest
 
 from cases.app.pages.login_page import LoginPage
 from utils.db.mysql_client import MySQLClient
-from utils.decorator_util import app_test
-from utils.file_util import FileHandler
-from utils.logger_util import logger
+from utils.decorator import app_test
+from utils.file import FileHandler
+from utils import assert_util as AssertUtil
+from utils.logger import logger
 
 
 @pytest.mark.parallel
@@ -27,8 +28,7 @@ class TestLoginParallel:
         """
         测试类级别的初始化, 加载测试数据
         """
-        file_handler = FileHandler()
-        test_data = file_handler.read_yaml("test_data/app_test_cases.yaml")
+        test_data = FileHandler.get_test_data("test_data/app_test_cases.yaml")
         request.cls.test_data = test_data
         logger.info("测试数据加载完成")
 
@@ -120,6 +120,7 @@ class TestLoginParallel:
 
         driver = parallel_appium_driver
         login_page = LoginPage(driver, test_data = self.__class__.test_data)
+        assert_util = AssertUtil(driver)
 
         with allure.step("密码登录测试"):
             test_data, expected = self._setup_login_environment(login_page, scenario_name)
@@ -147,7 +148,7 @@ class TestLoginParallel:
 
         with allure.step("选择国家区号"):
             country_code = test_data.get("country_code", "中国大陆")
-            # 如果是中国大陆，使用默认值，无需额外选择
+            # 如果是中国大陆,使用默认值,无需额外选择
             if country_code == "中国大陆":
                 logger.info("使用默认的中国大陆区号")
             else:
@@ -166,8 +167,7 @@ class TestLoginParallel:
             for _ in range(3):
                 if login_page.is_element_displayed(login_page.HOME_DIALOG_CLOSE, 1):
                     login_page.click_element(login_page.HOME_DIALOG_CLOSE)
-            assert login_page.is_element_displayed(login_page.HOME_LOGO, 3) == expected[
-                "home_screen_displayed"], "登录失败未进入首页"
+            assert_util.equals(login_page.is_element_displayed(login_page.HOME_LOGO, 3), expected["home_screen_displayed"], "登录失败未进入首页")
             logger.info("账号密码登录成功")
 
     @app_test(
@@ -185,6 +185,7 @@ class TestLoginParallel:
 
         driver = parallel_appium_driver
         login_page = LoginPage(driver, test_data = self.__class__.test_data)
+        assert_util = AssertUtil(driver)
 
         with allure.step("错误密码登录测试"):
             test_data, expected = self._setup_login_environment(login_page, scenario_name)
@@ -212,7 +213,7 @@ class TestLoginParallel:
 
         with allure.step("选择国家区号"):
             country_code = test_data.get("country_code", "中国大陆")
-            # 如果是中国大陆，使用默认值，无需额外选择
+            # 如果是中国大陆,使用默认值,无需额外选择
             if country_code == "中国大陆":
                 logger.info("使用默认的中国大陆区号")
             else:
@@ -227,7 +228,7 @@ class TestLoginParallel:
 
         with allure.step("验证错误提示"):
             expected_toast = expected.get("toast_message", "账号或密码错误")
-            assert login_page.check_for_toast(expected_toast, 10)
+            assert_util.is_true(login_page.check_for_toast(expected_toast, 10))
             logger.info("✅账号+错误的密码登录失败")
 
     @app_test(
@@ -246,6 +247,7 @@ class TestLoginParallel:
 
         driver = parallel_appium_driver
         login_page = LoginPage(driver, test_data = self.__class__.test_data)
+        assert_util = AssertUtil(driver)
 
         with allure.step("验证码登录测试"):
             test_data, expected = self._setup_login_environment(login_page, scenario_name)
@@ -273,7 +275,7 @@ class TestLoginParallel:
 
         with allure.step("选择国家区号"):
             country_code = test_data.get("country_code", "中国大陆")
-            # 如果是中国大陆，使用默认值，无需额外选择
+            # 如果是中国大陆,使用默认值,无需额外选择
             if country_code == "中国大陆":
                 logger.info("使用默认的中国大陆区号")
             else:
@@ -307,8 +309,7 @@ class TestLoginParallel:
             for _ in range(3):
                 if login_page.is_element_displayed(login_page.HOME_DIALOG_CLOSE, 1):
                     login_page.click_element(login_page.HOME_DIALOG_CLOSE)
-            assert login_page.is_element_displayed(login_page.HOME_LOGO, 3) == expected[
-                "home_screen_displayed"], "登录失败未进入首页"
+            assert_util.equals(login_page.is_element_displayed(login_page.HOME_LOGO, 3), expected["home_screen_displayed"], "登录失败未进入首页")
             logger.info("✅手机号+验证码登录成功")
 
     @app_test(
@@ -326,6 +327,7 @@ class TestLoginParallel:
 
         driver = parallel_appium_driver
         login_page = LoginPage(driver, test_data = self.__class__.test_data)
+        assert_util = AssertUtil(driver)
 
         with allure.step("错误验证码登录测试"):
             test_data, expected = self._setup_login_environment(login_page, scenario_name)
@@ -353,7 +355,7 @@ class TestLoginParallel:
 
         with allure.step("选择国家区号"):
             country_code = test_data.get("country_code", "中国大陆")
-            # 如果是中国大陆，使用默认值，无需额外选择
+            # 如果是中国大陆,使用默认值,无需额外选择
             if country_code == "中国大陆":
                 logger.info("使用默认的中国大陆区号")
             else:
@@ -368,5 +370,5 @@ class TestLoginParallel:
 
         with allure.step("验证错误提示"):
             expected_toast = expected.get("toast_message", "验证码已经失效啦")
-            assert login_page.check_for_toast(expected_toast, 10)
+            assert_util.is_true(login_page.check_for_toast(expected_toast, 10))
             logger.info("✅手机号+错误的验证码登录失败")

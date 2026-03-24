@@ -20,7 +20,7 @@ if project_root not in sys.path:
 # 导入TestRunner类
 from run import TestRunner
 # 导入日志工具
-from utils.logger_util import logger
+from utils.logger import logger
 
 
 class OmniTest:
@@ -29,19 +29,25 @@ class OmniTest:
     提供简洁的编程接口来运行各类测试
     """
 
+    __test__ = False
+
     def __init__(self):
         """初始化OmniTest实例"""
         self.runner = TestRunner()
+        self.last_exit_code = None
+        self.last_error = None
 
     def clean(self):
         """清理测试报告目录"""
 
+        self.last_error = None
         logger.info("=" * 60)
         logger.info("开始清理测试报告和截图")
         try:
             self.runner.clean_reports()
             logger.info("测试报告和截图清理完成")
         except Exception as e:
+            self.last_error = e
             logger.error(f"清理测试报告失败: {str(e)}", exc_info = True)
         logger.info("=" * 60)
         return self
@@ -81,17 +87,24 @@ class OmniTest:
         logger.info(f"正在运行API测试 - 开始执行测试用例")
         try:
             exit_code = self.runner.run_api_tests(test_dir, test_file, markers)
+            self.last_exit_code = exit_code
+            self.last_error = None
             logger.info("API测试执行完成")
 
             # 生成报告
-            if exit_code == 0 and auto_report:
+            invalid_code = getattr(TestRunner, "INVALID_TEST_TARGET_EXIT_CODE", 4)
+            if exit_code != 0:
+                logger.warning(f"API测试退出码: {exit_code}")
+
+            if auto_report and exit_code != invalid_code:
                 logger.info("准备自动生成测试报告")
-                self.runner.generate_allure_report()
-            elif exit_code != 0:
-                logger.warning(f"API测试失败,退出码: {exit_code},跳过报告生成")
+                self.runner.generate_allure_report(serve = False, wait_for_enter = False)
+            elif auto_report and exit_code == invalid_code:
+                logger.warning(f"API测试目标无效,退出码: {exit_code},跳过报告生成")
             else:
                 logger.info("跳过自动生成报告")
         except Exception as e:
+            self.last_error = e
             logger.error(f"API测试执行失败: {str(e)}", exc_info = True)
 
         logger.info("=" * 60)
@@ -132,17 +145,24 @@ class OmniTest:
         logger.info(f"正在运行Web测试 - 开始执行浏览器自动化测试")
         try:
             exit_code = self.runner.run_web_tests(test_dir, test_file, markers)
+            self.last_exit_code = exit_code
+            self.last_error = None
             logger.info("Web测试执行完成")
 
             # 生成报告
-            if exit_code == 0 and auto_report:
+            invalid_code = getattr(TestRunner, "INVALID_TEST_TARGET_EXIT_CODE", 4)
+            if exit_code != 0:
+                logger.warning(f"Web测试退出码: {exit_code}")
+
+            if auto_report and exit_code != invalid_code:
                 logger.info("准备自动生成测试报告")
-                self.runner.generate_allure_report()
-            elif exit_code != 0:
-                logger.warning(f"Web测试失败,退出码: {exit_code},跳过报告生成")
+                self.runner.generate_allure_report(serve = False, wait_for_enter = False)
+            elif auto_report and exit_code == invalid_code:
+                logger.warning(f"Web测试目标无效,退出码: {exit_code},跳过报告生成")
             else:
                 logger.info("跳过自动生成报告")
         except Exception as e:
+            self.last_error = e
             logger.error(f"Web测试执行失败: {str(e)}", exc_info = True)
 
         logger.info("=" * 60)
@@ -182,18 +202,84 @@ class OmniTest:
         logger.info(f"正在运行App测试 - 开始执行测试用例")
         try:
             exit_code = self.runner.run_app_tests(test_dir, test_file, markers)
+            self.last_exit_code = exit_code
+            self.last_error = None
             logger.info("App测试执行完成")
 
             # 生成报告
-            if exit_code == 0 and auto_report:
+            invalid_code = getattr(TestRunner, "INVALID_TEST_TARGET_EXIT_CODE", 4)
+            if exit_code != 0:
+                logger.warning(f"App测试退出码: {exit_code}")
+
+            if auto_report and exit_code != invalid_code:
                 logger.info("准备自动生成测试报告")
-                self.runner.generate_allure_report()
-            elif exit_code != 0:
-                logger.warning(f"App测试失败,退出码: {exit_code},跳过报告生成")
+                self.runner.generate_allure_report(serve = False, wait_for_enter = False)
+            elif auto_report and exit_code == invalid_code:
+                logger.warning(f"App测试目标无效,退出码: {exit_code},跳过报告生成")
             else:
                 logger.info("跳过自动生成报告")
         except Exception as e:
+            self.last_error = e
             logger.error(f"App测试执行失败: {str(e)}", exc_info = True)
+
+        logger.info("=" * 60)
+        return self
+
+    def parallel(
+        self,
+        test_dir = None,
+        test_file = None,
+        markers = "parallel",
+        num_workers = 2,
+        html_report = False,
+        workers = None,
+        html = None,
+        auto_clean = True,
+        auto_report = True,
+    ):
+        logger.info("=" * 60)
+        logger.info("开始执行并行测试")
+        logger.info(f"测试目录: {test_dir}")
+        logger.info(f"测试文件: {test_file}")
+        logger.info(f"测试标记: {markers}")
+        logger.info(f"worker数量: {workers if workers is not None else num_workers}")
+        logger.info(f"HTML报告: {html if html is not None else html_report}")
+        logger.info(f"自动清理: {auto_clean}")
+        logger.info(f"自动报告: {auto_report}")
+        logger.info("=" * 60)
+
+        if workers is not None:
+            num_workers = workers
+        if html is not None:
+            html_report = html
+
+        if auto_clean:
+            logger.info("执行自动清理报告操作")
+            self.clean()
+        else:
+            logger.info("跳过自动清理报告")
+
+        logger.info("正在运行并行测试 - 开始执行测试用例")
+        try:
+            exit_code = self.runner.run_parallel_tests(test_dir, test_file, markers, num_workers, html_report)
+            self.last_exit_code = exit_code
+            self.last_error = None
+            logger.info("并行测试执行完成")
+
+            invalid_code = getattr(TestRunner, "INVALID_TEST_TARGET_EXIT_CODE", 4)
+            if exit_code != 0:
+                logger.warning(f"并行测试退出码: {exit_code}")
+
+            if auto_report and exit_code != invalid_code:
+                logger.info("准备自动生成测试报告")
+                self.runner.generate_allure_report(serve = False, wait_for_enter = False)
+            elif auto_report and exit_code == invalid_code:
+                logger.warning(f"并行测试目标无效,退出码: {exit_code},跳过报告生成")
+            else:
+                logger.info("跳过自动生成报告")
+        except Exception as e:
+            self.last_error = e
+            logger.error(f"并行测试执行失败: {str(e)}", exc_info = True)
 
         logger.info("=" * 60)
         return self
@@ -221,9 +307,12 @@ class OmniTest:
 
         try:
             logger.info("正在启动性能测试")
-            self.runner.run_performance_tests(test_file, users, spawn_rate, run_time)
+            exit_code = self.runner.run_performance_tests(test_file, users, spawn_rate, run_time)
+            self.last_exit_code = exit_code
+            self.last_error = None
             logger.info("性能测试执行完成")
         except Exception as e:
+            self.last_error = e
             logger.error(f"性能测试执行失败: {str(e)}", exc_info = True)
 
         logger.info("=" * 60)
@@ -257,17 +346,21 @@ class OmniTest:
         logger.info("正在运行所有测试套件")
         try:
             exit_code = self.runner.run_all_tests()
+            self.last_exit_code = exit_code
+            self.last_error = None
             logger.info(f"所有测试执行完成,退出码: {exit_code}")
 
             # 生成报告
-            if exit_code == 0 and auto_report:
+            if exit_code != 0:
+                logger.warning(f"所有测试退出码: {exit_code}")
+
+            if auto_report:
                 logger.info("准备自动生成测试报告")
-                self.runner.generate_allure_report()
-            elif exit_code != 0:
-                logger.warning(f"测试失败,退出码: {exit_code},跳过报告生成")
+                self.runner.generate_allure_report(serve = False, wait_for_enter = False)
             else:
                 logger.info("跳过自动生成报告")
         except Exception as e:
+            self.last_error = e
             logger.error(f"运行所有测试失败: {str(e)}", exc_info = True)
 
         logger.info("=" * 60)
@@ -294,7 +387,7 @@ class OmniTest:
         try:
             if generate:
                 logger.info("开始生成Allure报告")
-                self.runner.generate_allure_report()
+                self.runner.generate_allure_report(serve = False, wait_for_enter = False)
                 logger.info("Allure报告生成完成")
 
             if open:

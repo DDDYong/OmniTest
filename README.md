@@ -19,12 +19,12 @@ OmniTest 是一个全面的自动化测试框架,支持 API、Web、APP 和性�
 
 - `OMNITEST_ENV`：选择配置环境（如 `dev` / `test` / `prod`），对应加载 `config/{env}.yaml`
 - `LOG_LEVEL`：动态控制日志级别（`DEBUG` / `INFO` / `WARNING` / `ERROR`），优先级高于配置文件
-    - `LOG_LEVEL=DEBUG`：打印加载路径、重试细节与异常堆栈
-    - `LOG_LEVEL=INFO`：仅打印真正发生加载动作的一行摘要（reload 会带 `[Reload]` 前缀）
-    - `LOG_LEVEL>=WARNING`：仅在加载失败或配置校验不通过时输出
+  - `LOG_LEVEL=DEBUG`：打印加载路径、重试细节与异常堆栈
+  - `LOG_LEVEL=INFO`：仅打印真正发生加载动作的一行摘要（reload 会带 `[Reload]` 前缀）
+  - `LOG_LEVEL>=WARNING`：仅在加载失败或配置校验不通过时输出
 - 启用 logging.yaml（两种方式都支持）：
-    - `LOG_CONFIG_PATH=/绝对路径/config/logging.yaml`
-    - `OMNITEST_USE_LOGGING_YAML=1`（默认读取项目内置的 `config/logging.yaml`）
+  - `LOG_CONFIG_PATH=/绝对路径/config/logging.yaml`
+  - `OMNITEST_USE_LOGGING_YAML=1`（默认读取项目内置的 `config/logging.yaml`）
 
 日志级别优先级（由高到低）：
 
@@ -47,47 +47,39 @@ cm.reload("config/test.yaml")  # 指定文件重载（该文件视为环境配�
 
 ### 日志模板示例
 
-项目提供了示例配置 [logging.yaml](file:///Users/apple/duanyang/PyProduct/OmniTest/config/logging.yaml)，展示如何把
+项目提供了示例配置 [logging.yaml](config/logging.yaml)，展示如何把
 `config_alias/reload/module_name/lineno` 等字段注入到统一格式中。
 
 ## 项目结构
 
-```
+```text
 OmniTest/
-├── .gitignore              # Git 忽略文件
-├── README_API.md           # API 文档
-├── activate_existing_venv.sh # 激活虚拟环境脚本
+├── .trae/                  # Trae IDE 规则配置
 ├── cases/                  # 测试用例目录
 │   ├── api/                # API 测试用例
-│   │   └── test_user_management.py
 │   ├── app/                # APP 测试用例
-│   │   ├── pages/          # APP 页面对象
-│   │   └── test_android_app_launch.py
 │   ├── performance/        # 性能测试用例
 │   └── web/                # Web 测试用例
-│       ├── pages/          # Web 页面对象
-│       └── test_baidu_search.py
 ├── config/                 # 配置文件目录
-│   ├── config.py           # 配置文件
-│   └── env.py              # 环境配置
-├── conftest.py             # Pytest 配置文件
-├── data/                   # 测试数据目录
-│   ├── templates/          # 数据模板
-│   └── test_data/          # 测试数据文件
-├── examples/               # 使用示例
-│   └── usage_example.py    # 示例代码
-├── hooks/                  # 测试钩子
-├── main.py                 # 主入口文件
-├── omni_test.py            # OmniTest API 模块
-├── pytest.ini              # Pytest 配置
+├── data/                   # 测试数据与活动配置
+├── scripts/                # 辅助脚本
+├── tests/                  # 框架自身单元测试（离线基线等）
+│   └── baseline/           # 离线基线测试
+├── utils/                  # 核心工具类目录
+│   ├── packaging/          # requirements 管理能力
+│   ├── reporting/          # Allure 报告能力
+│   └── runner/             # pytest/locust 执行器
+├── .gitignore
+├── PROJECT_OVERVIEW.md     # 项目全景文档
+├── pyproject.toml          # PEP517 构建声明（与 setup.py 双轨）
+├── README.md               # 项目主文档
+├── conftest.py             # Pytest 全局配置
+├── main.py                 # CLI 命令薄入口包装
+├── omni_test.py            # 编程 API 统一入口
+├── pytest.ini              # Pytest 配置文件
 ├── requirements.txt        # 依赖文件
-├── run.py                  # 运行测试的核心模块
-└── utils/                  # 工具类目录
-    ├── api/                # API 测试工具
-    ├── app/                # APP 测试工具
-    ├── db/                 # 数据库工具
-    ├── performance/        # 性能测试工具
-    └── web/                # Web 测试工具
+├── run.py                  # CLI 核心运行器
+└── setup.py                # 项目安装配置
 ```
 
 ## 安装配置
@@ -97,9 +89,9 @@ OmniTest/
 - Python 3.8 及以上
 - 虚拟环境（推荐）
 - 系统环境依赖：
-    - Allure 命令行工具（用于报告生成）
-    - WebDriver（用于 Web 测试）
-    - Appium 服务（用于 APP 测试,可选）
+  - Allure 命令行工具（用于报告生成）
+  - WebDriver（用于 Web 测试）
+  - Appium 服务（用于 APP 测试,可选）
 
 ### 2. 安装步骤
 
@@ -130,17 +122,32 @@ OmniTest/
    pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
    ```
 
-4. **安装 Allure 命令行工具**
+4. **推荐：开发模式安装（可选）**
 
-    - 参考 [Allure 官方文档](https://docs.qameta.io/allure/#_installing_a_commandline)
-    - MacOS 可以使用 Homebrew: `brew install allure`
-    - Windows 可以使用 Scoop: `scoop install allure`
+   ```bash
+   pip install -e .
+   ```
+
+   - 说明：项目同时提供 `pyproject.toml`（PEP517 构建声明）与 `setup.py`（元信息/入口点），用于兼容可编辑安装。
+
+5. **安装 Allure 命令行工具**
+
+   - 参考 [Allure 官方文档](https://docs.qameta.io/allure/#_installing_a_commandline)
+   - MacOS 可以使用 Homebrew: `brew install allure`
+   - Windows 可以使用 Scoop: `scoop install allure`
 
 ## 使用指南
 
 ### 1. 命令行使用
 
 OmniTest 提供了丰富的命令行接口,支持运行不同类型的测试。
+
+如果已执行 `pip install -e .`，也可以直接使用入口命令：
+
+```bash
+omni-test --help
+omni --help
+```
 
 #### 运行所有测试
 
@@ -207,7 +214,10 @@ python run.py parallel --file test_app_login.py
 
 ```bash
 # 运行性能测试
-python run.py performance test_api_load.py --users 200 --spawn-rate 20 --run-time 10m
+python run.py performance test_api_load.py \
+  --users 200 \
+  --spawn-rate 20 \
+  --run-time 10m
 ```
 
 #### 生成和查看报告
@@ -251,6 +261,9 @@ from omni_test import ot
 # 运行 API 测试
 ot.api()
 
+# 运行 Web 测试
+ot.web()
+
 # 运行所有测试并生成报告
 ot.all()
 
@@ -258,25 +271,256 @@ ot.all()
 ot.clean().api().web().report()
 ```
 
-#### 高级用法
+### 编程 API 详细参考
+
+#### OmniTest 类
+
+`OmniTest` 类提供了以下方法：
+
+##### `clean()`
+
+清理测试报告目录。
+
+```python
+ot.clean()  # 清理报告目录
+```
+
+##### `api(test_dir=None, test_file=None, markers=None, auto_clean=True, auto_report=True)`
+
+运行 API 测试。
+
+参数：
+
+- `test_dir`: 测试目录
+- `test_file`: 测试文件
+- `markers`: 测试标记
+- `auto_clean`: 是否自动清理报告,默认为 True
+- `auto_report`: 是否自动生成报告,默认为 True
+
+说明：
+
+- 当 `auto_report=True` 时，**测试失败也会生成报告**（用于定位失败原因）
+- 仅当退出码为 `4`（测试目标无效）时跳过报告生成
+
+返回：
+
+- 返回实例本身以支持链式调用
+
+```python
+# 运行所有 API 测试
+ot.api()
+
+# 运行特定的 API 测试文件
+ot.api(test_file="test_user.py")
+
+# 运行带标记的 API 测试
+ot.api(markers="smoke")
+
+# 不自动清理报告
+ot.api(auto_clean=False)
+
+# 不自动生成报告
+ot.api(auto_report=False)
+```
+
+##### `web(test_dir=None, test_file=None, markers=None, auto_clean=True, auto_report=True)`
+
+运行 Web 测试。
+
+参数与 `api()` 方法相同。
+
+```python
+# 运行所有 Web 测试
+ot.web()
+
+# 运行特定的 Web 测试文件
+ot.web(test_file="test_login.py")
+
+# 运行特定目录的 Web 测试
+ot.web(test_dir="auth")
+```
+
+##### `app(test_dir=None, test_file=None, markers=None, auto_clean=True, auto_report=True)`
+
+运行 App 测试。
+
+参数与 `api()` 方法相同。
+
+```python
+# 运行所有 App 测试
+ot.app()
+
+# 运行带标记的 App 测试
+ot.app(markers="smoke")
+```
+
+##### `performance(test_file, users=100, spawn_rate=10, run_time='5m')`
+
+运行性能测试。
+
+参数：
+
+- `test_file`: 测试文件（必需）
+- `users`: 用户数量,默认为 100
+- `spawn_rate`: 每秒生成的用户数,默认为 10
+- `run_time`: 运行时间,默认为 '5m'
+
+返回：
+
+- 返回实例本身以支持链式调用
+
+```python
+# 运行性能测试
+ot.performance("test_api_load.py")
+
+# 自定义性能测试参数
+ot.performance("test_api_load.py", users=200, spawn_rate=20, run_time='10m')
+```
+
+##### `all(auto_clean=True, auto_report=True)`
+
+运行所有类型的测试。
+
+参数：
+
+- `auto_clean`: 是否自动清理报告,默认为 True
+- `auto_report`: 是否自动生成报告,默认为 True
+
+返回：
+
+- 返回实例本身以支持链式调用
+
+```python
+# 运行所有测试
+ot.all()
+```
+
+##### `report(generate=True, open=True)`
+
+生成和/或打开 Allure 报告。
+
+参数：
+
+- `generate`: 是否生成报告,默认为 True
+- `open`: 是否打开报告,默认为 True
+
+返回：
+
+- 返回实例本身以支持链式调用
+
+```python
+# 生成并打开报告
+ot.report()
+
+# 只生成报告
+ot.report(open=False)
+
+# 只打开报告
+ot.report(generate=False)
+```
+
+##### `parallel()`
+
+运行并行测试（默认基于 `@pytest.mark.parallel` 标记）。
+
+签名参考：
+
+```python
+parallel(
+    test_dir=None,
+    test_file=None,
+    markers="parallel",
+    num_workers=2,
+    html_report=False,
+    workers=None,
+    html=None,
+    auto_clean=True,
+    auto_report=True,
+)
+```
+
+参数：
+
+- `markers`: 默认为 `parallel`
+- `num_workers`: worker 数量（等价别名：`workers`）
+- `html_report`: 是否生成 HTML 报告（等价别名：`html`）
+- 其他参数与 `api()` 类似
 
 ```python
 from omni_test import ot
 
-# 运行特定的 API 测试文件
-ot.api(test_file="test_user_management.py")
+# 默认并行（2 workers），执行 cases/ 下标记为 parallel 的用例
+ot.parallel()
 
-# 运行带标记的 Web 测试,不自动清理和报告
-ot.web(markers="smoke", auto_clean=False, auto_report=False)
+# 指定 workers，并生成 HTML 报告
+ot.parallel(workers=3, html=True)
+```
 
-# 运行性能测试
-ot.performance("test_api_load.py", users=200, spawn_rate=20, run_time="10m")
+##### `last_exit_code / last_error`
 
-# 生成报告但不打开
-ot.report(open=False)
+链式调用仍返回 `self`，同时可通过以下属性获取最后一次执行结果：
 
-# 运行并行测试
-ot.parallel(workers = 3, html = True)
+- `last_exit_code`: 最近一次 run 的退出码（0=成功；4=目标无效；其他为失败）
+- `last_error`: 最近一次异常对象（无异常则为 None）
+
+### 链式调用进阶
+
+OmniTest 支持链式调用,可以在一行代码中执行多个操作：
+
+```python
+# 链式调用示例
+from omni_test import ot
+
+# 运行 API 测试,然后运行 Web 测试,最后生成报告
+ot.api()\
+   .web()\
+   .report()
+
+# 运行特定的 API 测试,然后运行特定的 Web 测试,但不自动生成报告
+ot.api(test_file="test_user.py", auto_report=False)\
+   .web(test_file="test_login.py", auto_report=False)\
+   .report()  # 手动生成报告
+```
+
+### 自定义流程控制
+
+可以手动控制测试流程,而不依赖默认行为：
+
+```python
+from omni_test import OmniTest
+
+omni_test = OmniTest()
+
+# 1. 清理报告目录
+omni_test.clean()
+
+# 2. 运行 API 测试,但不自动清理和生成报告
+omni_test.api(auto_clean=False, auto_report=False)
+
+# 3. 运行 Web 测试,但不自动清理和生成报告
+omni_test.web(auto_clean=False, auto_report=False)
+
+# 4. 手动生成和打开一个包含所有测试的报告
+omni_test.report()
+```
+
+## 示例代码
+
+可参考以下已存在的示例/测试文件：
+
+- 编程 API 行为与参数映射示例：[test_omni_test_programmatic_api.py](cases/api/test_omni_test_programmatic_api.py)
+- 离线基线回归示例：[test_baseline.py](tests/baseline/test_baseline.py)
+
+### 与命令行接口的关系
+
+`main.py` 文件同时保留了命令行功能,当直接运行该文件时,会调用 `run.py` 中的 `main()` 函数,因此以下两种方式等效：
+
+```bash
+# 通过 run.py 运行
+python run.py api
+
+# 通过 main.py 运行
+python main.py api
 ```
 
 ## 测试用例编写
@@ -342,11 +586,13 @@ APP 测试用例存放在 `cases/app/` 目录下,同样推荐使用 Page Object 
 APP 自动化测试中，元素定位可以使用以下工具：
 
 1. **uiautomatorviewer**：Android SDK 自带的元素定位工具
+
    ```bash
    uiauto.dev
    ```
 
 2. **weditor**：基于 Python 的 UI 查看器，支持 Android 和 iOS
+
    ```bash
    weditor
    ```
@@ -377,6 +623,7 @@ appium --address 127.0.0.1 --port 4723 --log-level info
 ## 配置管理
 
 OmniTest 提供了灵活强大的配置管理系统,支持 YAML 配置文件、环境变量和属性化访问,配置文件位于 `config/` 目录下：
+
 - `default.yaml`：默认配置文件,包含所有环境共享的基础配置
 - `test.yaml`：测试环境的 YAML 格式配置文件
 - `prod.yaml`：生产环境的 YAML 格式配置文件
@@ -460,8 +707,8 @@ redis:
 #### 导入配置实例
 
 ```python
-# 从配置模块导入全局配置实例
-from config import config
+# 从配置管理器导入全局配置实例
+from config.config_manager import config
 ```
 
 #### 访问配置项
@@ -551,42 +798,27 @@ YAML 格式的测试数据提供了更易读的结构,适合复杂的嵌套测�
 #### 数据文件示例 (api_test_data.yaml)
 
 ```yaml
-# API 测试数据
+# API测试数据 - YAML格式
 test_user_registration:
-  test_data:
+  valid_data:
     username: testuser123
-    email: test@example.com
-    password: Password123
-  expected_result:
+    email: testuser123@example.com
+    password: Test@123456
+  invalid_data:
+    missing_username:
+      email: testuser123@example.com
+      password: Test@123456
+  expected:
     status_code: 201
-    response_message: User registered successfully
-
-# 测试场景列表
-test_scenarios:
-  - name: valid_registration
-    description: 有效的用户注册测试
-    test_data:
-      username: valid_user
-      password: SecurePass123
-    expected:
-      success: true
-      user_id: >0
 ```
 
 #### 加载 YAML 测试数据
 
 ```python
-import yaml
+from utils.file_util import FileHandler
 
-def load_test_data(file_path):
-    with open(file_path, 'r', encoding='utf-8') as f:
-        return yaml.safe_load(f)
-
-# 使用测试数据
-test_data = load_test_data('data/test_data/api_test_data.yaml')
-
-# 获取特定测试场景的数据
-scenario_data = test_data['test_scenarios'][0]
+test_data = FileHandler.get_test_data("test_data/api_test_data.yaml")
+valid_data = test_data["test_user_registration"]["valid_data"]
 ```
 
 ## 测试报告
@@ -599,7 +831,7 @@ OmniTest 使用 Allure 生成测试报告,报告包含：
 - 测试执行时间统计
 - 图表可视化
 
-报告默认生成在 `reports/allure-report/` 目录下。
+报告默认生成在 `reports/<YYYYMMDD_HHMM>/allure-report/` 目录下（按每次执行的时间文件夹隔离）。
 
 ## 常见问题
 
@@ -666,21 +898,12 @@ python run.py package add requests --version 2.31.0
 
 ---
 
-**版本：v1.2.0**
-**更新日期：2026/03/10**
+## 变更日志
 
-### 更新日志
+### 2026-03-24（v1.0.0）
 
-- 重构配置系统,实现 ConfigManager 和 ConfigDict 核心类
-- 新增 default.yaml 作为基础配置文件
-- 实现配置的属性化访问（点号访问）功能
-- 优化配置加载逻辑,支持环境变量覆盖配置
-- 添加配置缓存和实时更新机制
-- 支持多层嵌套配置的无缝访问
-- 改进数据库和Redis配置结构,支持多实例配置
-- 提供配置系统的完整测试用例
-- 新增并行测试功能,支持多进程并行执行测试
-- 新增包管理命令,支持更新和添加依赖
-- 优化报告生成机制,使用时间文件夹管理报告
-- 改进命令行接口,支持更多参数和选项
-- 增强配置系统的健壮性和灵活性
+- 拆分 `run.py`：核心执行/报告/依赖管理分别迁移到 `utils/runner`、`utils/reporting`、`utils/packaging`
+- 强化编程 API：新增 `parallel()`、对齐 CLI 报告策略（失败也生成报告，目标无效退出码 4 例外）、增加 `last_exit_code/last_error`
+- 并行默认目录调整：默认在全 `cases/` 目录按 `@pytest.mark.parallel` 执行
+- 引入 `pyproject.toml`：启用 PEP517 构建声明，保留 `setup.py` 双轨以便回滚
+- 新增离线基线测试：覆盖导入与关键接口契约，便于稳定回归

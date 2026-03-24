@@ -19,7 +19,7 @@ from typing import Dict, Optional
 # 添加项目根目录到Python路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils.logger_util import logger
+from utils.logger import logger
 from utils.api.api_client import ApiClient
 from utils.db.mysql_client import MySQLClient
 from config.config_manager import config_manager
@@ -48,7 +48,7 @@ class ChristmasLotteryProbabilityValidator:
         
         Args:
             account: 账号信息, 包含用户名和密码
-            prize_probabilities: 奖品与预期概率映射, 默认为None（从数据库获取）
+            prize_probabilities: 奖品与预期概率映射, 默认为None(从数据库获取)
             allowed_deviation: 允许的实际概率偏差绝对值, 默认为0.05
             lottery_api: 抽奖接口URL, 默认为"/api/activity/lottery/start"
             threshold: 抽奖次数阈值, 低于此值跳过概率校验, 默认为50
@@ -211,7 +211,7 @@ class ChristmasLotteryProbabilityValidator:
 
     def get_prize_probabilities(self) -> Dict[str, float]:
         """
-        获取奖品概率配置（代码中写死的概率映射）
+        获取奖品概率配置(代码中写死的概率映射)
         
         Returns:
             Dict[str, float]: 奖品概率映射
@@ -294,7 +294,7 @@ class ChristmasLotteryProbabilityValidator:
             if response.status_code == 200:
                 response_json = response.json()
 
-                # 判断业务响应码是否为200（成功）
+                # 判断业务响应码是否为200(成功)
                 if response_json.get("code") == 200:
                     data = response_json.get("data", [])
 

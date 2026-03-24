@@ -20,13 +20,13 @@ import pymysql
 import pymysql.cursors
 
 from config.config_manager import config_manager
-from utils.logger_util import logger
+from utils.logger import logger
 
 # 连接池配置默认值
 DEFAULT_POOL_SIZE = 10
 DEFAULT_MAX_OVERFLOW = 5
-DEFAULT_RECYCLE = 3600  # 连接回收时间（秒）
-DEFAULT_TIMEOUT = 30  # 连接超时时间（秒）
+DEFAULT_RECYCLE = 3600  # 连接回收时间(秒)
+DEFAULT_TIMEOUT = 30  # 连接超时时间(秒)
 
 
 class MySQLClient:
@@ -78,7 +78,7 @@ class MySQLClient:
 
     def _create_ssh_tunnel(self):
         """
-        创建SSH隧道（使用本地端口转发）
+        创建SSH隧道(使用本地端口转发)
         
         Raises:
             Exception: SSH连接失败时抛出异常
@@ -400,7 +400,7 @@ class ConnectionPool:
             'cursorclass': pymysql.cursors.DictCursor
         }
 
-        # 正常创建连接（SSH隧道已经通过本地端口转发处理）
+        # 正常创建连接(SSH隧道已经通过本地端口转发处理)
         try:
             conn = pymysql.connect(**conn_config)
             return conn
@@ -576,7 +576,7 @@ class ConnectionPool:
 
     def execute_update(self, sql: str, params: Optional[Union[Tuple, Dict]] = None) -> int:
         """
-        执行更新语句（INSERT/UPDATE/DELETE）
+        执行更新语句(INSERT/UPDATE/DELETE)
     
         Args:
             sql: SQL语句
@@ -714,7 +714,7 @@ mysql_client = None
 
 def get_mysql_client(config: Optional[Dict[str, Any]] = None) -> MySQLClient:
     """
-    获取MySQL客户端实例（单例模式）
+    获取MySQL客户端实例(单例模式)
 
     Args:
         config: 数据库配置

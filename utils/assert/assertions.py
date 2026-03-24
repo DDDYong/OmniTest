@@ -1,6 +1,6 @@
 """
 -------------------------------------------------
-File:           assert_util.py
+File:           assertions.py
 Author:         duanyang
 Date:           2025/12/01
 -------------------------------------------------
@@ -12,8 +12,8 @@ Description:
 from typing import Any, Optional, Union
 
 # 直接导入依赖模块
-from utils.logger_util import logger
-from utils.screenshot_util import ScreenshotUtils
+from utils.logger import logger
+from utils.screenshot import ScreenshotUtils
 
 
 class AssertUtil:
@@ -38,7 +38,7 @@ class AssertUtil:
         Args:
             condition: 断言条件
             message: 断言消息
-            details: 详细信息（如期望值和实际值）
+            details: 详细信息(如期望值和实际值)
         """
         log_message = f"断言: {message}"
         if details:
@@ -107,7 +107,7 @@ class AssertUtil:
         断言容器包含指定元素
         
         Args:
-            container: 容器对象（字符串、列表、字典、集合等）
+            container: 容器对象(字符串、列表、字典、集合等)
             item: 要检查的元素
             message: 自定义错误消息
             
@@ -438,7 +438,7 @@ class AssertUtil:
         Args:
             response: API响应对象
             expected_value: 期望的值
-            path: JSON路径（点分隔, 如 'data.user.name'）, None表示整个响应
+            path: JSON路径(点分隔, 如 'data.user.name'), None表示整个响应
             message: 自定义错误消息
             
         Returns:
@@ -520,7 +520,7 @@ class AssertUtil:
         assert condition, f"{message}\n{details}"
         return self
 
-    # 设置驱动对象（用于截图）
+    # 设置驱动对象(用于截图)
     def set_driver(self, driver: Any) -> 'AssertUtil':
         """
         设置WebDriver或AppiumDriver实例

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 -------------------------------------------------
-File:           file_util.py
+File:           file_handler.py
 Author:         duanyang
 Date:           2025/11/27
 -------------------------------------------------
@@ -21,12 +21,12 @@ import yaml
 from openpyxl import load_workbook
 
 from config.config_manager import config_manager
-from utils.logger_util import logger
+from utils.logger import logger
 
 
 class FileHandler:
     """
-    通用文件和数据处理类,用于文件和数据的全面操作和管理。
+    通用文件和数据处理类,用于文件和数据的全面操作和管理.
     """
 
     @staticmethod
@@ -331,7 +331,7 @@ class FileHandler:
         
         Args:
             file_path: 原文件路径
-            new_name: 新文件名（不含路径）
+            new_name: 新文件名(不含路径)
         """
         # 直接使用已导入的config_manager
         if not os.path.isabs(file_path):
@@ -660,13 +660,13 @@ class FileHandler:
     @staticmethod
     def get_file_size(file_path):
         """
-        获取文件大小（字节数）
+        获取文件大小(字节数)
         
         Args:
             file_path: 文件路径
             
         Returns:
-            int: 文件大小（字节）
+            int: 文件大小(字节)
         """
         # 直接使用已导入的config_manager
         if not os.path.isabs(file_path):
@@ -687,10 +687,10 @@ class FileHandler:
     @staticmethod
     def format_size(size_bytes):
         """
-        格式化文件大小（将字节转换为KB/MB/GB等）
+        格式化文件大小(将字节转换为KB/MB/GB等)
         
         Args:
-            size_bytes: 文件大小（字节）
+            size_bytes: 文件大小(字节)
             
         Returns:
             str: 格式化后的文件大小
@@ -787,7 +787,7 @@ class FileHandler:
             file_path: 文件路径
             
         Returns:
-            str: 文件扩展名（包含点号,小写）
+            str: 文件扩展名(包含点号,小写)
         """
         extension = os.path.splitext(file_path)[1].lower()
         logger.debug(f"获取文件扩展名: {file_path}, 扩展名: {extension}")
@@ -804,7 +804,7 @@ class FileHandler:
             chunk_size: 读取文件的块大小
             
         Returns:
-            str: 文件哈希值（十六进制字符串）
+            str: 文件哈希值(十六进制字符串)
         """
         # 直接使用已导入的config_manager
         # 处理相对路径
@@ -935,7 +935,7 @@ class FileHandler:
         
         Args:
             file_path: 文件路径
-            data: 二进制数据（bytes类型）
+            data: 二进制数据(bytes类型)
         """
         # 直接使用已导入的config_manager
         # 处理相对路径
@@ -961,7 +961,7 @@ class FileHandler:
         
         Args:
             file_path: 文件路径
-            data: 二进制数据（bytes类型）
+            data: 二进制数据(bytes类型)
         """
         # 直接使用已导入的config_manager
         # 处理相对路径
@@ -1022,7 +1022,7 @@ class FileHandler:
         Args:
             file_path: 文件路径
             chunks: 包含二进制数据的可迭代对象
-            chunk_size: 块大小（用于日志记录）
+            chunk_size: 块大小(用于日志记录)
         """
         # 直接使用已导入的config_manager
         # 处理相对路径
@@ -1041,7 +1041,3 @@ class FileHandler:
         except Exception as e:
             logger.error(f"分块写入二进制文件失败: {file_path}, 错误: {str(e)}")
             raise
-
-
-# 定义DataHandler作为FileHandler的别名,保持代码兼容性
-DataHandler = FileHandler

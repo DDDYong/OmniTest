@@ -16,9 +16,9 @@ from typing import Optional, Dict, Any, List
 from locust import HttpUser, TaskSet, between, events
 
 from config.config_manager import config
-from utils.common_util import CommonUtils
-from utils.file_util import DataHandler
-from utils.logger_util import logger
+from utils.common import CommonUtils
+from utils.file import DataHandler
+from utils.logger import logger
 
 
 class PerformanceBaseTaskSet(TaskSet):
@@ -32,7 +32,7 @@ class PerformanceBaseTaskSet(TaskSet):
         初始化任务集
         
         Args:
-            parent: 父类实例（通常是HttpUser）
+            parent: 父类实例(通常是HttpUser)
         """
         super().__init__(parent)
         self.utils = CommonUtils()
@@ -112,15 +112,15 @@ class PerformanceBaseTaskSet(TaskSet):
         发送HTTP请求并记录响应时间和结果
         
         Args:
-            method: 请求方法（GET, POST, PUT, DELETE等）
+            method: 请求方法(GET, POST, PUT, DELETE等)
             url: 请求URL
             name: Locust统计中显示的请求名称
             headers: 请求头
-            data: 请求数据（表单数据）
+            data: 请求数据(表单数据)
             json_data: JSON请求数据
             params: URL查询参数
             expected_status: 期望的HTTP状态码
-            response_time_threshold: 响应时间阈值（毫秒）
+            response_time_threshold: 响应时间阈值(毫秒)
             
         Returns:
             Dict[str, Any]: 包含请求结果的字典
@@ -200,7 +200,7 @@ class PerformanceBaseTaskSet(TaskSet):
             headers: 请求头
             params: URL查询参数
             expected_status: 期望的HTTP状态码
-            response_time_threshold: 响应时间阈值（毫秒）
+            response_time_threshold: 响应时间阈值(毫秒)
             
         Returns:
             Dict[str, Any]: 包含请求结果的字典
@@ -229,11 +229,11 @@ class PerformanceBaseTaskSet(TaskSet):
             url: 请求URL
             name: Locust统计中显示的请求名称
             headers: 请求头
-            data: 请求数据（表单数据）
+            data: 请求数据(表单数据)
             json_data: JSON请求数据
             params: URL查询参数
             expected_status: 期望的HTTP状态码
-            response_time_threshold: 响应时间阈值（毫秒）
+            response_time_threshold: 响应时间阈值(毫秒)
             
         Returns:
             Dict[str, Any]: 包含请求结果的字典
@@ -264,11 +264,11 @@ class PerformanceBaseTaskSet(TaskSet):
             url: 请求URL
             name: Locust统计中显示的请求名称
             headers: 请求头
-            data: 请求数据（表单数据）
+            data: 请求数据(表单数据)
             json_data: JSON请求数据
             params: URL查询参数
             expected_status: 期望的HTTP状态码
-            response_time_threshold: 响应时间阈值（毫秒）
+            response_time_threshold: 响应时间阈值(毫秒)
             
         Returns:
             Dict[str, Any]: 包含请求结果的字典
@@ -299,7 +299,7 @@ class PerformanceBaseTaskSet(TaskSet):
             headers: 请求头
             params: URL查询参数
             expected_status: 期望的HTTP状态码
-            response_time_threshold: 响应时间阈值（毫秒）
+            response_time_threshold: 响应时间阈值(毫秒)
             
         Returns:
             Dict[str, Any]: 包含请求结果的字典
@@ -416,7 +416,7 @@ class PerformanceBaseUser(HttpUser):
     性能测试用户基类
     所有性能测试用户都应继承此类
     """
-    # 设置等待时间范围（用户执行任务之间的等待时间）
+    # 设置等待时间范围(用户执行任务之间的等待时间)
     wait_time = between(1, 3)  # 默认在1-3秒之间随机等待
 
     def __init__(self, environment):
@@ -457,8 +457,8 @@ class PerformanceBaseUser(HttpUser):
         设置任务间的等待时间范围
         
         Args:
-            min_wait: 最小等待时间（秒）
-            max_wait: 最大等待时间（秒）
+            min_wait: 最小等待时间(秒)
+            max_wait: 最大等待时间(秒)
         """
         self.wait_time = between(min_wait, max_wait)
         logger.info(f"已设置等待时间范围: {min_wait}-{max_wait}秒")
@@ -565,9 +565,9 @@ class PerformanceTestListener:
         请求成功事件处理
         
         Args:
-            request_type: 请求类型（GET, POST等）
+            request_type: 请求类型(GET, POST等)
             name: 请求名称
-            response_time: 响应时间（毫秒）
+            response_time: 响应时间(毫秒)
             response_length: 响应长度
             **kwargs: 其他参数
         """
@@ -587,9 +587,9 @@ class PerformanceTestListener:
         请求失败事件处理
         
         Args:
-            request_type: 请求类型（GET, POST等）
+            request_type: 请求类型(GET, POST等)
             name: 请求名称
-            response_time: 响应时间（毫秒）
+            response_time: 响应时间(毫秒)
             exception: 异常信息
             **kwargs: 其他参数
         """

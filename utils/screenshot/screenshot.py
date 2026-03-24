@@ -1,6 +1,6 @@
 """
 -------------------------------------------------
-File:           screenshot_util.py
+File:           screenshot.py
 Author:         duanyang
 Date:           2025/11/27
 -------------------------------------------------
@@ -13,8 +13,8 @@ import time
 from datetime import datetime
 
 from config.config_manager import config
-from utils.common_util import CommonUtils
-from utils.logger_util import logger
+from utils.common import CommonUtils
+from utils.logger import logger
 
 
 class ScreenshotUtils:
@@ -126,7 +126,3 @@ class ScreenshotUtils:
         except Exception as e:
             logger.error(f"页面源码保存失败: {str(e)}")
             return None
-
-
-# 注意: 不再在模块级别创建实例, 避免导入时的循环依赖问题
-# 使用时请手动初始化: screenshot_utils = ScreenshotUtils()

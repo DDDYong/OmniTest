@@ -1,6 +1,6 @@
 """
 -------------------------------------------------
-File:           common_util.py
+File:           common.py
 Author:         duanyang
 Date:           2025/11/27
 -------------------------------------------------
@@ -17,7 +17,7 @@ import string
 import time
 from datetime import datetime, timedelta
 
-from utils.logger_util import logger
+from utils.logger import logger
 
 
 class CommonUtils:
@@ -49,27 +49,27 @@ class CommonUtils:
     @staticmethod
     def current_day():
         """
-        获取当前日期（day）
+        获取当前日期(day)
         
         Returns:
-            int: 当前日期的天数（1-31）
+            int: 当前日期的天数(1-31)
         """
         return datetime.now().day
 
     @staticmethod
     def current_month():
         """
-        获取当前月份（month）
+        获取当前月份(month)
         
         Returns:
-            int: 当前月份（1-12）
+            int: 当前月份(1-12)
         """
         return datetime.now().month
 
     @staticmethod
     def current_year():
         """
-        获取当前年份（year）
+        获取当前年份(year)
         
         Returns:
             int: 当前年份
@@ -79,7 +79,7 @@ class CommonUtils:
     @staticmethod
     def current_date(format_str = "%Y-%m-%d"):
         """
-        获取当前日期（不含时间）
+        获取当前日期(不含时间)
         
         Args:
             format_str: 日期格式, 默认为"YYYY-MM-DD"
@@ -329,7 +329,7 @@ class CommonUtils:
     @staticmethod
     def is_valid_phone(phone):
         """
-        验证手机号格式是否正确（中国大陆）
+        验证手机号格式是否正确(中国大陆)
         
         Args:
             phone: 手机号码
@@ -374,7 +374,7 @@ class CommonUtils:
         Args:
             folder_path: 文件夹路径
         """
-        # 获取项目根目录（common_util.py的父目录的父目录）
+        # 获取项目根目录(common.py的父目录的父目录)
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
         # 如果是相对路径, 则基于项目根目录解析
@@ -392,7 +392,7 @@ class CommonUtils:
             file_path: 文件路径
             
         Returns:
-            int: 文件大小（字节）
+            int: 文件大小(字节)
         """
         if not os.path.isfile(file_path):
             return 0
@@ -401,7 +401,7 @@ class CommonUtils:
     @staticmethod
     def get_filename(file_path):
         """
-        获取文件名（不含扩展名）
+        获取文件名(不含扩展名)
         
         Args:
             file_path: 文件路径
@@ -420,7 +420,7 @@ class CommonUtils:
             file_path: 文件路径
             
         Returns:
-            str: 文件扩展名（不含点）
+            str: 文件扩展名(不含点)
         """
         return os.path.splitext(file_path)[1].lstrip('.')
 
@@ -432,7 +432,7 @@ class CommonUtils:
         Args:
             func: 要重试的函数
             max_retries: 最大重试次数
-            delay: 重试间隔（秒）
+            delay: 重试间隔(秒)
             exceptions: 捕获的异常类型
             
         Returns:
@@ -453,7 +453,3 @@ class CommonUtils:
             raise last_exception
 
         return wrapper
-
-
-# 创建工具类实例
-util = CommonUtils()
