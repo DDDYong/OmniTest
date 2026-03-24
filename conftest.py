@@ -17,17 +17,17 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import pytest
 
-from utils.screenshot_util import ScreenshotUtils
+from utils.screenshot import ScreenshotUtils
 from config.config_manager import config
-from utils.logger_util import logger
-from utils.common_util import CommonUtils
-from utils.file_util import DataHandler
+from utils.logger import logger
+from utils.common import CommonUtils
+from utils.file import DataHandler
 from utils.api.api_client import ApiClient
 from utils.api.request_manager import RequestManager
 from utils.app.appium_manager import AppiumManager
 
 
-# 测试夹具（fixtures）
+# 测试夹具(fixtures)
 @pytest.fixture(scope = "session")
 def project_root():
     """
@@ -115,7 +115,7 @@ def appium_manager():
 @pytest.fixture(scope = "function")
 def parallel_appium_driver(appium_manager, request):
     """
-    并行测试用的Appium驱动fixture（可复用）
+    并行测试用的Appium驱动fixture(可复用)
     每个测试函数获取独立的设备和驱动
     
     Args:
@@ -164,7 +164,7 @@ def parallel_appium_driver(appium_manager, request):
                 else:
                     logger.info("Appium会话已终止, 无需再次关闭")
             except Exception as e:
-                logger.warning(f"关闭驱动时发生错误（会话可能已终止）: {str(e)}")
+                logger.warning(f"关闭驱动时发生错误(会话可能已终止): {str(e)}")
 
 
 # WebDriver夹具需要在测试文件中根据具体浏览器类型实现
@@ -227,7 +227,7 @@ def pytest_runtest_makereport(item, call):
     # 分别记录setup、call、teardown三个阶段的结果
     setattr(item, f"rep_{report.when}", report)
 
-    # 如果测试失败,捕获截图（根据测试类型）
+    # 如果测试失败,捕获截图(根据测试类型)
     if report.when == "call" and report.failed:
         # 检查是否是web测试或app测试
         if hasattr(item.cls, "driver"):
@@ -407,7 +407,7 @@ def pytest_addoption(parser):
         help = "指定测试环境: dev(默认), test, staging, prod"
     )
 
-    # 浏览器参数（Web测试）
+    # 浏览器参数(Web测试)
     parser.addoption(
         "--browser",
         action = "store",
@@ -416,7 +416,7 @@ def pytest_addoption(parser):
         help = "指定浏览器: chrome(默认), firefox, edge, safari"
     )
 
-    # 设备类型参数（App测试）
+    # 设备类型参数(App测试)
     parser.addoption(
         "--device",
         action = "store",
@@ -721,7 +721,7 @@ def pytest_configure(config):
     """
     # 计算项目根目录
     import os
-    from utils.path_util import path_util
+    from utils.path import path_util
     project_root = os.path.dirname(os.path.abspath(__file__))
 
     # 使用时间文件夹
@@ -732,4 +732,3 @@ def pytest_configure(config):
 
     # 强制设置--alluredir参数, 覆盖命令行或配置文件中的设置
     config.option.alluredir = fixed_allure_dir
-

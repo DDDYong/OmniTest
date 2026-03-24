@@ -6,7 +6,7 @@ Date:           2025/11/27
 -------------------------------------------------
 Description:
 API测试样例 - 用户管理功能测试
-包括用户注册、登录、获取用户信息和更新用户信息等测试场景
+包括用户注册,登录,获取用户信息和更新用户信息等测试场景
 -------------------------------------------------
 """
 import json
@@ -19,20 +19,21 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from utils.logger_util import logger
+from utils.logger import logger
 from utils.api.api_client import ApiClient
 from utils.api.request_manager import RequestManager
-from utils.common_util import CommonUtils
+from utils import assert_util as AssertUtil
+from utils.common import CommonUtils
 
 
 class TestUserManagement:
     """
     用户管理功能测试类
-    包含用户注册、登录、获取和更新用户信息的测试用例
+    包含用户注册,登录,获取和更新用户信息的测试用例
     """
 
     @pytest.fixture(scope = "class", autouse = True)
-    def setup_class(self):
+    def setup_class(self, request):
         """
         测试类级别的初始化
         设置API客户端和请求管理器
@@ -42,34 +43,25 @@ class TestUserManagement:
         logger.info("=" * 60)
 
         # 初始化API客户端
-        self.api_client = ApiClient()
+        request.cls.api_client = ApiClient()
 
         # 初始化请求管理器
-        self.request_manager = RequestManager()
+        request.cls.request_manager = RequestManager()
 
         # 初始化通用工具
-        self.utils = CommonUtils()
+        request.cls.utils = CommonUtils()
 
-        # 使用os模块构建路径, 避免依赖config.DATA_DIR
-        self.project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        self.test_data_path = os.path.join(
-            self.project_root,
-            "data",
-            "test_data",
-            "api_test_data.json"
-        )
-
+        from utils.file import FileHandler
         try:
-            with open(self.test_data_path, 'r', encoding = 'utf-8') as f:
-                self.test_data = json.load(f)
-            logger.info(f"成功加载测试数据: {self.test_data_path}")
+            request.cls.test_data = FileHandler.get_test_data("test_data/api_test_data.yaml")
+            logger.info("成功加载测试数据: api_test_data.yaml")
         except Exception as e:
             logger.error(f"加载测试数据失败: {str(e)}")
             pytest.skip("无法加载测试数据,跳过测试")
 
         # 测试环境信息
         logger.info(f"当前测试环境: test")  # 使用默认环境值, 避免config属性错误
-        logger.info(f"API基础URL: {self.api_client.base_url}")
+        logger.info(f"API基础URL: {request.cls.api_client.base_url}")
 
         yield
 
@@ -78,7 +70,7 @@ class TestUserManagement:
         logger.info("=" * 60)
 
         # 清理测试资源
-        self.api_client.close()
+        request.cls.api_client.close()
 
     @pytest.mark.smoke
     @pytest.mark.api
@@ -88,13 +80,17 @@ class TestUserManagement:
         使用有效数据进行用户注册
         """
         logger.info("\n开始测试: 用户注册成功场景")
+        
+        # 创建AssertUtil实例（API测试不需要driver）
+        assert_util = AssertUtil()
 
         # 获取测试数据
         reg_data = self.test_data["test_user_registration"]["valid_data"]
         expected = self.test_data["test_user_registration"]["expected"]
 
+        import time
         # 添加时间戳到用户名,确保唯一性
-        unique_username = f"{reg_data['username']}_{self.utils.get_timestamp()}"
+        unique_username = f"{reg_data['username']}_{int(time.time())}"
         test_payload = reg_data.copy()
         test_payload["username"] = unique_username
 
@@ -104,7 +100,7 @@ class TestUserManagement:
         # 发送请求
         endpoint = "/api/v1/users/register"
         response = self.api_client.post(
-            endpoint = endpoint,
+            url = endpoint,
             json = test_payload,
             headers = {"Content-Type": "application/json"}
         )
@@ -114,14 +110,13 @@ class TestUserManagement:
         logger.info(f"响应内容: {response.text}")
 
         # 验证响应
-        assert response.status_code == expected["status_code"], \
-            f"期望状态码: {expected['status_code']}, 实际状态码: {response.status_code}"
+        assert_util.status_code_equals(response, expected["status_code"])
 
         # 解析响应JSON
         response_json = response.json()
 
         # 验证响应内容
-        assert "message" in response_json, "响应中缺少message字段"
+        assert_util.contains(response_json, "message", "响应中缺少message字段")
 
         # 存储用户信息供后续测试使用
         if "user_id" in response_json:
@@ -136,9 +131,12 @@ class TestUserManagement:
     def test_user_registration_invalid_data(self):
         """
         测试用户注册功能 - 无效数据场景
-        测试缺少必填字段、无效邮箱格式和弱密码
+        测试缺少必填字段,无效邮箱格式和弱密码
         """
         logger.info("\n开始测试: 用户注册无效数据场景")
+        
+        # 创建AssertUtil实例（API测试不需要driver）
+        assert_util = AssertUtil()
 
         # 获取测试数据
         invalid_data = self.test_data["test_user_registration"]["invalid_data"]
@@ -171,7 +169,7 @@ class TestUserManagement:
             # 发送请求
             endpoint = "/api/v1/users/register"
             response = self.api_client.post(
-                endpoint = endpoint,
+                url = endpoint,
                 json = payload,
                 headers = {"Content-Type": "application/json"}
             )
@@ -180,14 +178,13 @@ class TestUserManagement:
             logger.info(f"响应状态码: {response.status_code}")
 
             # 验证响应状态码 (应为400 Bad Request)
-            assert response.status_code == 400, \
-                f"期望状态码: 400, 实际状态码: {response.status_code}"
+            assert_util.status_code_equals(response, 400)
 
             # 解析响应JSON
             response_json = response.json()
 
             # 验证错误码
-            assert "error_code" in response_json, "响应中缺少error_code字段"
+            assert_util.contains(response_json, "error_code", "响应中缺少error_code字段")
 
             logger.info(f"子场景 '{scenario_name}' 测试通过")
 
@@ -201,6 +198,9 @@ class TestUserManagement:
         使用之前注册的用户凭据进行登录
         """
         logger.info("\n开始测试: 用户登录成功场景")
+        
+        # 创建AssertUtil实例（API测试不需要driver）
+        assert_util = AssertUtil()
 
         # 获取测试数据
         login_data = {
@@ -219,7 +219,7 @@ class TestUserManagement:
         # 发送登录请求
         endpoint = "/api/v1/users/login"
         response = self.api_client.post(
-            endpoint = endpoint,
+            url = endpoint,
             json = login_data,
             headers = {"Content-Type": "application/json"}
         )
@@ -229,14 +229,13 @@ class TestUserManagement:
         logger.info(f"响应内容: {response.text}")
 
         # 验证响应状态码
-        assert response.status_code == expected["status_code"], \
-            f"期望状态码: {expected['status_code']}, 实际状态码: {response.status_code}"
+        assert_util.status_code_equals(response, expected["status_code"])
 
         # 解析响应JSON
         response_json = response.json()
 
         # 验证响应内容
-        assert "token" in response_json, "响应中缺少token字段"
+        assert_util.contains(response_json, "token", "响应中缺少token字段")
 
         # 存储认证令牌供后续测试使用
         auth_token = response_json["token"]
@@ -254,6 +253,9 @@ class TestUserManagement:
         使用认证令牌获取当前用户信息
         """
         logger.info("\n开始测试: 获取用户信息")
+        
+        # 创建AssertUtil实例（API测试不需要driver）
+        assert_util = AssertUtil()
 
         # 获取认证令牌
         auth_token = self.request_manager.get_test_data("auth_token")
@@ -267,7 +269,7 @@ class TestUserManagement:
         # 发送请求获取用户信息
         endpoint = "/api/v1/users/me"
         response = self.api_client.get(
-            endpoint = endpoint,
+            url = endpoint,
             headers = {
                 "Authorization": f"Bearer {auth_token}",
                 "Content-Type": "application/json"
@@ -279,8 +281,7 @@ class TestUserManagement:
 
         # 验证响应状态码
         expected_status = self.test_data["test_get_user_info"]["expected_status_code"]
-        assert response.status_code == expected_status, \
-            f"期望状态码: {expected_status}, 实际状态码: {response.status_code}"
+        assert_util.status_code_equals(response, expected_status)
 
         # 解析响应JSON
         response_json = response.json()
@@ -288,13 +289,12 @@ class TestUserManagement:
         # 验证响应中包含所有必需字段
         expected_fields = self.test_data["test_get_user_info"]["expected_fields"]
         for field in expected_fields:
-            assert field in response_json, f"用户信息中缺少必需字段: {field}"
+            assert_util.contains(response_json, field, f"用户信息中缺少必需字段: {field}")
 
         # 验证用户名匹配
         registered_username = self.request_manager.get_test_data("registered_username")
         if registered_username:
-            assert response_json["username"] == registered_username, \
-                f"用户名不匹配: 期望={registered_username}, 实际={response_json['username']}"
+            assert_util.equals(response_json["username"], registered_username, f"用户名不匹配")
 
         logger.info("测试通过: 获取用户信息")
 
@@ -305,6 +305,9 @@ class TestUserManagement:
         使用认证令牌更新当前用户的邮箱和手机号
         """
         logger.info("\n开始测试: 更新用户信息")
+        
+        # 创建AssertUtil实例（API测试不需要driver）
+        assert_util = AssertUtil()
 
         # 获取认证令牌
         auth_token = self.request_manager.get_test_data("auth_token")
@@ -329,7 +332,7 @@ class TestUserManagement:
         # 发送更新请求
         endpoint = "/api/v1/users/me"
         response = self.api_client.put(
-            endpoint = endpoint,
+            url = endpoint,
             json = test_payload,
             headers = {
                 "Authorization": f"Bearer {auth_token}",
@@ -342,14 +345,13 @@ class TestUserManagement:
         logger.info(f"响应内容: {response.text}")
 
         # 验证响应状态码
-        assert response.status_code == expected["status_code"], \
-            f"期望状态码: {expected['status_code']}, 实际状态码: {response.status_code}"
+        assert_util.status_code_equals(response, expected["status_code"])
 
         # 解析响应JSON
         response_json = response.json()
 
         # 验证响应消息
-        assert "message" in response_json, "响应中缺少message字段"
+        assert_util.contains(response_json, "message", "响应中缺少message字段")
 
         # 验证邮箱已更新
         # 重新获取用户信息进行验证
@@ -362,8 +364,7 @@ class TestUserManagement:
         )
 
         get_response_json = get_response.json()
-        assert get_response_json["email"] == unique_email, \
-            f"邮箱未更新: 期望={unique_email}, 实际={get_response_json['email']}"
+        assert_util.equals(get_response_json["email"], unique_email, f"邮箱未更新")
 
         logger.info("测试通过: 更新用户信息")
 
@@ -374,6 +375,9 @@ class TestUserManagement:
         展示如何使用请求前和请求后的钩子函数处理请求和响应
         """
         logger.info("\n开始测试: 请求管理器钩子函数演示")
+        
+        # 创建AssertUtil实例（API测试不需要driver）
+        assert_util = AssertUtil()
 
         # 定义请求前钩子函数
         def pre_request_hook(request_params: Dict[str, Any]) -> Dict[str, Any]:
@@ -389,7 +393,7 @@ class TestUserManagement:
             return request_params
 
         # 定义请求后钩子函数
-        def post_request_hook(response: Any, request_params: Dict[str, Any]) -> Any:
+        def post_request_hook(response: Any, request_params: Dict[str, Any] = None) -> Any:
             """
             请求后钩子函数
             可以处理响应
@@ -400,7 +404,7 @@ class TestUserManagement:
 
         # 设置钩子函数
         self.request_manager.set_pre_request_hook(pre_request_hook)
-        self.request_manager.set_post_request_hook(post_request_hook)
+        self.request_manager.set_post_response_hook(post_request_hook)
 
         # 使用请求管理器发送请求
         endpoint = "/api/v1/users/me"
@@ -410,9 +414,8 @@ class TestUserManagement:
             logger.warning("没有认证令牌,使用健康检查端点替代")
             endpoint = "/api/v1/health"
 
-        response = self.request_manager.send_request(
-            method = "GET",
-            endpoint = endpoint,
+        response = self.request_manager.get(
+            url = endpoint,
             headers = {
                 "Authorization": f"Bearer {auth_token}" if auth_token else "",
                 "Content-Type": "application/json"
@@ -420,7 +423,7 @@ class TestUserManagement:
         )
 
         # 验证响应
-        assert response is not None, "请求管理器返回None"
+        assert_util.is_not_none(response, "请求管理器返回None")
 
         # 清除钩子函数
         self.request_manager.clear_hooks()

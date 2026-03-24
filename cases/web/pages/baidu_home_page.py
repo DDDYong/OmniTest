@@ -15,7 +15,7 @@ from typing import Optional, Any
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 
-from utils.logger_util import logger
+from utils.logger import logger
 from utils.web.element_handler import ElementHandler
 from utils.web.web_base_page import WebBasePage
 
@@ -75,7 +75,7 @@ class BaiduHomePage(WebBasePage):
         查找搜索框元素
         
         Args:
-            timeout: 超时时间（秒）
+            timeout: 超时时间(秒)
             
         Returns:
             Any: 搜索框元素或None
@@ -96,7 +96,7 @@ class BaiduHomePage(WebBasePage):
         
         Args:
             keyword: 搜索关键词
-            timeout: 超时时间（秒）
+            timeout: 超时时间(秒)
             
         Returns:
             bool: 是否成功输入
@@ -120,7 +120,7 @@ class BaiduHomePage(WebBasePage):
         点击搜索按钮
         
         Args:
-            timeout: 超时时间（秒）
+            timeout: 超时时间(秒)
             
         Returns:
             bool: 是否成功点击
@@ -143,7 +143,7 @@ class BaiduHomePage(WebBasePage):
         在搜索框中按回车键进行搜索
         
         Args:
-            timeout: 超时时间（秒）
+            timeout: 超时时间(秒)
             
         Returns:
             bool: 是否成功执行
@@ -167,8 +167,8 @@ class BaiduHomePage(WebBasePage):
         
         Args:
             keyword: 搜索关键词
-            use_enter: 是否使用回车键搜索（默认使用点击搜索按钮）
-            timeout: 超时时间（秒）
+            use_enter: 是否使用回车键搜索(默认使用点击搜索按钮)
+            timeout: 超时时间(秒)
             
         Returns:
             bool: 是否成功执行搜索

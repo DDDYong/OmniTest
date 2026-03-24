@@ -10,10 +10,7 @@ OmniTest项目入口文件,提供命令行接口运行不同类型的测试,包�
 """
 
 import argparse
-import difflib
 import os
-import shutil
-import subprocess
 import sys
 
 # 确保项目根目录在sys.path中
@@ -21,544 +18,64 @@ project_root = os.path.dirname(os.path.abspath(__file__))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-# 导入项目模块
-from utils.path_util import path_util
-from utils.logger_util import logger
-from utils.decorator_util import timing
-
+# 导入拆分后的核心模块
+from utils.runner import test_runner
+from utils.reporting import allure_report
+from utils.packaging import requirements_manager
+from utils.logger import logger
 
 class TestRunner:
     """
-    测试运行器类
-    提供不同类型测试的运行功能
+    为了向后兼容保留的测试运行器类.
+    所有实际逻辑已拆分至 utils/runner, utils/reporting, utils/packaging 中.
     """
-
-    INVALID_TEST_TARGET_EXIT_CODE = 4
-
-    @staticmethod
-    def _suggest_close_matches(input_name: str, candidates: list, n: int = 3) -> list:
-        try:
-            return difflib.get_close_matches(input_name, candidates, n = n, cutoff = 0.4)
-        except Exception:
-            return []
-
-    @staticmethod
-    def _resolve_test_target(base_dir: str, test_dir: str = None, test_file: str = None):
-        if test_file:
-            target_path = test_file if os.path.isabs(test_file) else os.path.join(base_dir, test_file)
-            if os.path.isfile(target_path):
-                return target_path, None
-
-            suggestions = []
-            if os.path.isdir(base_dir) and not os.path.isabs(test_file):
-                try:
-                    file_candidates = [
-                        name for name in os.listdir(base_dir)
-                        if os.path.isfile(os.path.join(base_dir, name))
-                    ]
-                except Exception:
-                    file_candidates = []
-
-                if not test_file.endswith('.py'):
-                    py_name = f"{test_file}.py"
-                    if py_name in file_candidates:
-                        suggestions.append(py_name)
-
-                suggestions.extend([s for s in TestRunner._suggest_close_matches(test_file, file_candidates) if
-                                    s not in suggestions])
-
-            err = f"测试文件不存在: {target_path}"
-            if suggestions:
-                err = f"{err}, 可选相近文件: {', '.join(suggestions)}"
-            return None, err
-
-        if test_dir:
-            target_path = test_dir if os.path.isabs(test_dir) else os.path.join(base_dir, test_dir)
-            if os.path.isdir(target_path):
-                return target_path, None
-
-            suggestions = []
-            if os.path.isdir(base_dir) and not os.path.isabs(test_dir):
-                try:
-                    dir_candidates = [
-                        name for name in os.listdir(base_dir)
-                        if os.path.isdir(os.path.join(base_dir, name))
-                    ]
-                except Exception:
-                    dir_candidates = []
-                suggestions = TestRunner._suggest_close_matches(test_dir, dir_candidates)
-
-            err = f"测试目录不存在: {target_path}"
-            if suggestions:
-                err = f"{err}, 可选相近目录: {', '.join(suggestions)}"
-            return None, err
-
-        if not os.path.isdir(base_dir):
-            return None, f"测试目录不存在: {base_dir}"
-        return base_dir, None
+    INVALID_TEST_TARGET_EXIT_CODE = test_runner.INVALID_TEST_TARGET_EXIT_CODE
 
     @staticmethod
     def clean_reports() -> None:
-        """
-        清理测试报告目录（不清理历史报告, 只确保新报告目录是干净的）
-        """
-        logger.info("新测试报告目录已准备好（保留历史报告）")
+        logger.info("新测试报告目录已准备好(保留历史报告)")
 
     @staticmethod
-    @timing
     def run_api_tests(test_dir: str = None, test_file: str = None, markers: str = None) -> int:
-        """
-        运行API测试
-        
-        Args:
-            test_dir: 测试目录
-            test_file: 测试文件
-            markers: 测试标记
-            
-        Returns:
-            int: 测试执行的退出代码
-        """
-        logger.info("开始运行API测试...")
-        logger.info(f"测试报告将保存到: {path_util.get_current_test_reports_dir()}")
-
-        # 构建pytest命令
-        cmd = [sys.executable, '-m', 'pytest']
-
-        # 添加测试路径
-        target_path, err = TestRunner._resolve_test_target(path_util.get_api_cases_dir(), test_dir, test_file)
-        if err:
-            logger.error(err)
-            return TestRunner.INVALID_TEST_TARGET_EXIT_CODE
-        cmd.append(target_path)
-
-        # 添加标记
-        if markers:
-            cmd.extend(['-m', markers])
-
-        # 添加通用参数 - 使用时间文件夹
-        allure_dir = path_util.get_allure_results_dir(use_time_folder = True)
-        cmd.extend(['-v', '--alluredir', allure_dir])
-        logger.info(f"Allure报告结果目录设置为: {allure_dir}")
-
-        # 执行测试
-        try:
-            logger.info(f"执行命令: {' '.join(cmd)}")
-            result = subprocess.run(cmd, cwd = path_util.get_project_root(), text = True)
-            return result.returncode
-        except Exception as e:
-            logger.error(f"运行API测试失败: {str(e)}")
-            return 1
+        return test_runner.run_api_tests(test_dir, test_file, markers)
 
     @staticmethod
-    @timing
     def run_web_tests(test_dir: str = None, test_file: str = None, markers: str = None) -> int:
-        """
-        运行Web测试
-        
-        Args:
-            test_dir: 测试目录
-            test_file: 测试文件
-            markers: 测试标记
-            
-        Returns:
-            int: 测试执行的退出代码
-        """
-        logger.info("开始运行Web测试...")
-        logger.info(f"测试报告将保存到: {path_util.get_current_test_reports_dir()}")
-
-        # 构建pytest命令
-        cmd = [sys.executable, '-m', 'pytest']
-
-        # 添加测试路径
-        target_path, err = TestRunner._resolve_test_target(path_util.get_web_cases_dir(), test_dir, test_file)
-        if err:
-            logger.error(err)
-            return TestRunner.INVALID_TEST_TARGET_EXIT_CODE
-        cmd.append(target_path)
-
-        # 添加标记
-        if markers:
-            cmd.extend(['-m', markers])
-
-        # 添加通用参数 - 使用时间文件夹
-        cmd.extend(['-v', '--alluredir', path_util.get_allure_results_dir(use_time_folder = True)])
-
-        # 执行测试
-        try:
-            logger.info(f"执行命令: {' '.join(cmd)}")
-            result = subprocess.run(cmd, cwd = path_util.get_project_root(), text = True)
-            return result.returncode
-        except Exception as e:
-            logger.error(f"运行Web测试失败: {str(e)}")
-            return 1
+        return test_runner.run_web_tests(test_dir, test_file, markers)
 
     @staticmethod
-    @timing
     def run_app_tests(test_dir: str = None, test_file: str = None, markers: str = None) -> int:
-        """
-        运行APP测试
-        
-        Args:
-            test_dir: 测试目录
-            test_file: 测试文件
-            markers: 测试标记
-            
-        Returns:
-            int: 测试执行的退出代码
-        """
-        logger.info("开始运行APP测试...")
-        logger.info(f"测试报告将保存到: {path_util.get_current_test_reports_dir()}")
-
-        # 构建pytest命令
-        cmd = [sys.executable, '-m', 'pytest']
-
-        # 添加测试路径
-        target_path, err = TestRunner._resolve_test_target(path_util.get_app_cases_dir(), test_dir, test_file)
-        if err:
-            logger.error(err)
-            return TestRunner.INVALID_TEST_TARGET_EXIT_CODE
-        cmd.append(target_path)
-
-        # 添加标记
-        if markers:
-            cmd.extend(['-m', markers])
-
-        # 添加通用参数 - 使用时间文件夹
-        cmd.extend(['-v', '--alluredir', path_util.get_allure_results_dir(use_time_folder = True)])
-
-        # 执行测试
-        try:
-            logger.info(f"执行命令: {' '.join(cmd)}")
-            result = subprocess.run(cmd, cwd = path_util.get_project_root(), text = True)
-            return result.returncode
-        except Exception as e:
-            logger.error(f"运行APP测试失败: {str(e)}")
-            return 1
+        return test_runner.run_app_tests(test_dir, test_file, markers)
 
     @staticmethod
-    @timing
     def run_parallel_tests(test_dir: str = None, test_file: str = None, markers: str = 'parallel',
                            num_workers: int = 2, html_report: bool = False) -> int:
-        """
-        运行并行测试
-        
-        Args:
-            test_dir: 测试目录
-            test_file: 测试文件
-            markers: 测试标记, 默认为 'parallel'
-            num_workers: worker数量, 默认为2
-            html_report: 是否生成HTML报告
-            
-        Returns:
-            int: 测试执行的退出代码
-        """
-        logger.info(f"开始运行并行测试 (workers={num_workers})...")
-        logger.info(f"测试报告将保存到: {path_util.get_current_test_reports_dir()}")
-
-        # 构建pytest命令
-        cmd = [sys.executable, '-m', 'pytest']
-
-        # 添加测试路径
-        target_path, err = TestRunner._resolve_test_target(path_util.get_app_cases_dir(), test_dir, test_file)
-        if err:
-            logger.error(err)
-            return TestRunner.INVALID_TEST_TARGET_EXIT_CODE
-        cmd.append(target_path)
-
-        # 添加标记
-        if markers:
-            cmd.extend(['-m', markers])
-
-        # 添加并行参数
-        cmd.extend(['-n', str(num_workers)])
-
-        # 添加通用参数（使用时间文件夹）
-        cmd.extend(['-v', '--alluredir', path_util.get_allure_results_dir(use_time_folder = True)])
-
-        # 添加HTML报告（如果需要）
-        if html_report:
-            html_report_path = os.path.join(path_util.get_logs_dir(), 'report_parallel.html')
-            cmd.extend(['--html', html_report_path, '--self-contained-html'])
-
-        # 执行测试
-        try:
-            logger.info(f"执行命令: {' '.join(cmd)}")
-            result = subprocess.run(cmd, cwd = path_util.get_project_root(), text = True)
-            return result.returncode
-        except Exception as e:
-            logger.error(f"运行并行测试失败: {str(e)}")
-            return 1
+        return test_runner.run_parallel_tests(test_dir, test_file, markers, num_workers, html_report)
 
     @staticmethod
-    @timing
     def run_performance_tests(test_file: str, users: int = 100, spawn_rate: int = 10, run_time: str = '5m') -> int:
-        """
-        运行性能测试
-        
-        Args:
-            test_file: 测试文件
-            users: 用户数量
-            spawn_rate: 每秒生成的用户数
-            run_time: 运行时间
-            
-        Returns:
-            int: 测试执行的退出代码
-        """
-        logger.info("开始运行性能测试...")
-
-        # 构建locust命令
-        test_path = os.path.join(path_util.get_performance_cases_dir(), test_file)
-        cmd = [
-            'locust',
-            '-f', test_path,
-            '--users', str(users),
-            '--spawn-rate', str(spawn_rate),
-            '--run-time', run_time,
-            '--headless',
-            '--html', os.path.join(path_util.get_reports_dir(), 'locust_report.html')
-        ]
-
-        # 执行测试
-        try:
-            logger.info(f"执行命令: {' '.join(cmd)}")
-            result = subprocess.run(cmd, cwd = path_util.get_project_root(), text = True)
-            return result.returncode
-        except Exception as e:
-            logger.error(f"运行性能测试失败: {str(e)}")
-            return 1
+        return test_runner.run_performance_tests(test_file, users, spawn_rate, run_time)
 
     @staticmethod
     def run_all_tests() -> int:
-        """
-        运行所有测试
-        
-        Returns:
-            int: 测试执行的退出代码
-        """
-        logger.info("开始运行所有测试...")
-        logger.info(f"测试报告将保存到: {path_util.get_current_test_reports_dir()}")
-
-        # 构建pytest命令
-        cmd = [
-            sys.executable, '-m', 'pytest',
-            path_util.get_cases_dir(),
-            '-v', '--alluredir', path_util.get_allure_results_dir(use_time_folder = True)
-        ]
-
-        # 执行测试
-        try:
-            logger.info(f"执行命令: {' '.join(cmd)}")
-            result = subprocess.run(cmd, cwd = path_util.get_project_root(), text = True)
-            return result.returncode
-        except Exception as e:
-            logger.error(f"运行所有测试失败: {str(e)}")
-            return 1
+        return test_runner.run_all_tests()
 
     @staticmethod
-    def generate_allure_report() -> bool:
-        """
-        生成Allure报告（使用时间文件夹）
-        
-        Returns:
-            bool: 是否生成成功
-        """
-        import os
-        logger.info("开始生成Allure报告...")
+    def generate_allure_report(serve: bool = True, wait_for_enter: bool = True) -> bool:
+        return allure_report.generate_allure_report(serve, wait_for_enter)
 
-        # 获取当前测试运行的时间文件夹路径
-        allure_results_dir = path_util.get_allure_results_dir(use_time_folder = True)
-        allure_report_dir = path_util.get_allure_report_dir(use_time_folder = True)
-
-        logger.info(f"Allure结果目录: {allure_results_dir}")
-        logger.info(f"Allure报告目录: {allure_report_dir}")
-
-        # 清理旧报告（当前时间文件夹下的）
-        if os.path.exists(allure_report_dir):
-            shutil.rmtree(allure_report_dir)
-
-        # 构建allure命令
-        cmd = ['allure', 'generate', allure_results_dir, '-o', allure_report_dir,
-               '--clean']
-
-        # 执行命令
-        try:
-            logger.info(f"执行命令: {' '.join(cmd)}")
-            subprocess.run(cmd, check = True, cwd = path_util.get_project_root(), text = True)
-            logger.info(f"Allure报告已生成: {allure_report_dir}")
-
-            # 启动本地HTTP服务器来提供报告
-            import http.server
-            import socketserver
-            import threading
-            import socket
-
-            # 查找可用端口
-            def find_free_port():
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                    s.bind(('', 0))
-                    return s.getsockname()[1]
-
-            port = find_free_port()
-            server_address = ('127.0.0.1', port)
-
-            # 设置HTTP服务器
-            class ReportHandler(http.server.SimpleHTTPRequestHandler):
-                def __init__(self, *args, **kwargs):
-                    super().__init__(*args, directory = allure_report_dir, **kwargs)
-
-            # 创建服务器
-            httpd = socketserver.TCPServer(server_address, ReportHandler)
-
-            # 在后台启动服务器
-            server_thread = threading.Thread(target = httpd.serve_forever, daemon = True)
-            server_thread.start()
-
-            # 生成HTTP链接
-            report_url = f"http://{server_address[0]}:{server_address[1]}"
-            logger.info(f"Allure报告HTTP服务已启动: {report_url}")
-            logger.info(f"请在浏览器中打开以下链接查看报告: 🌐 {report_url}")
-            logger.info(f"按 Enter 键停止服务器...")
-            
-            # 等待用户输入以保持服务器运行
-            input("")
-
-            # 关闭服务器
-            httpd.shutdown()
-            httpd.server_close()
-            
-            return True
-        except Exception as e:
-            logger.error(f"生成Allure报告失败: {str(e)}")
-            return False
+    @staticmethod
+    def open_allure_report() -> bool:
+        return allure_report.open_allure_report()
 
     @staticmethod
     def update_requirements() -> bool:
-        """
-        更新 requirements.txt 文件, 保留注释信息
-
-        Returns:
-            bool: 是否更新成功
-        """
-        logger.info("开始更新 requirements.txt...")
-
-        try:
-            # 读取当前文件, 保存注释
-            comments = []
-            requirements_path = os.path.join(path_util.get_project_root(), 'requirements.txt')
-
-            try:
-                with open(requirements_path, 'r', encoding = 'utf-8') as f:
-                    for line in f:
-                        if line.strip().startswith('#'):
-                            comments.append(line)
-                        else:
-                            break  # 只保留文件头部的注释
-            except FileNotFoundError:
-                logger.info("requirements.txt 文件不存在, 将创建新文件")
-
-            # 获取当前环境的所有包
-            result = subprocess.run([sys.executable, '-m', 'pip', 'freeze'],
-                capture_output = True, text = True, cwd = path_util.get_project_root())
-
-            if result.returncode != 0:
-                logger.error(f"获取包列表失败: {result.stderr}")
-                return False
-
-            # 写入 requirements.txt
-            with open(requirements_path, 'w', encoding = 'utf-8') as f:
-                # 写回注释
-                for comment in comments:
-                    f.write(comment)
-                if comments and not comments[-1].endswith('\n'):
-                    f.write('\n')
-
-                # 写新的依赖
-                f.write(result.stdout)
-
-            logger.info(f"requirements.txt 已更新: {requirements_path}")
-            return True
-
-        except Exception as e:
-            logger.error(f"更新 requirements.txt 失败: {str(e)}")
-            return False
+        return requirements_manager.update_requirements()
 
     @staticmethod
     def add_package_to_requirements(package_name: str, version: str = None) -> bool:
-        """
-        手动添加单个包到 requirements.txt
-        
-        Args:
-            package_name: 包名
-            version: 版本号（可选）
-            
-        Returns:
-            bool: 是否添加成功
-        """;
-        logger.info(f"添加包到 requirements.txt: {package_name}")
+        return requirements_manager.add_package_to_requirements(package_name, version)
 
-        try:
-            requirements_path = os.path.join(path_util.get_project_root(), 'requirements.txt')
-
-            # 读取现有内容
-            with open(requirements_path, 'r', encoding = 'utf-8') as f:
-                lines = f.readlines()
-
-            # 构造新的包条目
-            if version:
-                package_entry = f"{package_name}=={version}\n"
-            else:
-                package_entry = f"{package_name}\n"
-
-            # 检查是否已存在
-            package_exists = any(line.strip().startswith(package_name) for line in lines)
-
-            if package_exists:
-                logger.warning(f"包 {package_name} 已存在于 requirements.txt 中")
-                return False
-
-            # 添加到文件末尾
-            lines.append(package_entry)
-
-            # 写回文件
-            with open(requirements_path, 'w', encoding = 'utf-8') as f:
-                f.writelines(lines)
-
-            logger.info(f"包 {package_name} 已添加到 requirements.txt")
-            return True
-
-        except Exception as e:
-            logger.error(f"添加包到 requirements.txt 失败: {str(e)}")
-            return False
-    
-    @staticmethod
-    def open_allure_report() -> bool:
-        """
-        打开Allure报告（使用时间文件夹）
-        
-        Returns:
-            bool: 是否打开成功
-        """
-        logger.info("开始打开Allure报告...")
-
-        # 获取当前测试运行的时间文件夹路径
-        allure_report_dir = path_util.get_allure_report_dir(use_time_folder = True)
-
-        # 检查报告是否存在
-        if not os.path.exists(os.path.join(allure_report_dir, 'index.html')):
-            logger.warning(f"Allure报告不存在: {allure_report_dir}, 请先生成报告")
-            return False
-
-        # 构建allure命令
-        cmd = ['allure', 'open', allure_report_dir]
-
-        # 执行命令
-        try:
-            logger.info(f"执行命令: {' '.join(cmd)}")
-            subprocess.Popen(cmd, cwd = path_util.get_project_root())
-            return True
-        except Exception as e:
-            logger.error(f"打开Allure报告失败: {str(e)}")
-            return False
 
 
 def parse_arguments():
@@ -706,7 +223,7 @@ def main():
     else:
         # 如果没有指定命令,显示帮助信息
         # 导入logger
-        from utils.logger_util import logger
+        from utils.logger import logger
 
         logger.info("请指定要执行的命令")
         logger.info("使用方法示例:")

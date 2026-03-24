@@ -18,8 +18,8 @@ from config.config_manager import config_manager
 from utils import util
 from utils.api.api_client import ApiClient
 from utils.db.mysql_client import MySQLClient
-from utils.file_util import FileHandler
-from utils.logger_util import logger
+from utils.file import FileHandler
+from utils.logger import logger
 
 
 class MultiUserLotteryProbabilityValidator:
@@ -267,7 +267,7 @@ class MultiUserLotteryProbabilityValidator:
 
     def _check_coupon_times(self, user_times: dict[str, int]) -> bool:
         """
-        检查并更新抽奖次数（COUPON类型）
+        检查并更新抽奖次数(COUPON类型)
         Args:
             user_times: 用户ID到需要的抽奖次数的映射
 
@@ -333,7 +333,7 @@ class MultiUserLotteryProbabilityValidator:
 
     def _check_material_times(self, user_times: dict[str, int]) -> bool:
         """
-        检查并更新抽奖材料（MATERIAL类型）
+        检查并更新抽奖材料(MATERIAL类型)
         Args:
             user_times: 用户ID到需要的抽奖材料次数的映射
 

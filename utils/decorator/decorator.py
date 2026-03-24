@@ -1,6 +1,6 @@
 """
 -------------------------------------------------
-File:           decorator_util.py
+File:           decorator.py
 Author:         duanyang
 Date:           2025/11/27
 -------------------------------------------------
@@ -11,7 +11,7 @@ Description:
 import functools
 import time
 
-from utils.logger_util import logger
+from utils.logger import logger
 
 
 def retry(max_retries = None, delay = None, exceptions = (Exception,)):
@@ -20,7 +20,7 @@ def retry(max_retries = None, delay = None, exceptions = (Exception,)):
     
     Args:
         max_retries: 最大重试次数,默认使用配置文件中的值
-        delay: 重试间隔（秒）,默认使用配置文件中的值
+        delay: 重试间隔(秒),默认使用配置文件中的值
         exceptions: 捕获的异常类型
         
     Returns:
@@ -104,7 +104,7 @@ def wait(delay_seconds = None):
     在函数执行前等待指定时间
 
     Args:
-        delay_seconds: 等待时间（秒）,默认使用配置文件中的默认等待时间
+        delay_seconds: 等待时间(秒),默认使用配置文件中的默认等待时间
 
     Returns:
         function: 装饰后的函数
@@ -148,8 +148,8 @@ def wait_random(min_delay = 1, max_delay = 5):
     在函数执行前等待随机时长
 
     Args:
-        min_delay: 最小等待时间（秒）
-        max_delay: 最大等待时间（秒）
+        min_delay: 最小等待时间(秒)
+        max_delay: 最大等待时间(秒)
 
     Returns:
         function: 装饰后的函数
@@ -184,11 +184,11 @@ def wait_with_jitter(base_delay = 2, jitter_factor = 0.3, jitter_type = "relativ
     在基础等待时间上添加随机抖动
 
     Args:
-        base_delay: 基础等待时间（秒）
+        base_delay: 基础等待时间(秒)
         jitter_factor: 抖动因子
         jitter_type: 抖动类型
-            - "relative": 相对抖动（默认）, jitter_factor为比例（0-1之间）
-            - "absolute": 绝对抖动, jitter_factor为绝对时间（秒）, 支持正负值
+            - "relative": 相对抖动(默认), jitter_factor为比例(0-1之间)
+            - "absolute": 绝对抖动, jitter_factor为绝对时间(秒), 支持正负值
 
     Returns:
         function: 装饰后的函数
@@ -200,13 +200,13 @@ def wait_with_jitter(base_delay = 2, jitter_factor = 0.3, jitter_type = "relativ
         def wrapper(*args, **kwargs):
             # 根据抖动类型计算抖动范围
             if jitter_type == "relative":
-                # 相对抖动: jitter_factor为比例（0-1之间）
+                # 相对抖动: jitter_factor为比例(0-1之间)
                 jitter_range = base_delay * jitter_factor
                 min_delay = base_delay - jitter_range
                 max_delay = base_delay + jitter_range
                 jitter_description = f"±{jitter_factor * 100:.0f}%"
             else:
-                # 绝对抖动: jitter_factor为绝对时间（秒）, 支持正负值
+                # 绝对抖动: jitter_factor为绝对时间(秒), 支持正负值
                 min_delay = base_delay + jitter_factor
                 max_delay = base_delay - jitter_factor
                 jitter_description = f"±{abs(jitter_factor)}秒"
@@ -244,7 +244,7 @@ def wait_after(delay_seconds = None):
     在函数执行后等待指定时间
 
     Args:
-        delay_seconds: 等待时间（秒）,默认使用配置文件中的默认等待时间
+        delay_seconds: 等待时间(秒),默认使用配置文件中的默认等待时间
 
     Returns:
         function: 装饰后的函数
@@ -290,11 +290,11 @@ def wait_after_with_jitter(base_delay = 2, jitter_factor = 0.3, jitter_type = "r
     在函数执行后等待带抖动的时间
 
     Args:
-        base_delay: 基础等待时间（秒）
+        base_delay: 基础等待时间(秒)
         jitter_factor: 抖动因子
         jitter_type: 抖动类型
-            - "relative": 相对抖动（默认）, jitter_factor为比例（0-1之间）
-            - "absolute": 绝对抖动, jitter_factor为绝对时间（秒）, 支持正负值
+            - "relative": 相对抖动(默认), jitter_factor为比例(0-1之间)
+            - "absolute": 绝对抖动, jitter_factor为绝对时间(秒), 支持正负值
 
     Returns:
         function: 装饰后的函数
@@ -309,13 +309,13 @@ def wait_after_with_jitter(base_delay = 2, jitter_factor = 0.3, jitter_type = "r
 
             # 根据抖动类型计算抖动范围
             if jitter_type == "relative":
-                # 相对抖动: jitter_factor为比例（0-1之间）
+                # 相对抖动: jitter_factor为比例(0-1之间)
                 jitter_range = base_delay * jitter_factor
                 min_delay = base_delay - jitter_range
                 max_delay = base_delay + jitter_range
                 jitter_description = f"±{jitter_factor * 100:.0f}%"
             else:
-                # 绝对抖动: jitter_factor为绝对时间（秒）, 支持正负值
+                # 绝对抖动: jitter_factor为绝对时间(秒), 支持正负值
                 min_delay = base_delay + jitter_factor
                 max_delay = base_delay - jitter_factor
                 jitter_description = f"±{abs(jitter_factor)}秒"
@@ -353,8 +353,8 @@ def wait_until(condition_func = None, timeout = None, interval = 1):
 
     Args:
         condition_func: 条件判断函数, 返回True表示条件满足
-        timeout: 最大等待时间（秒）, 默认无限等待
-        interval: 检查间隔（秒）
+        timeout: 最大等待时间(秒), 默认无限等待
+        interval: 检查间隔(秒)
 
     Returns:
         function: 装饰后的函数
@@ -383,8 +383,8 @@ def wait_until(condition_func = None, timeout = None, interval = 1):
 
                     # 检查超时
                     if timeout and (time.time() - start_time) >= timeout:
-                        logger.error(f"函数 {func.__name__} 等待超时（{timeout}秒）, 条件未满足")
-                        raise TimeoutError(f"等待条件超时（{timeout}秒）")
+                        logger.error(f"函数 {func.__name__} 等待超时({timeout}秒), 条件未满足")
+                        raise TimeoutError(f"等待条件超时({timeout}秒)")
 
                     # 等待间隔
                     time.sleep(interval)
@@ -463,7 +463,7 @@ def timeout(seconds = None):
     限制函数的执行时间
     
     Args:
-        seconds: 超时时间（秒）,默认使用配置文件中的默认超时时间
+        seconds: 超时时间(秒),默认使用配置文件中的默认超时时间
         
     Returns:
         function: 装饰后的函数
@@ -512,7 +512,7 @@ def timeout(seconds = None):
 
             # 检查线程是否仍然在运行
             if thread.is_alive():
-                raise TimeoutError(f"函数 {func.__name__} 执行超时（{actual_seconds}秒）")
+                raise TimeoutError(f"函数 {func.__name__} 执行超时({actual_seconds}秒)")
 
             # 如果有异常,重新抛出
             if exception is not None:

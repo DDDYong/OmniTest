@@ -23,7 +23,7 @@ try:
 
     ssh_enabled = True
 except ImportError:
-    logger.warning("未安装paramiko库,SSH隧道功能将不可用。请使用 'pip install paramiko' 安装。")
+    logger.warning("未安装paramiko库,SSH隧道功能将不可用.请使用 'pip install paramiko' 安装.")
 
 
 class RedisClient:
@@ -179,9 +179,9 @@ class RedisClient:
         
         Args:
             key: 键名
-            value: 值（会自动序列化为JSON）
-            ex: 过期时间（秒）
-            px: 过期时间（毫秒）
+            value: 值(会自动序列化为JSON)
+            ex: 过期时间(秒)
+            px: 过期时间(毫秒)
             nx: 如果为True,仅当键不存在时设置
             xx: 如果为True,仅当键存在时设置
             
@@ -256,7 +256,7 @@ class RedisClient:
         
         Args:
             key: 键名
-            seconds: 过期时间（秒）
+            seconds: 过期时间(秒)
             
         Returns:
             bool: 设置是否成功
@@ -278,7 +278,7 @@ class RedisClient:
             key: 键名
             
         Returns:
-            int: 剩余生存时间（秒）,如果键不存在返回-2,如果键存在但没有设置过期时间返回-1
+            int: 剩余生存时间(秒),如果键不存在返回-2,如果键存在但没有设置过期时间返回-1
         """
         with self.get_connection() as conn:
             try:
@@ -297,7 +297,7 @@ class RedisClient:
         Args:
             name: 哈希表名
             key: 字段名
-            value: 值（会自动序列化为JSON）
+            value: 值(会自动序列化为JSON)
             
         Returns:
             int: 设置成功的字段数量
@@ -538,7 +538,7 @@ class RedisClient:
         
         Args:
             key_prefix: 缓存键前缀
-            expire_seconds: 过期时间（秒）
+            expire_seconds: 过期时间(秒)
             
         Returns:
             function: 装饰后的函数
@@ -605,7 +605,7 @@ redis_client = None
 
 def get_redis_client(config: Optional[Dict[str, Any]] = None) -> RedisClient:
     """
-    获取Redis客户端实例（单例模式）
+    获取Redis客户端实例(单例模式)
     
     Args:
         config: Redis配置

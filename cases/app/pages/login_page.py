@@ -11,7 +11,7 @@ This file contains the login_page module, which...
 import time
 
 from utils.app.app_base_page import AppBasePage
-from utils.logger_util import logger
+from utils.logger import logger
 
 
 class LoginPage(AppBasePage):
@@ -164,7 +164,7 @@ class LoginPage(AppBasePage):
                 time.sleep(0.5)
 
             logger.error(f"未找到国家/地区: {country_name}")
-            # 点击取消按钮，使用默认的+86
+            # 点击取消按钮,使用默认的+86
             self.click_element(self.CANCEL_COUNTRY_SELECT)
             return False
 
