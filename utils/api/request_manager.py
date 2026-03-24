@@ -11,9 +11,9 @@ Description:
 import json
 from typing import Dict, Any, Optional, List, Callable
 
-from utils.common_util import CommonUtils
-from utils.decorator_util import log_function, exception_handler
-from utils.logger_util import logger
+from utils.common import CommonUtils
+from utils.decorator import log_function, exception_handler
+from utils.logger import logger
 from .api_client import ApiClient
 
 
@@ -390,6 +390,14 @@ class RequestManager:
             RequestManager: 请求管理器实例
         """
         return self
+
+    def clear_hooks(self) -> None:
+        """
+        清除所有钩子函数
+        """
+        self.pre_request_hooks.clear()
+        self.post_response_hooks.clear()
+        logger.info("已清除所有钩子函数")
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         """

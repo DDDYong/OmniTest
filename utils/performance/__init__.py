@@ -9,7 +9,7 @@ Description:
 -------------------------------------------------
 """
 
-# 从性能测试基类导入核心类（暂时注释,避免Locust版本不兼容问题）
+# 从性能测试基类导入核心类(暂时注释,避免Locust版本不兼容问题)
 # from .locust_base import (
 #     PerformanceBaseTaskSet,
 #     PerformanceBaseUser,
@@ -23,7 +23,7 @@ from .performance_utils import PerformanceUtils
 
 # 定义公共接口
 __all__ = [
-    # 核心类（暂时注释,避免Locust版本不兼容问题）
+    # 核心类(暂时注释,避免Locust版本不兼容问题)
     # 'PerformanceBaseTaskSet',
     # 'PerformanceBaseUser', 
     # 'PerformanceTestListener',

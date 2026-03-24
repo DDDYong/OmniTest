@@ -24,10 +24,10 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 from config.config_manager import config
-from utils.common_util import util
-from utils.decorator_util import retry, wait_after_with_jitter
-from utils.logger_util import logger
-from utils.screenshot_util import ScreenshotUtils
+from utils.common import util
+from utils.decorator import retry, wait_after_with_jitter
+from utils.logger import logger
+from utils.screenshot import ScreenshotUtils
 
 # 定义MobileBy作为By的别名,保持兼容性
 MobileBy = By
@@ -125,7 +125,7 @@ class AppBasePage:
         设置隐式等待时间
 
         Args:
-            timeout: 等待超时时间（秒）
+            timeout: 等待超时时间(秒)
         """
         self.driver.implicitly_wait(timeout)
         logger.debug(f"设置隐式等待时间: {timeout}秒")
@@ -135,7 +135,7 @@ class AppBasePage:
         创建显式等待对象
 
         Args:
-            timeout: 等待超时时间（秒）
+            timeout: 等待超时时间(秒)
 
         Returns:
             WebDriverWait实例
@@ -159,7 +159,7 @@ class AppBasePage:
         Args:
             by: 定位方式
             value: 定位值
-            timeout: 超时时间（秒）,默认使用配置文件中的值
+            timeout: 超时时间(秒),默认使用配置文件中的值
 
         Returns:
             Any: 找到的元素
@@ -192,7 +192,7 @@ class AppBasePage:
         Args:
             by: 定位方式
             value: 定位值
-            timeout: 超时时间（秒）,默认使用配置文件中的值
+            timeout: 超时时间(秒),默认使用配置文件中的值
 
         Returns:
             List[Any]: 找到的元素列表
@@ -297,7 +297,7 @@ class AppBasePage:
 
         Args:
             id_value: 元素ID
-            timeout: 超时时间（秒）
+            timeout: 超时时间(秒)
 
         Returns:
             Any: 找到的元素
@@ -310,7 +310,7 @@ class AppBasePage:
 
         Args:
             xpath: XPath表达式
-            timeout: 超时时间（秒）
+            timeout: 超时时间(秒)
 
         Returns:
             Any: 找到的元素
@@ -323,7 +323,7 @@ class AppBasePage:
 
         Args:
             uiautomator: UiAutomator表达式
-            timeout: 超时时间（秒）
+            timeout: 超时时间(秒)
 
         Returns:
             Any: 找到的元素
@@ -336,7 +336,7 @@ class AppBasePage:
 
         Args:
             predicate: Predicate表达式
-            timeout: 超时时间（秒）
+            timeout: 超时时间(秒)
 
         Returns:
             Any: 找到的元素
@@ -349,7 +349,7 @@ class AppBasePage:
 
         Args:
             accessibility_id: Accessibility ID
-            timeout: 超时时间（秒）
+            timeout: 超时时间(秒)
 
         Returns:
             Any: 找到的元素
@@ -364,7 +364,7 @@ class AppBasePage:
 
         Args:
             element: 要点击的元素
-            description: 元素描述（用于日志）
+            description: 元素描述(用于日志)
         """
         desc = description or "元素"
         logger.info(f"点击 {desc}")
@@ -437,7 +437,7 @@ class AppBasePage:
         Args:
             element: 输入框元素
             text: 要输入的文本
-            description: 元素描述（用于日志）
+            description: 元素描述(用于日志)
             clear_first: 是否先清空输入框
         """
         desc = description or "输入框"
@@ -510,7 +510,7 @@ class AppBasePage:
 
         Args:
             element: 元素
-            description: 元素描述（用于日志）
+            description: 元素描述(用于日志)
 
         Returns:
             str: 元素文本
@@ -557,7 +557,7 @@ class AppBasePage:
 
         Args:
             locator: 定位器元组 (策略类型, 定位值)
-            timeout: 超时时间（秒）
+            timeout: 超时时间(秒)
 
         Returns:
             bool: 元素是否可见
@@ -628,7 +628,7 @@ class AppBasePage:
 
         Args:
             element: 元素
-            description: 元素描述（用于日志）
+            description: 元素描述(用于日志)
 
         Returns:
             bool: 元素是否可用
@@ -646,7 +646,7 @@ class AppBasePage:
 
     def is_element_present(self, locator: Tuple[str, str]) -> bool:
         """
-        快速检查元素是否存在（不等待）
+        快速检查元素是否存在(不等待)
 
         Args:
             locator: 定位器元组 (策略类型, 定位值)
@@ -716,7 +716,7 @@ class AppBasePage:
         向下滚动页面
 
         Args:
-            percentage: 滚动距离百分比（0-100）
+            percentage: 滚动距离百分比(0-100)
         """
         self._swipe("down", percentage)
 
@@ -725,7 +725,7 @@ class AppBasePage:
         向上滚动页面
 
         Args:
-            percentage: 滚动距离百分比（0-100）
+            percentage: 滚动距离百分比(0-100)
         """
         self._swipe("up", percentage)
 
@@ -734,7 +734,7 @@ class AppBasePage:
         向左滚动页面
 
         Args:
-            percentage: 滚动距离百分比（0-100）
+            percentage: 滚动距离百分比(0-100)
         """
         self._swipe("left", percentage)
 
@@ -743,7 +743,7 @@ class AppBasePage:
         向右滚动页面
 
         Args:
-            percentage: 滚动距离百分比（0-100）
+            percentage: 滚动距离百分比(0-100)
         """
         self._swipe("right", percentage)
 
@@ -752,8 +752,8 @@ class AppBasePage:
         滑动页面
 
         Args:
-            direction: 滑动方向（up, down, left, right）
-            percentage: 滚动距离百分比（0-100）
+            direction: 滑动方向(up, down, left, right)
+            percentage: 滚动距离百分比(0-100)
         """
         logger.info(f"{direction} 滑动页面 {percentage}%")
 
@@ -785,7 +785,7 @@ class AppBasePage:
 
     def get_current_activity(self) -> str:
         """
-        获取当前活动（Android）或页面（iOS）
+        获取当前活动(Android)或页面(iOS)
 
         Returns:
             str: 当前活动名称
@@ -898,7 +898,7 @@ class AppBasePage:
         隐藏键盘
 
         Args:
-            key_name: 用于关闭键盘的键名（如"Done"）
+            key_name: 用于关闭键盘的键名(如"Done")
         """
         logger.info("隐藏键盘")
 
@@ -908,7 +908,7 @@ class AppBasePage:
             else:
                 self.driver.hide_keyboard()
         except Exception as e:
-            logger.warning(f"隐藏键盘时发生错误（可能键盘已隐藏）: {str(e)}")
+            logger.warning(f"隐藏键盘时发生错误(可能键盘已隐藏): {str(e)}")
 
     def tap_screen(self, x: int, y: int, duration: Optional[int] = None) -> bool:
         """
@@ -917,7 +917,7 @@ class AppBasePage:
         Args:
             x: X坐标
             y: Y坐标
-            duration: 点击持续时间（毫秒）
+            duration: 点击持续时间(毫秒)
 
         Returns:
             点击是否成功
@@ -940,7 +940,7 @@ class AppBasePage:
 
         Args:
             activity: 要等待的活动名称
-            timeout: 超时时间（秒）
+            timeout: 超时时间(秒)
 
         Returns:
             bool: 是否在超时时间内启动
@@ -963,7 +963,7 @@ class AppBasePage:
         Args:
             by: 定位方式
             value: 定位值
-            timeout: 超时时间（秒）
+            timeout: 超时时间(秒)
 
         Returns:
             bool: 是否在超时时间内出现
@@ -988,7 +988,7 @@ class AppBasePage:
         Args:
             by: 定位方式
             value: 定位值
-            timeout: 超时时间（秒）
+            timeout: 超时时间(秒)
 
         Returns:
             bool: 是否在超时时间内消失
@@ -1057,7 +1057,7 @@ class AppBasePage:
         终止应用
 
         Args:
-            app_id: 应用ID（包名或Bundle ID）
+            app_id: 应用ID(包名或Bundle ID)
 
         Returns:
             bool: 是否成功终止
@@ -1072,7 +1072,7 @@ class AppBasePage:
         激活应用
 
         Args:
-            app_id: 应用ID（包名或Bundle ID）
+            app_id: 应用ID(包名或Bundle ID)
 
         Returns:
             bool: 是否成功激活
@@ -1087,7 +1087,7 @@ class AppBasePage:
         检查应用是否已安装
 
         Args:
-            app_id: 应用ID（包名或Bundle ID）
+            app_id: 应用ID(包名或Bundle ID)
 
         Returns:
             bool: 是否已安装
@@ -1112,7 +1112,7 @@ class AppBasePage:
         卸载应用
 
         Args:
-            app_id: 应用ID（包名或Bundle ID）
+            app_id: 应用ID(包名或Bundle ID)
         """
         logger.info(f"卸载应用: {app_id}")
         self.driver.remove_app(app_id)
@@ -1120,7 +1120,7 @@ class AppBasePage:
     # 辅助方法
     def _is_sensitive_info(self, text: str) -> bool:
         """
-        检查文本是否包含敏感信息（如密码）
+        检查文本是否包含敏感信息(如密码)
 
         Args:
             text: 要检查的文本
@@ -1144,11 +1144,11 @@ class AppBasePage:
         截取当前屏幕
 
         Args:
-            filename: 截图文件名（不含路径和扩展名）
+            filename: 截图文件名(不含路径和扩展名)
             description: 截图描述
 
         Returns:
-            str: 截图文件路径，如果失败则返回None
+            str: 截图文件路径,如果失败则返回None
         """
         try:
             screenshot_path = self.screenshot_utils.capture_screenshot(
@@ -1168,8 +1168,8 @@ class AppBasePage:
         
         Args:
             message: 要检测的Toast消息
-            timeout: 超时时间（秒）
-            interval: 检测间隔（秒）
+            timeout: 超时时间(秒)
+            interval: 检测间隔(秒)
             
         Returns:
             bool: 是否检测到指定的Toast或提示框
@@ -1184,7 +1184,7 @@ class AppBasePage:
         # 循环检测
         while time.time() - start_time < timeout:
             try:
-                # 方法1: 检查应用的日志输出（最有效的方法）
+                # 方法1: 检查应用的日志输出(最有效的方法)
                 try:
                     logs = self.driver.get_log('logcat')
                     for log in logs:
@@ -1238,7 +1238,7 @@ class AppBasePage:
         error_message_locator = ("id", "com.weixiao.voice:id/tv_dialog_msg")
 
         try:
-            # 快速检查元素是否存在（不等待）
+            # 快速检查元素是否存在(不等待)
             if self.is_element_present(error_message_locator):
                 # 获取错误信息文本
                 error_text = self.get_element_text(error_message_locator, timeout = 2)

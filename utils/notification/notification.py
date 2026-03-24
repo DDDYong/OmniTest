@@ -1,6 +1,6 @@
 """
 -------------------------------------------------
-File:           notification_util.py
+File:           notification.py
 Author:         duanyang
 Date:           2026/03/09
 -------------------------------------------------
@@ -22,8 +22,8 @@ from email.mime.text import MIMEText
 
 import requests
 
-from utils.logger_util import logger
-from utils.path_util import path_util
+from utils.logger import logger
+from utils.path import path_util
 
 
 class NotificationUtil:
@@ -132,7 +132,7 @@ class NotificationUtil:
             summary = NotificationUtil.get_test_summary()
 
         if not summary.get('has_data', False):
-            return "<p style='color: orange;'>⚠️ 测试摘要信息不可用（可能测试未正常执行完成）</p>"
+            return "<p style='color: orange;'>⚠️ 测试摘要信息不可用(可能测试未正常执行完成)</p>"
 
         # 判断测试结果状态
         if summary['failed'] > 0 or summary['broken'] > 0:
@@ -232,7 +232,7 @@ class NotificationUtil:
             if report_url:
                 access_instructions += f"""
                 <div style="background-color: #e8f4ff; padding: 15px; border-radius: 5px; margin: 15px 0;">
-                    <h4 style="margin-top: 0; color: #0066cc;">🌐 方案一: 在线访问（推荐）</h4>
+                    <h4 style="margin-top: 0; color: #0066cc;">🌐 方案一: 在线访问(推荐)</h4>
                     <p>直接点击以下链接访问完整的可视化测试报告: </p>
                     <p style="font-size: 16px; font-weight: bold;">
                         <a href="{report_url}" target="_blank" style="color: #0066cc; text-decoration: underline;">
@@ -246,12 +246,12 @@ class NotificationUtil:
             access_instructions += f"""
             <div style="background-color: #fff9e6; padding: 15px; border-radius: 5px; margin: 15px 0;">
                 <h4 style="margin-top: 0; color: #cc8800;">📦 方案二: 本地访问</h4>
-                <p><strong>重要提示: </strong>Allure报告是单页Web应用, 需要通过HTTP服务器访问, 直接打开index.html可能无法正常显示！</p>
+                <p><strong>重要提示: </strong>Allure报告是单页Web应用, 需要通过HTTP服务器访问, 直接打开index.html可能无法正常显示!</p>
                 <ol style="margin-left: 20px; padding-left: 0;">
                     <li style="margin: 10px 0;">下载邮件附件 <strong>test_report_{test_run_dir}.zip</strong></li>
                     <li style="margin: 10px 0;">解压该压缩文件到本地文件夹</li>
                     <li style="margin: 10px 0;">
-                        <strong>方式A: 使用Python启动本地服务器（推荐）</strong>
+                        <strong>方式A: 使用Python启动本地服务器(推荐)</strong>
                         <div style="background-color: #f5f5f5; padding: 10px; border-radius: 3px; font-family: monospace; margin: 5px 0;">
                             cd 解压后的文件夹路径<br>
                             python -m http.server 8000
@@ -265,7 +265,7 @@ class NotificationUtil:
                         </div>
                     </li>
                 </ol>
-                <p style="color: #cc0000; font-weight: bold;">⚠️ 不要直接双击打开index.html文件, 这会导致JavaScript被浏览器阻止, 报告无法显示！</p>
+                <p style="color: #cc0000; font-weight: bold;">⚠️ 不要直接双击打开index.html文件, 这会导致JavaScript被浏览器阻止, 报告无法显示!</p>
             </div>
             """
 
@@ -415,7 +415,7 @@ class NotificationUtil:
     @staticmethod
     def send_report_via_email(upload_to_cloud: bool = True) -> bool:
         """
-        通过邮件发送测试报告（支持云存储）
+        通过邮件发送测试报告(支持云存储)
 
         Args:
             upload_to_cloud: 是否先上传到云存储
@@ -436,7 +436,7 @@ class NotificationUtil:
             else:
                 logger.warning("上传到云存储失败, 将只发送压缩包")
 
-        # 压缩报告（包含allure-results以便可以重新生成报告）
+        # 压缩报告(包含allure-results以便可以重新生成报告)
         zip_file_path = NotificationUtil.zip_report(include_results = True)
 
         # 发送邮件
@@ -478,7 +478,7 @@ class NotificationUtil:
                 temp_dir = tempfile.mkdtemp()
                 logger.info(f"创建临时目录: {temp_dir}")
 
-                # 克隆GitHub仓库（带重试机制）
+                # 克隆GitHub仓库(带重试机制)
                 clone_success = False
 
                 # 尝试使用HTTP协议
@@ -490,7 +490,7 @@ class NotificationUtil:
                     env = os.environ.copy()
                     env["GIT_HTTP_VERSION"] = "HTTP/1.1"
                     env["GIT_CURL_VERBOSE"] = "1"
-                    env["GIT_SSL_NO_VERIFY"] = "1"  # 禁用SSL验证（仅用于测试）
+                    env["GIT_SSL_NO_VERIFY"] = "1"  # 禁用SSL验证(仅用于测试)
 
                     # 重试克隆
                     max_retries = 3
@@ -812,7 +812,7 @@ class NotificationUtil:
         if upload_to_cloud:
             report_url = NotificationUtil.upload_report_to_cloud()
 
-        # 压缩报告（包含allure-results）
+        # 压缩报告(包含allure-results)
         zip_file_path = NotificationUtil.zip_report(include_results = True)
 
         # 发送企业微信通知
@@ -837,7 +837,7 @@ class NotificationUtil:
         if upload_to_cloud:
             report_url = NotificationUtil.upload_report_to_cloud()
 
-        # 压缩报告（包含allure-results）
+        # 压缩报告(包含allure-results)
         zip_file_path = NotificationUtil.zip_report(include_results = True)
 
         # 发送飞书通知
@@ -845,5 +845,3 @@ class NotificationUtil:
 
 
 notification_util = NotificationUtil()
-
-__all__ = ['NotificationUtil', 'notification_util']

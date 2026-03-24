@@ -15,14 +15,14 @@ import statistics
 import time
 from typing import Optional, Dict, List, Any
 
-from utils.common_util import CommonUtils
-from utils.file_util import DataHandler
+from utils.common import CommonUtils
+from utils.file import DataHandler
 # 暂时注释掉数据分析相关的导入,避免缺少依赖
 # import pandas as pd
 # import matplotlib.pyplot as plt
 # import seaborn as sns
 # import numpy as np
-from utils.logger_util import logger
+from utils.logger import logger
 
 
 class PerformanceUtils:
@@ -372,7 +372,7 @@ class PerformanceUtils:
         if not response_times:
             return []
 
-        # 定义响应时间区间（毫秒）
+        # 定义响应时间区间(毫秒)
         bins = [0, 50, 100, 200, 500, 1000, 2000, 5000, float("inf")]
         labels = ["<50ms", "50-100ms", "100-200ms", "200-500ms", "500ms-1s", "1-2s", "2-5s", ">5s"]
 
@@ -474,7 +474,7 @@ class PerformanceUtils:
             plt.figure(figsize = (12, 6))
             bars = plt.bar(range(len(avg_response_times)), avg_response_times)
 
-            # 设置颜色（根据响应时间）
+            # 设置颜色(根据响应时间)
             max_time = max(avg_response_times)
             for i, bar in enumerate(bars):
                 color_intensity = min(avg_response_times[i] / max_time * 0.8 + 0.2, 1.0)
@@ -909,7 +909,7 @@ class PerformanceUtils:
         error_labels = []
         error_counts = []
 
-        # 只取前7个错误类型（图表颜色有限）
+        # 只取前7个错误类型(图表颜色有限)
         error_items = list(errors.items())[:7]
 
         for error, count in error_items:

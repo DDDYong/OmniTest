@@ -24,14 +24,14 @@ setup(
     version = '1.0.0',
     # 项目描述
     description = 'OmniTest自动化测试框架, 支持API、Web、App和性能测试',
-    # 详细描述（从README.md读取）
+    # 详细描述(从README.md读取)
     long_description = long_description,
     long_description_content_type = 'text/markdown',
     # 项目URL
     url = 'https://gitee.com/duanyang/omni-test',
     # 作者信息
     author = 'duanyang',
-    author_email = 'duanyang@example.com',
+    author_email = '2979735103@qq.com',
     # 许可证
     license = 'MIT',
     # 项目分类
@@ -54,6 +54,8 @@ setup(
     package_dir = {'': '.'},
     # 自动发现所有包
     packages = find_packages(include = ['config', 'utils', 'cases', 'scripts']),
+    # 包含的单文件模块
+    py_modules=['omni_test', 'run', 'main'],
     # 包含的数据文件
     include_package_data = True,
     # 安装依赖
@@ -72,8 +74,8 @@ setup(
     # 入口点
     entry_points = {
         'console_scripts': [
-            'omni-test=run:run_main',
-            'omni=run:run_main',
+            'omni-test=run:main',
+            'omni=run:main',
         ],
     },
     # Python版本要求

@@ -18,8 +18,8 @@ from urllib3.util.retry import Retry
 
 # 直接导入配置, 使用懒加载代理
 from config.config_manager import config
-from utils.decorator_util import retry, timing
-from utils.logger_util import logger
+from utils.decorator import retry, timing
+from utils.logger import logger
 
 
 class ApiClient:
@@ -33,7 +33,7 @@ class ApiClient:
         
         Args:
             base_url: 基础URL,默认为配置文件中的API_BASE_URL
-            timeout: 请求超时时间（秒）,默认为配置文件中的DEFAULT_TIMEOUT
+            timeout: 请求超时时间(秒),默认为配置文件中的DEFAULT_TIMEOUT
         """
         # 使用默认值避免依赖不存在的配置属性
         self.base_url = base_url or getattr(config, 'API_BASE_URL', 'http://test.api.whwxkj.cn')

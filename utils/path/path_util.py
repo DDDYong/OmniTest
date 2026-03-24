@@ -22,7 +22,7 @@ class PathUtil:
     @staticmethod
     def get_test_run_dir() -> str:
         """
-        获取当前测试运行的时间文件夹名称（格式: YYYYMMDD_HHMM）
+        获取当前测试运行的时间文件夹名称(格式: YYYYMMDD_HHMM)
 
         Returns:
             str: 时间文件夹名称
@@ -52,7 +52,7 @@ class PathUtil:
         # 获取当前文件所在目录
         current_path = os.path.dirname(os.path.abspath(__file__))
         # 向上两级目录即为项目根目录
-        project_root = os.path.dirname(current_path)
+        project_root = os.path.dirname(os.path.dirname(current_path))
         return project_root
 
     @staticmethod
@@ -151,7 +151,7 @@ class PathUtil:
     @staticmethod
     def get_current_test_reports_dir() -> str:
         """
-        获取当前测试运行的报告目录路径（带时间文件夹）
+        获取当前测试运行的报告目录路径(带时间文件夹)
         如果目录不存在则创建
         
         Returns:
@@ -222,7 +222,7 @@ class PathUtil:
     @staticmethod
     def get_logs_dir() -> str:
         """
-        获取日志目录路径（统一使用项目根目录下的logs文件夹）
+        获取日志目录路径(统一使用项目根目录下的logs文件夹)
         如果目录不存在则创建
         
         Returns:
@@ -335,9 +335,3 @@ class PathUtil:
             str: 连接后的完整路径
         """
         return os.path.join(*paths)
-
-
-# 创建PathUtil实例
-path_util = PathUtil()
-
-__all__ = ['PathUtil', 'path_util']

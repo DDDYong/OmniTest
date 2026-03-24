@@ -21,6 +21,6 @@ __all__ = [
     'config_manager',
     'config',
 
-    # 工具模块（从utils.__all__继承）
+    # 工具模块(从utils.__all__继承)
     *__import__('utils').__all__
 ]

@@ -5,13 +5,13 @@ Author:         duanyang
 Date:           2025/11/27
 -------------------------------------------------
 Description:
-配置管理模块，提供 YAML 配置加载、解析与管理能力。
+配置管理模块,提供 YAML 配置加载、解析与管理能力.
 
-核心特性：
-- 线程安全懒加载单例：同一进程多次获取不会重复读盘、不会重复打印成功日志
-- 可追溯错误日志：即使 LOG_LEVEL=ERROR 也能看到路径、异常类型、行号与修复建议
-- 支持 reload(path=None)：热更新成功后再切换缓存，失败回滚并告警
-- 日志字段标准化：通过 LoggerAdapter 注入 config_alias/reload/module_name 额外字段
+核心特性:
+- 线程安全懒加载单例
+- 可追溯错误日志
+- 支持 reload(path=None)
+- 日志字段标准化
 -------------------------------------------------
 """
 from __future__ import annotations
@@ -28,7 +28,8 @@ from typing import Any, Dict, Optional, Tuple
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import yaml
-from utils.logger_util import logger
+
+logger = logging.getLogger("OmniTest.Config")
 
 __all__ = [
     "ConfigDict",
@@ -87,17 +88,17 @@ class ConfigDict(dict):
 
 class ConfigManager:
     """
-    配置管理器：从 YAML 加载配置并提供读取、覆盖与热重载能力。
+    配置管理器:从 YAML 加载配置并提供读取、覆盖与热重载能力.
 
-    配置优先级（由高到低）：
-    - 环境变量（按既定前缀/规则）
-    - 环境 YAML（如 test.yaml）
-    - 默认 YAML（default.yaml）
+    配置优先级(由高到低):
+    - 环境变量(按既定前缀/规则)
+    - 环境 YAML(如 test.yaml)
+    - 默认 YAML(default.yaml)
 
-    日志策略（由 LOG_LEVEL 或日志系统级别共同决定）：
-    - DEBUG：打印路径、耗时、异常堆栈与重试细节
-    - INFO：仅打印“真正发生加载动作”的一次性摘要；reload 时打印带 [Reload] 的摘要
-    - WARNING 及以上：仅在加载失败或校验不通过时输出
+    日志策略(由 LOG_LEVEL 或日志系统级别共同决定):
+    - DEBUG:打印路径、耗时、异常堆栈与重试细节
+    - INFO:仅打印"真正发生加载动作"的一次性摘要;reload 时打印带 [Reload] 的摘要
+    - WARNING 及以上:仅在加载失败或校验不通过时输出
     """
 
     _DEFAULT_YAML_NAME = "default.yaml"
@@ -118,12 +119,12 @@ class ConfigManager:
 
     def reload(self, path: Optional[str] = None) -> bool:
         """
-        运行时热重载配置。
+        运行时热重载配置.
 
-        - 若 path 为目录：从该目录读取 default.yaml 与 {env}.yaml
-        - 若 path 为文件：从该文件所在目录读取 default.yaml，同时将该文件视为环境配置文件
-        - 成功：校验通过后再替换内部缓存
-        - 失败：保持旧缓存并记录 WARNING
+        - 若 path 为目录:从该目录读取 default.yaml 与 {env}.yaml
+        - 若 path 为文件:从该文件所在目录读取 default.yaml,同时将该文件视为环境配置文件
+        - 成功:校验通过后再替换内部缓存
+        - 失败:保持旧缓存并记录 WARNING
         """
         with self._lock:
             old_config = self._config
@@ -137,7 +138,7 @@ class ConfigManager:
                 self._config_obj = old_obj
                 self.config_dir = old_dir
                 self._adapter.warning(
-                    f"[Reload] 配置重载失败，已回滚 | env={self.env} | reason={type(exc).__name__}: {exc}",
+                    f"[Reload] 配置重载失败,已回滚 | env={self.env} | reason={type(exc).__name__}: {exc}",
                     extra = {"reload": "1"},
                 )
                 return False
@@ -240,7 +241,7 @@ class ConfigManager:
         if config is None:
             return
         if not isinstance(config, dict):
-            raise ValueError(f"{source} 配置根节点必须为 dict，实际为 {type(config).__name__}")
+            raise ValueError(f"{source} 配置根节点必须为 dict,实际为 {type(config).__name__}")
 
     def _count_keys(self, data: Any) -> int:
         if isinstance(data, dict):
@@ -294,7 +295,7 @@ class ConfigManager:
                 last_exc = exc
                 if attempt < attempts and logger.isEnabledFor(logging.DEBUG):
                     self._adapter.debug(
-                        f"读取配置文件失败，准备重试 | alias={alias} | path={abs_path} | attempt={attempt}/{attempts} | exc={type(exc).__name__}: {exc}",
+                        f"读取配置文件失败,准备重试 | alias={alias} | path={abs_path} | attempt={attempt}/{attempts} | exc={type(exc).__name__}: {exc}",
                         extra = extra,
                     )
                     time.sleep(0.05)
@@ -347,21 +348,21 @@ class ConfigManager:
     def _hint_for_exception(self, abs_path: str, exc: BaseException) -> str:
         base_name = os.path.basename(abs_path)
         if isinstance(exc, FileNotFoundError):
-            return f"文件不存在，请检查 {base_name} 是否被移动或未同步到 config 目录"
+            return f"文件不存在,请检查 {base_name} 是否被移动或未同步到 config 目录"
         if isinstance(exc, PermissionError):
-            return f"权限不足，请检查 {base_name} 的读权限或运行用户权限"
+            return f"权限不足,请检查 {base_name} 的读权限或运行用户权限"
         if isinstance(exc, IsADirectoryError):
-            return f"路径指向目录，请检查配置路径是否误传为目录：{abs_path}"
+            return f"路径指向目录,请检查配置路径是否误传为目录:{abs_path}"
         if isinstance(exc, yaml.YAMLError):
-            return "YAML 语法错误，请检查缩进、冒号与列表符号是否正确"
+            return "YAML 语法错误,请检查缩进、冒号与列表符号是否正确"
         if isinstance(exc, ValueError):
-            return "配置格式校验失败，请确保 YAML 根节点为映射(dict)"
+            return "配置格式校验失败,请确保 YAML 根节点为映射(dict)"
         return "请检查路径、编码与 YAML 内容是否有效"
 
     def _override_with_env_vars(self, config: Dict[str, Any]) -> None:
         """
         使用环境变量覆盖配置
-        支持嵌套配置,环境变量名格式: SECTION_KEY 或 SECTION__KEY（双下划线表示嵌套）
+        支持嵌套配置,环境变量名格式: SECTION_KEY 或 SECTION__KEY(双下划线表示嵌套)
 
         Args:
             config: 要被覆盖的配置字典
@@ -538,7 +539,7 @@ class ConfigManager:
         # 从YAML配置获取MySQL默认配置
         config = self.get_config_value("mysql.default", {})
 
-        # 从环境变量获取配置（优先级最高）
+        # 从环境变量获取配置(优先级最高)
         env_config = {
             "host": os.environ.get("MYSQL_HOST"),
             "port": os.environ.get("MYSQL_PORT"),
@@ -671,7 +672,7 @@ class ConfigManager:
         try:
             return getattr(self._config_obj, name)
         except AttributeError:
-            # 尝试转换为小写并通过点号路径获取（支持驼峰转蛇形）
+            # 尝试转换为小写并通过点号路径获取(支持驼峰转蛇形)
             snake_case_name = self._camel_to_snake(name)
             try:
                 return getattr(self._config_obj, snake_case_name)
@@ -701,7 +702,7 @@ class ConfigManager:
                     value = self.get_config_value(special_mappings[name])
                     # 如果是路径配置项且值是相对路径, 则转换为绝对路径
                     if name in path_configs and isinstance(value, str) and value.startswith('./'):
-                        # 获取项目根目录（配置目录的父目录）
+                        # 获取项目根目录(配置目录的父目录)
                         project_root = os.path.dirname(self.config_dir)
                         # 转换为绝对路径
                         return os.path.abspath(os.path.join(project_root, value))
@@ -733,7 +734,7 @@ class ConfigManager:
         return f"ConfigManager(env='{self.env}', config_keys={list(self._config.keys())})"
 
 
-# 实际的配置管理器实例（私有变量）
+# 实际的配置管理器实例(私有变量)
 _actual_config_manager: Optional[ConfigManager] = None
 _actual_config_manager_lock = threading.RLock()
 
@@ -781,7 +782,7 @@ def ensure_directories():
             os.makedirs(dir_path, exist_ok = True)
 
 
-# 向后兼容: 创建config实例（懒加载）
+# 向后兼容: 创建config实例(懒加载)
 class LazyConfigProxy:
     """懒加载配置代理类"""
 
@@ -803,7 +804,7 @@ class LazyConfigProxy:
 # 创建懒加载配置实例
 config = LazyConfigProxy()
 
-# 全局配置管理器实例（懒加载）
+# 全局配置管理器实例(懒加载)
 # 确保在第一次访问时初始化
 class LazyConfigManagerProxy:
     """懒加载配置管理器代理类"""

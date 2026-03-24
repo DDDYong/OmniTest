@@ -12,7 +12,7 @@ from typing import Optional, Dict, Union
 
 from selenium.webdriver.remote.webdriver import WebDriver
 
-from utils.logger_util import logger
+from utils.logger import logger
 
 
 class WebBasePage:
@@ -27,7 +27,7 @@ class WebBasePage:
         Args:
             driver: WebDriver实例
             base_url: 基础URL
-            timeout: 超时时间（秒）
+            timeout: 超时时间(秒)
         """
         self.driver = driver
         self.base_url = base_url or "https://www.baidu.com"
@@ -41,7 +41,7 @@ class WebBasePage:
             url: 页面URL,如果为None则使用基础URL
             
         Returns:
-            WebBasePage: 页面实例（用于链式调用）
+            WebBasePage: 页面实例(用于链式调用)
         """
         if url:
             full_url = url
@@ -57,7 +57,7 @@ class WebBasePage:
         最大化窗口
 
         Returns:
-            WebBasePage: 页面实例（用于链式调用）
+            WebBasePage: 页面实例(用于链式调用)
         """
         logger.info("最大化窗口")
         self.driver.maximize_window()
@@ -68,7 +68,7 @@ class WebBasePage:
         返回上一页
 
         Returns:
-            WebBasePage: 页面实例（用于链式调用）
+            WebBasePage: 页面实例(用于链式调用)
         """
         logger.info("返回上一页")
         self.driver.back()
@@ -79,7 +79,7 @@ class WebBasePage:
         刷新当前页面
         
         Returns:
-            WebBasePage: 页面实例（用于链式调用）
+            WebBasePage: 页面实例(用于链式调用)
         """
         logger.info("刷新当前页面")
         self.driver.refresh()
@@ -142,7 +142,7 @@ class WebBasePage:
         等待页面加载完成
         
         Args:
-            timeout: 超时时间（秒）
+            timeout: 超时时间(秒)
             
         Returns:
             bool: 页面是否加载完成
@@ -175,7 +175,7 @@ class WebBasePage:
             window_index: 窗口索引
             
         Returns:
-            WebBasePage: 页面实例（用于链式调用）
+            WebBasePage: 页面实例(用于链式调用)
         """
         self.element_handler.switch_to_window(window_index)
         return self
@@ -185,7 +185,7 @@ class WebBasePage:
         切换到新打开的窗口
         
         Returns:
-            WebBasePage: 页面实例（用于链式调用）
+            WebBasePage: 页面实例(用于链式调用)
         """
         self.element_handler.switch_to_new_window()
         return self
@@ -195,7 +195,7 @@ class WebBasePage:
         关闭当前窗口
         
         Returns:
-            WebBasePage: 页面实例（用于链式调用）
+            WebBasePage: 页面实例(用于链式调用)
         """
         self.element_handler.close_current_window()
         return self
@@ -205,7 +205,7 @@ class WebBasePage:
         接受警告框
         
         Args:
-            wait_time: 等待时间（秒）
+            wait_time: 等待时间(秒)
             
         Returns:
             str: 警告框的文本
@@ -231,7 +231,7 @@ class WebBasePage:
         关闭警告框
         
         Args:
-            wait_time: 等待时间（秒）
+            wait_time: 等待时间(秒)
             
         Returns:
             str: 警告框的文本
@@ -258,7 +258,7 @@ class WebBasePage:
         
         Args:
             text: 要输入的文本
-            wait_time: 等待时间（秒）
+            wait_time: 等待时间(秒)
         """
         wait_time = wait_time or self.timeout
         from selenium.webdriver.support.ui import WebDriverWait
@@ -280,7 +280,7 @@ class WebBasePage:
         
         Args:
             accept: 是否接受弹窗
-            wait_time: 等待时间（秒）
+            wait_time: 等待时间(秒)
             
         Returns:
             str: 弹窗的文本
@@ -326,7 +326,7 @@ class WebBasePage:
             secure: 是否安全
             
         Returns:
-            WebBasePage: 页面实例（用于链式调用）
+            WebBasePage: 页面实例(用于链式调用)
         """
         cookie = {
             'name': name,
@@ -349,7 +349,7 @@ class WebBasePage:
             name: cookie名称
             
         Returns:
-            WebBasePage: 页面实例（用于链式调用）
+            WebBasePage: 页面实例(用于链式调用)
         """
         logger.info(f"删除cookie: {name}")
         self.driver.delete_cookie(name)
@@ -360,7 +360,7 @@ class WebBasePage:
         删除所有cookies
         
         Returns:
-            WebBasePage: 页面实例（用于链式调用）
+            WebBasePage: 页面实例(用于链式调用)
         """
         logger.info("删除所有cookies")
         self.driver.delete_all_cookies()
@@ -393,7 +393,7 @@ class WebBasePage:
             locator: 定位器
             
         Returns:
-            WebBasePage: 页面实例（用于链式调用）
+            WebBasePage: 页面实例(用于链式调用)
         """
         self.element_handler.click(locator)
         return self
@@ -408,7 +408,7 @@ class WebBasePage:
             clear_first: 是否先清空
             
         Returns:
-            WebBasePage: 页面实例（用于链式调用）
+            WebBasePage: 页面实例(用于链式调用)
         """
         self.element_handler.input_text(locator, text, clear_first)
         return self

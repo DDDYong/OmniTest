@@ -1,4 +1,4 @@
-from utils.logger import (
+from .logger import (
     COLOR_CODES,
     ColoredFormatter,
     Logger,

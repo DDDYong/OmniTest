@@ -5,15 +5,16 @@ Author:         duanyang
 Date:           2026/2/27
 -------------------------------------------------
 Description:
-登录功能调试测试类，用于开发调试阶段使用
+登录功能调试测试类,用于开发调试阶段使用
 -------------------------------------------------
 """
 
 import pytest
 
 from cases.app.pages.login_page import LoginPage
+from utils import assert_util as AssertUtil
 from utils.db.mysql_client import MySQLClient
-from utils.logger_util import logger
+from utils.logger import logger
 
 
 class TestLogin:
@@ -36,12 +37,15 @@ class TestLogin:
         TestLogin.appium_manager = appium_manager
 
         # 加载测试数据
-        from utils.file_util import FileHandler
+        from utils.file import FileHandler
         try:
-            test_data = FileHandler().read_yaml("config/app_config.yaml")
-            app_config = test_data["android_app_test"]
+            config_data = FileHandler().read_yaml("config/app_config.yaml")
+            app_config = config_data["android_app_test"]
             TestLogin.device_capabilities = app_config["device_capabilities"]
             appium_server = app_config["appium_server"]
+            
+            test_data = FileHandler.get_test_data("test_data/app_test_cases.yaml")
+            TestLogin.test_data = test_data
             logger.info("成功加载测试数据")
         except Exception as e:
             logger.error(f"加载测试数据失败: {str(e)}")
@@ -139,6 +143,7 @@ class TestLogin:
         # 获取驱动实例
         driver = TestLogin.driver
         login_page = LoginPage(driver)
+        assert_util = AssertUtil(driver)
 
         # 同意协议和权限
         login_page.agree_protocol_and_permission()
@@ -164,7 +169,7 @@ class TestLogin:
             pytest.fail("登录页面未显示")
         logger.info("登录页面已显示")
 
-        # 使用默认的中国大陆区号，无需额外选择
+        # 使用默认的中国大陆区号,无需额外选择
         logger.info("使用默认的中国大陆区号")
 
         # 执行登录操作
@@ -178,7 +183,7 @@ class TestLogin:
         for _ in range(3):
             if login_page.is_element_displayed(login_page.HOME_DIALOG_CLOSE, 1):
                 login_page.click_element(login_page.HOME_DIALOG_CLOSE)
-        assert login_page.is_element_displayed(login_page.HOME_LOGO, 3), "登录失败未进入首页"
+        assert_util.equals(login_page.is_element_displayed(login_page.HOME_LOGO, 3), True, "登录失败未进入首页")
         logger.info("账号密码登录成功")
 
     @pytest.mark.app
@@ -189,6 +194,7 @@ class TestLogin:
         # 获取驱动实例
         driver = TestLogin.driver
         login_page = LoginPage(driver)
+        assert_util = AssertUtil(driver)
 
         # 同意协议和权限
         login_page.agree_protocol_and_permission()
@@ -214,7 +220,7 @@ class TestLogin:
             pytest.fail("登录页面未显示")
         logger.info("登录页面已显示")
 
-        # 使用默认的中国大陆区号，无需额外选择
+        # 使用默认的中国大陆区号,无需额外选择
         logger.info("使用默认的中国大陆区号")
 
         # 执行登录操作
@@ -223,7 +229,7 @@ class TestLogin:
         login_page.click_login()
 
         # 验证错误提示
-        assert login_page.check_for_toast("账号或密码错误", 10)
+        assert_util.is_true(login_page.check_for_toast("账号或密码错误", 10))
         logger.info("✅账号+错误的密码登录失败")
 
     @pytest.mark.smoke
@@ -235,6 +241,7 @@ class TestLogin:
         # 获取驱动实例
         driver = TestLogin.driver
         login_page = LoginPage(driver)
+        assert_util = AssertUtil(driver)
 
         # 同意协议和权限
         login_page.agree_protocol_and_permission()
@@ -260,7 +267,7 @@ class TestLogin:
             pytest.fail("登录页面未显示")
         logger.info("登录页面已显示")
 
-        # 使用默认的中国大陆区号，无需额外选择
+        # 使用默认的中国大陆区号,无需额外选择
         logger.info("使用默认的中国大陆区号")
 
         # 输入手机号并获取验证码
@@ -290,7 +297,7 @@ class TestLogin:
         for _ in range(3):
             if login_page.is_element_displayed(login_page.HOME_DIALOG_CLOSE, 1):
                 login_page.click_element(login_page.HOME_DIALOG_CLOSE)
-        assert login_page.is_element_displayed(login_page.HOME_LOGO, 3), "登录失败未进入首页"
+        assert_util.equals(login_page.is_element_displayed(login_page.HOME_LOGO, 3), True, "登录失败未进入首页")
         logger.info("✅手机号+验证码登录成功")
 
     @pytest.mark.app
@@ -301,6 +308,7 @@ class TestLogin:
         # 获取驱动实例
         driver = TestLogin.driver
         login_page = LoginPage(driver)
+        assert_util = AssertUtil(driver)
 
         # 同意协议和权限
         login_page.agree_protocol_and_permission()
@@ -326,7 +334,7 @@ class TestLogin:
             pytest.fail("登录页面未显示")
         logger.info("登录页面已显示")
 
-        # 使用默认的中国大陆区号，无需额外选择
+        # 使用默认的中国大陆区号,无需额外选择
         logger.info("使用默认的中国大陆区号")
 
         # 输入手机号并获取验证码
@@ -335,5 +343,5 @@ class TestLogin:
         login_page.input_captcha("0000")
 
         # 验证错误提示
-        assert login_page.check_for_toast("验证码已经失效啦", 10)
+        assert_util.is_true(login_page.check_for_toast("验证码已经失效啦", 10))
         logger.info("✅手机号+错误的验证码登录失败")

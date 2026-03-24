@@ -16,8 +16,8 @@ from scripts.reward_type_mapper import RewardTypeMapper
 from utils import logger, util
 from utils.api import ApiClient
 from utils.db.mysql_client import MySQLClient
-from utils.decorator_util import wait_with_jitter
-from utils.file_util import FileHandler
+from utils.decorator import wait_with_jitter
+from utils.file import FileHandler
 
 
 class ActivityRewardVerification:
@@ -139,9 +139,9 @@ class ActivityRewardVerification:
                     # 头像框奖励(rewardType=2)可能需要根据男女区分
                     if rewardType_doc == 2:
                         reward_desc = reward["reward_desc"]
-                        if "（男）" in reward_desc:
+                        if "(男)" in reward_desc:
                             query_key += "_男"
-                        elif "（女）" in reward_desc:
+                        elif "(女)" in reward_desc:
                             query_key += "_女"
 
                     # 存储文档中该奖励的详细信息
@@ -287,9 +287,9 @@ class ActivityRewardVerification:
 
         # 数据库配置与文档一致
         if not any(differences.values()):
-            self.logger.info("✅ 数据库配置所有奖励均在文档中存在, 且rewardId、有效期完全一致！")
+            self.logger.info("✅ 数据库配置所有奖励均在文档中存在, 且rewardId、有效期完全一致!")
         else:
-            self.logger.warning(f"❌ 发现 {sum(len(v) for v in differences.values())} 条差异, 请检查文档和数据库配置！")
+            self.logger.warning(f"❌ 发现 {sum(len(v) for v in differences.values())} 条差异, 请检查文档和数据库配置!")
 
         return differences
 
@@ -393,7 +393,7 @@ class ActivityRewardVerification:
             ranking_data: 榜单数据
             activity_reward_config: 活动奖励配置
             filter_rank_types: 可选, 要获取的榜单类型列表
-            exclude_accumulate_types: 可选, 不需要累加有效期的奖励类型列表, 默认[1, 6]（勋章、靓号）
+            exclude_accumulate_types: 可选, 不需要累加有效期的奖励类型列表, 默认[1, 6](勋章、靓号)
 
         Returns:
             Dict: 按用户ID分组的预期奖励, 格式: {user_id: {rank_type: {ranking: expected_rewards}}}
@@ -482,7 +482,7 @@ class ActivityRewardVerification:
 
                 if reward_type == 2:
                     # 头像框奖励区分男女用户
-                    if ('（男）' in reward_desc and user_sex != 1) or ('（女）' in reward_desc and user_sex != 2):
+                    if ('(男)' in reward_desc and user_sex != 1) or ('(女)' in reward_desc and user_sex != 2):
                         continue
 
                 # 检查是否需要累加有效期
@@ -571,7 +571,7 @@ class ActivityRewardVerification:
                     else:
                         self.logger.info(f"用户[{user_id}] 奖励类型[{reward_type}] 有效期[{reward_info['valid_days']}]天")
 
-        # 将原始奖励添加到预期奖励中（但不包括已经累加的奖励类型）
+        # 将原始奖励添加到预期奖励中(但不包括已经累加的奖励类型)
         for user_data in ranking_data:
             user_id = user_data.get('user_id')
             ranking = user_data.get('ranking')
@@ -600,7 +600,7 @@ class ActivityRewardVerification:
 
                 # 头像框奖励区分男女用户
                 if reward_type == 2:  # AVATAR_COVER
-                    if ('（男）' in reward_desc and user_sex != 1) or ('（女）' in reward_desc and user_sex != 2):
+                    if ('(男)' in reward_desc and user_sex != 1) or ('(女)' in reward_desc and user_sex != 2):
                         self.logger.debug(f"用户{user_id}性别{user_sex}不匹配头像框奖励{reward_desc}, 跳过")
                         continue
 
@@ -850,7 +850,7 @@ class ActivityRewardVerification:
 
     def _process_ranking_data(self, raw_data: List[Dict], rank_type: int) -> List[Dict]:
         """
-        处理榜单数据（单人和双人分别处理)
+        处理榜单数据(单人和双人分别处理)
 
         Args:
             raw_data: 原始榜单数据列表
@@ -975,7 +975,7 @@ class ActivityRewardVerification:
             activity_reward_config: 活动奖励配置
             filter_rank_types: 可选, 要清除的榜单类型列表
         """
-        # 获取用户预期奖励（使用缓存）
+        # 获取用户预期奖励(使用缓存)
         user_expected_rewards = self.get_user_expected_rewards(ranking_data, activity_reward_config, filter_rank_types)
 
         # 收集需要清除的各种奖励
@@ -1505,7 +1505,7 @@ class ActivityRewardVerification:
                     return False, f"勋章 {reward_id} 未下发"
                 return True, "勋章验证通过"
 
-            # 装扮奖励（头像框、座驾等）
+            # 装扮奖励(头像框、座驾等)
             elif reward_type in {2, 3, 9, 10, 12, 14}:
                 # 确定装扮类型
                 dress_type_map = {
@@ -1742,7 +1742,7 @@ def main():
         activity_number = 1059,
         activity_config_path = 'test_activity/2026_goddess_day_reward_config.yaml',
         rank_mapping = {
-            308: "乘风破浪（总榜）",
+            308: "乘风破浪(总榜)",
         }
     )
 

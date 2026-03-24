@@ -17,8 +17,8 @@ from appium import webdriver
 from appium.webdriver.appium_service import AppiumService
 from appium.webdriver.webdriver import WebDriver as AppiumDriver
 
-from utils.file_util import FileHandler
-from utils.logger_util import logger
+from utils.file import FileHandler
+from utils.logger import logger
 
 
 class AppiumManager:
@@ -191,7 +191,7 @@ class AppiumManager:
             subprocess.run(["adb", "shell", "input", "keyevent", "26"], capture_output = True, text = True)
             time.sleep(1)
 
-            # 2. 解锁屏幕（如果需要）
+            # 2. 解锁屏幕(如果需要)
             logger.info("尝试解锁屏幕...")
             subprocess.run(["adb", "shell", "input", "keyevent", "82"], capture_output = True, text = True)
             time.sleep(1)
@@ -299,7 +299,7 @@ class AppiumManager:
                     self.driver = None
                     return True
             except Exception as e:
-                logger.warning(f"退出Appium驱动时发生错误（会话可能已终止）: {str(e)}")
+                logger.warning(f"退出Appium驱动时发生错误(会话可能已终止): {str(e)}")
                 self.driver = None
                 return True
         else:
@@ -480,7 +480,7 @@ class AppiumManager:
                 devices["ios"] = ios_devices
                 logger.info(f"找到 {len(devices['ios'])} 个iOS设备")
         except Exception as e:
-            logger.warning(f"获取iOS设备列表时发生错误（可能需要安装libimobiledevice）: {str(e)}")
+            logger.warning(f"获取iOS设备列表时发生错误(可能需要安装libimobiledevice): {str(e)}")
 
         return devices
 

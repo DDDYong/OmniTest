@@ -6,7 +6,7 @@ Date:           2025/11/27
 -------------------------------------------------
 Description:
 Web测试样例 - 百度搜索功能测试
-演示如何使用Web工具类进行页面操作、元素交互和结果验证
+演示如何使用Web工具类进行页面操作,元素交互和结果验证
 -------------------------------------------------
 """
 import os
@@ -14,8 +14,9 @@ import os
 import pytest
 
 from cases.web.pages.baidu_home_page import BaiduHomePage
-from utils.common_util import util
-from utils.logger_util import logger
+from utils import assert_util as AssertUtil
+from utils.common import util
+from utils.logger import logger
 
 
 # 添加pytest标记,方便测试过滤
@@ -23,7 +24,7 @@ from utils.logger_util import logger
 class TestBaiduSearch:
     """
     百度搜索功能测试类
-    包含打开百度首页、输入关键词搜索和验证搜索结果等测试用例
+    包含打开百度首页,输入关键词搜索和验证搜索结果等测试用例
     """
 
     # 类变量, 用于存储driver和页面对象
@@ -120,16 +121,18 @@ class TestBaiduSearch:
         验证页面标题和搜索框元素是否正确加载
         """
         logger.info("验证百度首页加载成功")
+        
+        # 创建断言工具实例
+        assert_util = AssertUtil(self.driver)
 
         # 获取页面标题
         actual_title = self.baidu_home_page.get_page_title()
-        assert "百度一下" in actual_title, \
-            f"百度首页标题不正确: 期望包含'百度一下', 实际为'{actual_title}'"
+        assert_util.contains(actual_title, "百度一下", f"百度首页标题不正确")
         logger.info(f"页面标题验证通过: {actual_title}")
 
         # 验证搜索框元素
         search_box = self.baidu_home_page.find_search_box()
-        assert search_box is not None, "未找到搜索框元素"
+        assert_util.is_not_none(search_box, "未找到搜索框元素")
         logger.info("搜索框元素验证通过")
 
         logger.info("百度首页加载测试通过")
@@ -142,6 +145,9 @@ class TestBaiduSearch:
         验证搜索流程和搜索结果
         """
         logger.info("执行百度搜索'trae'关键字测试")
+        
+        # 创建断言工具实例
+        assert_util = AssertUtil(self.driver)
 
         # 执行搜索
         search_success = self.baidu_home_page.perform_search(
@@ -151,13 +157,12 @@ class TestBaiduSearch:
         )
 
         # 验证搜索操作是否成功
-        assert search_success, "搜索操作执行失败"
+        assert_util.is_true(search_success, "搜索操作执行失败")
         logger.info("搜索关键词 'trae' 执行成功")
         util.sleep(2)
         # 验证搜索结果页面包含"trae"关键词
         new_title = self.baidu_home_page.get_page_title()
-        assert "trae" in new_title.lower(), \
-            f"搜索后页面标题不包含关键词: 标题='{new_title}', 关键词='trae'"
+        assert_util.contains(new_title.lower(), "trae", f"搜索后页面标题不包含关键词")
         logger.info(f"搜索后页面标题验证通过: {new_title}")
 
         logger.info("百度搜索'trae'关键字测试通过")
@@ -168,8 +173,11 @@ class TestBaiduSearch:
         测试使用回车键进行搜索
         """
         logger.info("测试使用回车键进行搜索")
+        
+        # 创建断言工具实例
+        assert_util = AssertUtil(self.driver)
 
-        # 执行搜索（使用回车键）
+        # 执行搜索(使用回车键)
         search_success = self.baidu_home_page.perform_search(
             keyword = "trae",
             use_enter = True,  # 使用回车键搜索
@@ -177,7 +185,7 @@ class TestBaiduSearch:
         )
 
         # 验证搜索操作是否成功
-        assert search_success, "回车键搜索操作执行失败"
+        assert_util.is_true(search_success, "回车键搜索操作执行失败")
         logger.info("回车键搜索执行成功")
         logger.info("回车键搜索测试通过")
         util.sleep(2)

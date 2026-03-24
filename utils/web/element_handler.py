@@ -21,7 +21,7 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-from utils.logger_util import logger
+from utils.logger import logger
 
 
 class ElementHandler:
@@ -35,7 +35,7 @@ class ElementHandler:
         
         Args:
             driver: Selenium WebDriver实例
-            timeout: 超时时间（秒）,默认为10秒
+            timeout: 超时时间(秒),默认为10秒
         """
         self.driver = driver
         self.timeout = timeout or 10
