@@ -16,13 +16,22 @@ Description:
 """
 from __future__ import annotations
 
+import copy
 import logging
 import os
 import sys
 import threading
 import time
 import traceback
+from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple
+
+
+@dataclass(frozen = True)
+class _SchemaRule:
+    value_type: type
+    typed_keys: Dict[str, type] | None = None
+    nested: Dict[str, "_SchemaRule"] | None = None
 
 # 添加项目根目录到Python路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -105,6 +114,32 @@ class ConfigManager:
     _ENV_VAR_NAME = "OMNITEST_ENV"
     _MAX_DEBUG_KEYS = 500
     _LARGE_FILE_BYTES = 1024 * 1024
+    _SCHEMA = {
+        "log": _SchemaRule(value_type = dict, typed_keys = {"dir": str, "level": str}),
+        "report": _SchemaRule(value_type = dict, typed_keys = {"dir": str}),
+        "data": _SchemaRule(value_type = dict, typed_keys = {"dir": str, "test_data_dir": str}),
+        "timeout": _SchemaRule(value_type = dict, typed_keys = {"default": int, "page_load": int,
+                                                                "implicitly_wait": int}),
+        "retry": _SchemaRule(value_type = dict, typed_keys = {"default_count": int, "interval": int}),
+        "mysql": _SchemaRule(
+            value_type = dict,
+            nested = {"default": _SchemaRule(value_type = dict, typed_keys = {"host": str, "port": int, "user": str,
+                                                                              "db": str})},
+        ),
+        "redis": _SchemaRule(
+            value_type = dict,
+            nested = {"default": _SchemaRule(value_type = dict, typed_keys = {"host": str, "port": int, "db": int})},
+        ),
+        "ssh": _SchemaRule(
+            value_type = dict,
+            nested = {
+                "default": _SchemaRule(
+                    value_type = dict,
+                    typed_keys = {"ssh_host": str, "ssh_port": int, "ssh_username": str, "use_ssh": bool},
+                )
+            },
+        ),
+    }
 
     def __init__(self, config_dir: Optional[str] = None, default_env: str = "test"):
         self.config_dir = config_dir or os.path.join(os.path.dirname(os.path.abspath(__file__)))
@@ -188,6 +223,7 @@ class ConfigManager:
         merged_config = self._merge_configs(default_cfg, env_cfg)
         self._override_with_env_vars(merged_config)
         self._validate_root_mapping(merged_config, source = "merged")
+        self._validate_schema(merged_config)
 
         self._config = merged_config
         self._config_obj = ConfigDict(self._config)
@@ -225,7 +261,7 @@ class ConfigManager:
         Returns:
             Dict[str, Any]: 合并后的配置字典
         """
-        result = base.copy()
+        result = copy.deepcopy(base)
 
         for key, value in override.items():
             if key in result and isinstance(result[key], dict) and isinstance(value, dict):
@@ -233,7 +269,7 @@ class ConfigManager:
                 result[key] = self._merge_configs(result[key], value)
             else:
                 # 直接覆盖
-                result[key] = value
+                result[key] = copy.deepcopy(value)
 
         return result
 
@@ -255,6 +291,29 @@ class ConfigManager:
                 total += self._count_keys(item)
             return total
         return 0
+
+    def _validate_schema(self, config: Dict[str, Any]) -> None:
+        for section, rule in self._SCHEMA.items():
+            if section not in config:
+                continue
+            self._validate_schema_rule(config[section], rule, section)
+
+    def _validate_schema_rule(self, value: Any, rule: _SchemaRule, path: str) -> None:
+        if not isinstance(value, rule.value_type):
+            raise ValueError(f"配置段 {path} 类型错误, 期望 {rule.value_type.__name__}")
+
+        for key, expected_type in (rule.typed_keys or {}).items():
+            if key not in value:
+                continue
+            if not isinstance(value[key], expected_type):
+                raise ValueError(
+                    f"配置项 {path}.{key} 类型错误, 期望 {expected_type.__name__}, 实际为 {type(value[key]).__name__}"
+                )
+
+        for nested_key, nested_rule in (rule.nested or {}).items():
+            if nested_key not in value:
+                continue
+            self._validate_schema_rule(value[nested_key], nested_rule, f"{path}.{nested_key}")
 
     def _read_yaml_file(self, path: str, alias: str, reload_flag: bool, attempts: int = 2) -> Tuple[
         Dict[str, Any], Dict[str, Any]]:
@@ -482,7 +541,7 @@ class ConfigManager:
         try:
             for key in keys:
                 current = current[key]
-            return current
+            return copy.deepcopy(current)
         except (KeyError, TypeError):
             logger.debug(f"未找到配置项: {key_path},使用默认值")
             return default
@@ -498,7 +557,10 @@ class ConfigManager:
             updates: 要更新的配置
         """
         with self._lock:
-            self._config = self._merge_configs(self._config, updates)
+            merged_config = self._merge_configs(self._config, updates)
+            self._validate_root_mapping(merged_config, source = "updated")
+            self._validate_schema(merged_config)
+            self._config = merged_config
             self._config_obj = ConfigDict(self._config)
 
     def save_config(self, config: Dict[str, Any] = None) -> bool:

@@ -1,0 +1,215 @@
+# 奖励包模式配置模版
+
+- activityType: 308
+  activityType_name: 乘风破浪（总榜）
+  rank_category: 0
+  rank_coverage: 7
+  reward_details:
+    - rank: 1
+      rewardPackId: 1001
+      rewardPackName: 总榜冠军奖励包
+    - rank: 2
+      rewardPackId: 1002
+      rewardPackName: 总榜亚军奖励包
+    - rank: 3
+      rewardPackId: 1003
+      rewardPackName: 总榜季军奖励包
+    - rank: 4
+      rewardPackId: 1004
+      rewardPackName: 总榜七强奖励包
+    - rank: 5
+      rewardPackId: 1004
+      rewardPackName: 总榜七强奖励包
+    - rank: 6
+      rewardPackId: 1004
+      rewardPackName: 总榜七强奖励包
+    - rank: 7
+      rewardPackId: 1004
+      rewardPackName: 总榜七强奖励包
+  reward_packs:
+    - rewardPackId: 1001
+      rewardPackName: 总榜冠军奖励包
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 670
+          rewardCount: 1
+          unit: 个
+          reward_desc: 女团勋章
+          sex: 0
+          actor: 0
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 669
+          rewardCount: 1
+          unit: 个
+          reward_desc: 队长勋章
+          sex: 0
+          actor: 0
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104541
+          rewardCount: 365
+          unit: 天
+          reward_desc: 2026年第二届乘风破浪出道女神团荣誉称号
+          sex: 0
+          actor: 0
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          rewardCount: 90
+          unit: 天
+          reward_desc: 超级会员
+          sex: 0
+          actor: 0
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2827
+          rewardCount: 30
+          unit: 天
+          reward_desc: 冠军座驾
+          sex: 0
+          actor: 0
+
+    - rewardPackId: 1002
+      rewardPackName: 总榜亚军奖励包
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 671
+          rewardCount: 1
+          unit: 个
+          reward_desc: 女团勋章
+          sex: 0
+          actor: 0
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104541
+          rewardCount: 365
+          unit: 天
+          reward_desc: 2026年第二届乘风破浪出道女神团荣誉称号
+          sex: 0
+          actor: 0
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          rewardCount: 60
+          unit: 天
+          reward_desc: 超级会员
+          sex: 0
+          actor: 0
+
+    - rewardPackId: 1003
+      rewardPackName: 总榜季军奖励包
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 672
+          rewardCount: 1
+          unit: 个
+          reward_desc: 女团勋章
+          sex: 0
+          actor: 0
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104541
+          rewardCount: 365
+          unit: 天
+          reward_desc: 2026年第二届乘风破浪出道女神团荣誉称号
+          sex: 0
+          actor: 0
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          rewardCount: 30
+          unit: 天
+          reward_desc: 超级会员
+          sex: 0
+          actor: 0
+
+    - rewardPackId: 1004
+      rewardPackName: 总榜七强奖励包
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 673
+          rewardCount: 1
+          unit: 个
+          reward_desc: 女团勋章
+          sex: 0
+          actor: 0
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104541
+          rewardCount: 365
+          unit: 天
+          reward_desc: 2026年第二届乘风破浪出道女神团荣誉称号
+          sex: 0
+          actor: 0
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          rewardCount: 15
+          unit: 天
+          reward_desc: 超级会员
+          sex: 0
+          actor: 0
+
+- activityType: 309
+  activityType_name: 乘风破浪（魅力榜）
+  rank_category: 1
+  rank_coverage: 3
+  reward_details:
+    - rank: 1
+      rewardPackId: 2001
+      rewardPackName: 魅力榜冠军奖励包
+    - rank: 2
+      rewardPackId: 2002
+      rewardPackName: 魅力榜亚军奖励包
+    - rank: 3
+      rewardPackId: 2003
+      rewardPackName: 魅力榜季军奖励包
+  reward_packs:
+    - rewardPackId: 2001
+      rewardPackName: 魅力榜冠军奖励包
+      rewards:
+        - rewardType: 16
+          rewardType_name: DUKE
+          rewardId: 0
+          rewardCount: 30
+          unit: 天
+          reward_desc: 公爵
+          sex: 0
+          actor: 2
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 3901
+          rewardCount: 30
+          unit: 天
+          reward_desc: 魅力榜冠军头像框
+          sex: 2
+          actor: 0
+
+    - rewardPackId: 2002
+      rewardPackName: 魅力榜亚军奖励包
+      rewards:
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          rewardCount: 15
+          unit: 天
+          reward_desc: 超级会员
+          sex: 0
+          actor: 1
+
+    - rewardPackId: 2003
+      rewardPackName: 魅力榜季军奖励包
+      rewards:
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 3902
+          rewardCount: 7
+          unit: 天
+          reward_desc: 魅力榜房间气泡
+          sex: 0
+          actor: 0

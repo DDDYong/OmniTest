@@ -1,0 +1,382 @@
+# 2026愚人节活动奖励配置
+
+- activityType_name: 整蛊达人榜（日榜）
+  rank_category: 1
+  rank_coverage: 3
+  reward_details:
+    - rank: 1
+      rewardPackId: 1023
+      rewardPackName: 日榜冠军
+    - rank: 2
+      rewardPackId: 1024
+      rewardPackName: 日榜亚军
+    - rank: 3
+      rewardPackId: 1025
+      rewardPackName: 日榜季军
+  reward_packs:
+    - rewardPackId: 1023
+      rewardPackName: 日榜冠军
+      rewards:
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104545
+          rewardCount: 5
+          unit: 天
+          reward_desc: 愚乐冠军称号
+          sex: 0
+          actor: 0
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2884
+          rewardCount: 5
+          unit: 天
+          reward_desc: 愚乐冠军头像框
+          sex: 0
+          actor: 0
+        - rewardType: 10
+          rewardType_name: MAIN_PAGE_EFFECTS
+          rewardId: 2885
+          rewardCount: 5
+          unit: 天
+          reward_desc: 愚乐达人主页特效
+          sex: 0
+          actor: 0
+
+    - rewardPackId: 1024
+      rewardPackName: 日榜亚军
+      rewards:
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104546
+          rewardCount: 3
+          unit: 天
+          reward_desc: 愚乐亚军称号
+          sex: 0
+          actor: 0
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2886
+          rewardCount: 3
+          unit: 天
+          reward_desc: 愚乐亚军头像框
+          sex: 0
+          actor: 0
+        - rewardType: 10
+          rewardType_name: MAIN_PAGE_EFFECTS
+          rewardId: 2887
+          rewardCount: 3
+          unit: 天
+          reward_desc: 愚乐达人主页特效
+          sex: 0
+          actor: 0
+
+    - rewardPackId: 1025
+      rewardPackName: 日榜季军
+      rewards:
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104547
+          rewardCount: 2
+          unit: 天
+          reward_desc: 愚乐季军称号
+          sex: 0
+          actor: 0
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2888
+          rewardCount: 2
+          unit: 天
+          reward_desc: 愚乐季军头像框
+          sex: 0
+          actor: 0
+        - rewardType: 10
+          rewardType_name: MAIN_PAGE_EFFECTS
+          rewardId: 2889
+          rewardCount: 2
+          unit: 天
+          reward_desc: 愚乐达人主页特效
+          sex: 0
+          actor: 0
+
+- activityType_name: 愚乐榜单（总榜）
+  rank_category: 5
+  rank_coverage: 10
+  reward_details:
+    - rank: 1
+      rewardPackId: 1026
+      rewardPackName: 总榜冠军
+    - rank: 2
+      rewardPackId: 1027
+      rewardPackName: 总榜亚军
+    - rank: 3
+      rewardPackId: 1028
+      rewardPackName: 总榜季军
+    - rank: 4
+      rewardPackId: 1029
+      rewardPackName: 总榜十强
+    - rank: 5
+      rewardPackId: 1029
+      rewardPackName: 总榜十强
+    - rank: 6
+      rewardPackId: 1029
+      rewardPackName: 总榜十强
+    - rank: 7
+      rewardPackId: 1029
+      rewardPackName: 总榜十强
+    - rank: 8
+      rewardPackId: 1029
+      rewardPackName: 总榜十强
+    - rank: 9
+      rewardPackId: 1029
+      rewardPackName: 总榜十强
+    - rank: 10
+      rewardPackId: 1029
+      rewardPackName: 总榜十强
+  reward_packs:
+    - rewardPackId: 1026
+      rewardPackName: 总榜冠军
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 682
+          rewardCount: 1
+          unit: 个
+          reward_desc: 愚乐总榜冠军勋章
+          sex: 0
+          actor: 0
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          rewardCount: 60
+          unit: 天
+          reward_desc: 超级会员（陪伴师专属）
+          sex: 0
+          actor: 2
+        - rewardType: 16
+          rewardType_name: DUKE_NOBLE
+          rewardId: 0
+          rewardCount: 30
+          unit: 天
+          reward_desc: 公爵贵族体验卡（普通用户专属）
+          sex: 0
+          actor: 1
+        - rewardType: 6
+          rewardType_name: BRIGHT_NUMBER
+          rewardId: 746
+          rewardCount: 1
+          unit: 个
+          reward_desc: 五位自选靓号
+          sex: 0
+          actor: 0
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2890
+          rewardCount: 30
+          unit: 天
+          reward_desc: 愚乐总榜冠军座驾
+          sex: 0
+          actor: 0
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2891
+          rewardCount: 30
+          unit: 天
+          reward_desc: 愚乐总榜冠军头像框
+          sex: 0
+          actor: 0
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2892
+          rewardCount: 30
+          unit: 天
+          reward_desc: 愚乐总榜冠军私聊气泡
+          sex: 0
+          actor: 0
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2893
+          rewardCount: 30
+          unit: 天
+          reward_desc: 愚乐总榜冠军房间气泡
+          sex: 0
+          actor: 0
+
+    - rewardPackId: 1027
+      rewardPackName: 总榜亚军
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 683
+          rewardCount: 1
+          unit: 个
+          reward_desc: 愚乐总榜亚军勋章
+          sex: 0
+          actor: 0
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          rewardCount: 30
+          unit: 天
+          reward_desc: 超级会员（陪伴师专属）
+          sex: 0
+          actor: 2
+        - rewardType: 16
+          rewardType_name: DUKE_NOBLE
+          rewardId: 0
+          rewardCount: 15
+          unit: 天
+          reward_desc: 公爵贵族体验卡（普通用户专属）
+          sex: 0
+          actor: 1
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2894
+          rewardCount: 15
+          unit: 天
+          reward_desc: 愚乐总榜亚军座驾
+          sex: 0
+          actor: 0
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2895
+          rewardCount: 15
+          unit: 天
+          reward_desc: 愚乐总榜亚军头像框
+          sex: 0
+          actor: 0
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2896
+          rewardCount: 15
+          unit: 天
+          reward_desc: 愚乐总榜亚军私聊气泡
+          sex: 0
+          actor: 0
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2897
+          rewardCount: 15
+          unit: 天
+          reward_desc: 愚乐总榜亚军房间气泡
+          sex: 0
+          actor: 0
+
+    - rewardPackId: 1028
+      rewardPackName: 总榜季军
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 684
+          rewardCount: 1
+          unit: 个
+          reward_desc: 愚乐总榜季军勋章
+          sex: 0
+          actor: 0
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          rewardCount: 15
+          unit: 天
+          reward_desc: 超级会员（陪伴师专属）
+          sex: 0
+          actor: 2
+        - rewardType: 16
+          rewardType_name: DUKE_NOBLE
+          rewardId: 0
+          rewardCount: 7
+          unit: 天
+          reward_desc: 公爵贵族体验卡（普通用户专属）
+          sex: 0
+          actor: 1
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2898
+          rewardCount: 15
+          unit: 天
+          reward_desc: 愚乐总榜季军座驾
+          sex: 0
+          actor: 0
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2899
+          rewardCount: 15
+          unit: 天
+          reward_desc: 愚乐总榜季军头像框
+          sex: 0
+          actor: 0
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2900
+          rewardCount: 15
+          unit: 天
+          reward_desc: 愚乐总榜季军私聊气泡
+          sex: 0
+          actor: 0
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2901
+          rewardCount: 15
+          unit: 天
+          reward_desc: 愚乐总榜季军房间气泡
+          sex: 0
+          actor: 0
+
+    - rewardPackId: 1029
+      rewardPackName: 总榜十强
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 685
+          rewardCount: 1
+          unit: 个
+          reward_desc: 愚乐总榜4-10名勋章
+          sex: 0
+          actor: 0
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          rewardCount: 3
+          unit: 天
+          reward_desc: 超级会员（陪伴师专属）
+          sex: 0
+          actor: 2
+        - rewardType: 16
+          rewardType_name: DUKE_NOBLE
+          rewardId: 0
+          rewardCount: 3
+          unit: 天
+          reward_desc: 公爵贵族体验卡（普通用户专属）
+          sex: 0
+          actor: 1
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2902
+          rewardCount: 7
+          unit: 天
+          reward_desc: 愚乐总榜4-10名座驾
+          sex: 0
+          actor: 0
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2903
+          rewardCount: 7
+          unit: 天
+          reward_desc: 愚乐总榜4-10名头像框
+          sex: 0
+          actor: 0
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2904
+          rewardCount: 7
+          unit: 天
+          reward_desc: 愚乐总榜4-10名私聊气泡
+          sex: 0
+          actor: 0
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2905
+          rewardCount: 7
+          unit: 天
+          reward_desc: 愚乐总榜4-10名房间气泡
+          sex: 0
+          actor: 0
