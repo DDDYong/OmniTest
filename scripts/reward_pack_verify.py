@@ -67,6 +67,95 @@ class RewardPackVerification:
         except (TypeError, ValueError):
             return value
 
+    @staticmethod
+    def _get_rank_scope(activity_type_name: str) -> str:
+        """根据榜单名称识别榜单语义类型"""
+        normalized_name = str(activity_type_name or "").strip()
+        if "日榜" in normalized_name:
+            return "day"
+        if "总榜" in normalized_name:
+            return "total"
+        return "unknown"
+
+    @staticmethod
+    def _normalize_activity_type_name(activity_type_name: Any) -> str:
+        """标准化榜单名称, 作为复合键的一部分"""
+        return str(activity_type_name or "").strip()
+
+    def _build_rank_key(self, config: Dict[str, Any]) -> str:
+        """基于 rank_category 和 activityType_name 构造唯一榜单键"""
+        rank_category = self._safe_int(config.get("rank_category"))
+        activity_type_name = self._normalize_activity_type_name(config.get("activityType_name", ""))
+        return f"{activity_type_name}_{rank_category}"
+
+    def _build_activity_config_map(self, activity_reward_config: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+        """构建榜单唯一键到配置的映射"""
+        activity_config_map: Dict[str, Dict[str, Any]] = {}
+        for config in activity_reward_config:
+            if not isinstance(config, dict):
+                continue
+            rank_key = self._build_rank_key(config)
+            if rank_key in activity_config_map:
+                self.logger.warning(f"检测到重复榜单配置键: {rank_key}, 后面的配置将覆盖前面的配置")
+            activity_config_map[rank_key] = config
+        return activity_config_map
+
+    def _find_config_by_rank_type(self, activity_type: Any, activity_reward_config: List[Dict[str, Any]]) -> Optional[
+        Dict[str, Any]]:
+        """根据运行态榜单键查找对应配置, 兼容旧的 rank_category 传参"""
+        normalized_activity_type = str(activity_type)
+        activity_config_map = self._build_activity_config_map(activity_reward_config)
+        if normalized_activity_type in activity_config_map:
+            return activity_config_map[normalized_activity_type]
+
+        matched_configs = [
+            config for config in activity_reward_config
+            if isinstance(config, dict) and str(self._safe_int(config.get("rank_category"))) == normalized_activity_type
+        ]
+        if len(matched_configs) == 1:
+            return matched_configs[0]
+        if len(matched_configs) > 1:
+            self.logger.warning(
+                f"榜单类型 {activity_type} 对应多个配置, 请使用复合键区分: "
+                f"{[self._build_rank_key(config) for config in matched_configs]}"
+            )
+        return None
+
+    def _normalize_filter_rank_types(self, filter_rank_types: Optional[List[Any]],
+                                     activity_reward_config: List[Dict[str, Any]]) -> Optional[List[str]]:
+        """兼容旧的 rank_category 过滤参数, 统一转换为复合键列表"""
+        if filter_rank_types is None:
+            return None
+
+        normalized_rank_types: List[str] = []
+        for rank_type in filter_rank_types:
+            normalized_rank_type = str(rank_type)
+            if "__" in normalized_rank_type:
+                normalized_rank_types.append(normalized_rank_type)
+                continue
+
+            matched_configs = [
+                config for config in activity_reward_config
+                if isinstance(config, dict) and str(self._safe_int(config.get("rank_category"))) == normalized_rank_type
+            ]
+            normalized_rank_types.extend(self._build_rank_key(config) for config in matched_configs)
+
+        return list(dict.fromkeys(normalized_rank_types))
+
+    def _extract_rank_category_from_rank_type(self, activity_type: Any) -> Any:
+        """从运行态榜单键中提取 rank_category"""
+        normalized_activity_type = str(activity_type)
+        rank_category = normalized_activity_type.split("__", 1)[0]
+        return self._safe_int(rank_category)
+
+    def _get_activity_type_name_by_rank_type(self, activity_type: Any,
+                                             activity_reward_config: List[Dict[str, Any]]) -> str:
+        """根据运行态榜单键获取榜单名称"""
+        config = self._find_config_by_rank_type(activity_type, activity_reward_config)
+        if config:
+            return config.get("activityType_name", "未知榜单")
+        return f"未知({activity_type})"
+
     def _extract_pack_id(self, data: Dict[str, Any]) -> Any:
         """提取奖励包ID"""
         for key in ("rewardPackId", "bonusPackId", "reward_pack_id", "bonus_pack_id", "packId", "pack_id"):
@@ -582,39 +671,37 @@ class RewardPackVerification:
         Returns:
             List[Dict]: 格式化后的榜单数据
         """
-        # 构建缓存键, 包括过滤条件
-        cache_key = (tuple(filter_rank_types) if filter_rank_types else None)
+        activity_reward_config = self.get_activity_reward_config_doc(self.activity_config_path)
+        normalized_filter_rank_types = self._normalize_filter_rank_types(filter_rank_types, activity_reward_config)
+        cache_key = tuple(normalized_filter_rank_types) if normalized_filter_rank_types is not None else None
 
-        # 检查缓存中是否已有对应过滤条件的榜单数据
         if cache_key in self._cache.get("activity_ranking_data", {}):
-            self.logger.debug(f"使用缓存的活动榜单数据 (过滤条件: {filter_rank_types})")
+            self.logger.debug(f"使用缓存的活动榜单数据 (过滤条件: {normalized_filter_rank_types})")
             return self._cache["activity_ranking_data"][cache_key]
 
-        # 从奖励配置文档读取榜单信息
-        activity_reward_config = self.get_activity_reward_config_doc(self.activity_config_path)
+        all_ranked_data = []
 
-        all_ranked_data = []  # 收集所有榜单数据
-
-        # 遍历所有榜单配置
         for config in activity_reward_config:
-            rank_type = config.get("rank_category", 0)
+            if not isinstance(config, dict):
+                continue
 
-            # 检查是否需要过滤榜单类型
-            if filter_rank_types and rank_type not in filter_rank_types:
+            rank_key = self._build_rank_key(config)
+            if normalized_filter_rank_types is not None and rank_key not in normalized_filter_rank_types:
                 continue
 
             rank_category = config.get("rank_category", "0")
             activity_type_name = config.get("activityType_name", "")
             rank_coverage = config.get("rank_coverage", 10)
+            rank_scope = self._get_rank_scope(activity_type_name)
 
-            # 根据activityType_name判断榜单类型
-            if "日榜" in activity_type_name:
-                # 日榜的stage设为当前日期的前一天
+            if rank_scope == "day":
                 query = """select nowTime from `kong_test`.`activity_gift_medal` where id = %s"""
                 result = self.db.get_one(query, (self.activity_number,))
-                stage = util.format_time(util.get_time_delta(datetime_obj = result.get("nowTime"), days = -1), format_str = "%Y%m%d")
-            elif "总榜" in activity_type_name:
-                # 只有一个赛段时, stage设为-1, TODO 多赛段时, stage的值
+                stage = util.format_time(
+                    util.get_time_delta(datetime_obj = result.get("nowTime"), days = -1),
+                    format_str = "%Y%m%d"
+                )
+            elif rank_scope == "total":
                 stage = "-1"
             else:
                 self.logger.warning(f"未知榜单类型: {activity_type_name}, 跳过处理")
@@ -623,32 +710,25 @@ class RewardPackVerification:
             self.logger.info(f"处理榜单配置: {activity_type_name}, 阶段={stage}, TopN={rank_coverage}")
 
             try:
-                # 按条件查询榜单数据
                 raw_data = self._query_ranking_data(rank_category, stage, rank_coverage)
 
-                # 检查数据量是否足够
                 if len(raw_data) < rank_coverage:
                     self.logger.warning(f"现有数据不足TopN({rank_coverage}), 当前只有{len(raw_data)}条, 需要补足数据")
                     missing_count = rank_coverage - len(raw_data)
-
-                    # 插入缺少的数据
                     inserted_count = self._insert_test_ranking_data(rank_category, stage, missing_count)
 
                     if inserted_count > 0:
                         self.logger.info(f"成功插入{inserted_count}条测试数据, 重新查询榜单数据")
-                        # 重新查询数据
                         raw_data = self._query_ranking_data(rank_category, stage, rank_coverage)
                     else:
                         self.logger.warning("复制数据失败, 使用现有数据进行处理")
 
-                # 处理榜单数据并计算排名
                 if raw_data:
-                    ranked_data = self._process_ranking_data(raw_data, rank_type)
+                    ranked_data = self._process_ranking_data(raw_data, rank_key, activity_type_name)
                     self.logger.debug(f"成功获取到 {len(ranked_data)} 条榜单数据, 排名范围: 1-{rank_coverage}")
-                    # 将当前配置的数据添加到总结果中
                     all_ranked_data.extend(ranked_data)
                 else:
-                    self.logger.warning(f"没有获取到榜单数据, 跳过处理")
+                    self.logger.warning("没有获取到榜单数据, 跳过处理")
 
             except Exception as e:
                 self.logger.error(f"获取活动榜单数据失败: {str(e)}")
@@ -664,7 +744,7 @@ class RewardPackVerification:
         return all_ranked_data
 
     def get_user_expected_rewards(self, ranking_data: List[Dict], activity_reward_config: List[Dict[str, Any]],
-                                  filter_rank_types: Optional[List[int]] = None, exclude_accumulate_types: Optional[
+                                  filter_rank_types: Optional[List[str]] = None, exclude_accumulate_types: Optional[
                 List[int]] = None) -> Dict:
         """
         获取用户预期奖励，考虑用户角色、性别等因素
@@ -688,8 +768,8 @@ class RewardPackVerification:
                       }
                   }
         """
-        # 构建缓存键
-        cache_key = f"{hash(str(ranking_data))}_{hash(str(activity_reward_config))}_{hash(str(filter_rank_types))}"
+        normalized_filter_rank_types = self._normalize_filter_rank_types(filter_rank_types, activity_reward_config)
+        cache_key = f"{hash(str(ranking_data))}_{hash(str(activity_reward_config))}_{hash(str(normalized_filter_rank_types))}"
 
         # 检查缓存
         if "user_expected_rewards" in self._cache and cache_key in self._cache["user_expected_rewards"]:
@@ -707,7 +787,7 @@ class RewardPackVerification:
             rank_type = user_data.get("rank_type")
 
             # 指定过滤条件, 只处理指定的榜单类型
-            if filter_rank_types and rank_type not in filter_rank_types:
+            if normalized_filter_rank_types is not None and rank_type not in normalized_filter_rank_types:
                 continue
 
             if user_id not in user_ids:
@@ -728,7 +808,7 @@ class RewardPackVerification:
             for user_info in users:
                 user_role_map[user_info["userid"]] = user_info["role"]
                 user_sex_map[user_info["userid"]] = user_info["sex"]
-                self.logger.info(f"用户[{user_info['userid']}] 角色: {user_info['role']}, 性别: {user_info['sex']}")
+                self.logger.debug(f"用户[{user_info['userid']}] 角色: {user_info['role']}, 性别: {user_info['sex']}")
 
         user_expected_rewards = {}
         # 记录同一用户同一奖励类型和ID的累计有效期
@@ -740,7 +820,7 @@ class RewardPackVerification:
             rank_type = user_data.get("rank_type")
 
             # 指定过滤条件, 只处理指定的榜单类型
-            if filter_rank_types and rank_type not in filter_rank_types:
+            if normalized_filter_rank_types is not None and rank_type not in normalized_filter_rank_types:
                 continue
 
             # 获取用户应得奖励
@@ -749,13 +829,12 @@ class RewardPackVerification:
             # 根据用户角色、性别和榜单类型筛选奖励
             user_role = user_role_map.get(user_id, 0)
             user_sex = user_sex_map.get(user_id, 0)
-            self.logger.info(f"用户[{user_id}] 角色: {user_role}, 性别: {user_sex}")
-            self.logger.info(f"原始奖励列表: {expected_rewards}")
+            self.logger.debug(f"用户[{user_id}] 角色: {user_role}, 性别: {user_sex}")
+            self.logger.debug(f"原始奖励列表: {expected_rewards}")
 
             filtered_rewards = []
             for reward in expected_rewards:
                 reward_type = reward.get("rewardType")
-                reward_name = RewardTypeMapper.get_reward_type_desc(reward_type)
                 reward_id = reward.get("rewardId")
                 valid_days = self._safe_int(reward.get("valid_days", 0)) or 0
                 reward_desc = reward.get("reward_desc", "")
@@ -765,25 +844,23 @@ class RewardPackVerification:
 
                 # 头像框奖励区分男女用户
                 if reward_type == 2:
-                    if reward_sex == 1 or ("(男)" in reward_desc):
-                        if user_sex != 1:
-                            self.logger.info(f"跳过奖励: 头像框奖励性别不匹配")
-                            continue
-                    elif reward_sex == 2 or ("(女)" in reward_desc):
-                        if user_sex != 2:
-                            self.logger.info(f"跳过奖励: 头像框奖励性别不匹配")
-                            continue
+                    if reward_sex == 1 and user_sex != 1:
+                        self.logger.debug(f"跳过奖励: 头像框奖励性别不匹配")
+                        continue
+                    elif reward_sex == 2 and user_sex != 2:
+                        self.logger.debug(f"跳过奖励: 头像框奖励性别不匹配")
+                        continue
 
                 # 贵族和超级会员奖励区分用户角色
                 if reward_type in {5, 16}:
-                    self.logger.info(f"检查奖励: 类型={reward_type}, 名称={reward_name}, 角色要求={reward_actor}, 用户角色={user_role}")
+                    self.logger.debug(f"检查奖励: 类型={reward_type}, 名称={reward_desc}, 角色要求={reward_actor}, 用户角色={user_role}")
                     if reward_actor == 1 and user_role == 5:
-                        self.logger.info(f"跳过奖励: 普通用户专属奖励, 用户是陪伴师")
+                        self.logger.debug(f"跳过奖励: 普通用户专属奖励, 用户是陪伴师")
                         continue
                     if reward_actor == 2 and user_role != 5:
-                        self.logger.info(f"跳过奖励: 陪伴师专属奖励, 用户不是陪伴师")
+                        self.logger.debug(f"跳过奖励: 陪伴师专属奖励, 用户不是陪伴师")
                         continue
-                    self.logger.info(f"保留奖励: 类型={reward_type}, 名称={reward_name}")
+                    self.logger.debug(f"保留奖励: 类型={reward_type}, 名称={reward_desc}")
 
                 filtered_rewards.append(reward)
 
@@ -852,14 +929,31 @@ class RewardPackVerification:
                     accumulated_days = reward_info.get("accumulated_days", [])
                     if len(accumulated_days) > 1:
                         expr = " + ".join(map(str, accumulated_days))
-                        self.logger.info(f"用户[{user_id}] 奖励类型[{reward_info["reward_name"]}_{reward_type}]  已累加, 累计有效期[{expr} = {reward_info["valid_days"]}]天")
+                        self.logger.debug(f"用户[{user_id}] 奖励类型[ {reward_info["reward_desc"]} ]  已累加, 累计有效期[ {expr} = {reward_info["valid_days"]} ]天")
                     else:
-                        self.logger.info(f"用户[{user_id}] 奖励类型[{reward_info["reward_name"]}_{reward_type}] 有效期[{reward_info["valid_days"]}]天")
+                        self.logger.debug(f"用户[{user_id}] 奖励类型[ {reward_info["reward_desc"]} ] 有效期[ {reward_info["valid_days"]} ]天")
+                self.logger.debug("-" * 50)
 
         # 存入缓存
         if "user_expected_rewards" not in self._cache:
             self._cache["user_expected_rewards"] = {}
         self._cache["user_expected_rewards"][cache_key] = user_expected_rewards
+
+        # 输出用户这一次应该获得的所有奖励
+        for user_id, rewards_by_type in user_expected_rewards.items():
+            self.logger.info(f"用户[{user_id}] 本次应获得的所有奖励:")
+            # 输出各榜单类型的奖励
+            for rank_type, rewards_by_ranking in rewards_by_type.items():
+                if rank_type == "aggregate":
+                    continue  # 累加奖励单独处理
+                for ranking, rewards in rewards_by_ranking.items():
+                    if rewards:
+                        self.logger.info(f"  榜单类型[{rank_type}] 排名[{ranking}] 奖励: {rewards}")
+            # 输出累加后的奖励
+            aggregate_rewards = rewards_by_type.get("aggregate", {}).get(0, [])
+            if aggregate_rewards:
+                self.logger.info(f"  累加奖励: {aggregate_rewards}")
+            self.logger.info("-" * 50)
 
         return user_expected_rewards
 
@@ -1080,13 +1174,14 @@ class RewardPackVerification:
             self.logger.info(f"共插入 {inserted_count} 条测试数据")
         return inserted_count
 
-    def _process_ranking_data(self, raw_data: List[Dict], rank_type: int) -> List[Dict]:
+    def _process_ranking_data(self, raw_data: List[Dict], rank_type: str, activity_type_name: str) -> List[Dict]:
         """
         处理榜单数据(单人和双人分别处理)
 
         Args:
             raw_data: 原始榜单数据列表
-            rank_type: 榜单类型
+            rank_type: 榜单唯一键
+            activity_type_name: 榜单名称
 
         Returns:
             List[Dict]: 处理后的榜单数据列表
@@ -1095,11 +1190,11 @@ class RewardPackVerification:
 
         for index, item in enumerate(raw_data, 1):
             if item.get("userId") == item.get("intimateId"):
-                # 单人榜处理
                 ranked_item = {
-                    "number": item.get("number"),  # 活动编号
+                    "number": item.get("number"),
                     "category": item.get("category"),
                     "rank_type": rank_type,
+                    "activityType_name": activity_type_name,
                     "rank_day": item.get("day"),
                     "stage": item.get("stage"),
                     "user_id": item.get("userId"),
@@ -1108,11 +1203,11 @@ class RewardPackVerification:
                 }
                 ranked_data.append(ranked_item)
             else:
-                # 双人榜处理 - 两个人的排名要分别记录
                 ranked_item_user1 = {
                     "number": item.get("number"),
                     "category": item.get("category"),
                     "rank_type": rank_type,
+                    "activityType_name": activity_type_name,
                     "rank_day": item.get("day"),
                     "stage": item.get("stage"),
                     "user_id": item.get("userId"),
@@ -1123,6 +1218,7 @@ class RewardPackVerification:
                     "number": item.get("number"),
                     "category": item.get("category"),
                     "rank_type": rank_type,
+                    "activityType_name": activity_type_name,
                     "rank_day": item.get("day"),
                     "stage": item.get("stage"),
                     "user_id": item.get("intimateId"),
@@ -1133,7 +1229,7 @@ class RewardPackVerification:
         self.logger.info(f"榜单数据处理完成: {ranked_data}")
         return ranked_data
 
-    def get_expected_rewards_by_ranking(self, ranking: int, activity_type: int,
+    def get_expected_rewards_by_ranking(self, ranking: int, activity_type: Any,
                                         activity_reward_config: List[Dict[str, Any]]) -> List[Dict]:
         """
         根据排名获取应得的奖励配置
@@ -1146,40 +1242,31 @@ class RewardPackVerification:
         Returns:
             List[Dict]: 应得的奖励列表
         """
-        # 添加类型检查
         try:
             ranking = int(ranking)
-            activity_type = int(activity_type)
         except (TypeError, ValueError) as e:
-            self.logger.error(f"无效的排名或榜单类型参数: ranking={ranking}, activity_type={activity_type}, 错误: {str(e)}")
+            self.logger.error(f"无效的排名参数: ranking={ranking}, activity_type={activity_type}, 错误: {str(e)}")
             return []
 
-        # 检查缓存中是否已有结果, 避免重复计算
-        cache_key = (ranking, activity_type)
+        normalized_activity_type = str(activity_type)
+        cache_key = (ranking, normalized_activity_type)
         if cache_key in self._cache["expected_rewards"]:
             return self._cache["expected_rewards"][cache_key]
 
         expected_rewards = []
-        self.logger.debug(f"查找排名 {ranking} 在榜单类型 {activity_type} 的奖励配置")
+        self.logger.debug(f"查找排名 {ranking} 在榜单类型 {normalized_activity_type} 的奖励配置")
 
-        # 构建榜单类型到配置的映射, 提高查找效率
-        activity_config_map = {str(cfg.get("rank_category")): cfg for cfg in activity_reward_config}
+        config = self._find_config_by_rank_type(normalized_activity_type, activity_reward_config)
+        if config:
+            activity_type_name = config.get("activityType_name", "未知榜单")
+            self.logger.debug(f"找到匹配的榜单类型配置: {activity_type_name}")
 
-        # 从activity_type中提取rank_category
-        rank_category = str(activity_type).split("_")[0] if "_" in str(activity_type) else str(activity_type)
-
-        # 查找对应榜单类型的配置
-        if rank_category in activity_config_map:
-            config = activity_config_map[rank_category]
-            self.logger.debug(f"找到匹配的榜单类型配置: {config.get("activityType_name", "未知榜单")}")
-
-            target_ranking = int(ranking)
-            rewards = self._get_rewards_for_rank(config, target_ranking)
+            rewards = self._get_rewards_for_rank(config, ranking)
             if rewards:
                 expected_rewards.extend(rewards)
                 self.logger.debug(f"找到排名 {ranking} 的奖励配置, 共 {len(rewards)} 个奖励")
             else:
-                self.logger.warning(f"在榜单类型 {activity_type} 中未找到排名 {ranking} 的奖励配置")
+                self.logger.warning(f"在榜单类型 {normalized_activity_type} 中未找到排名 {ranking} 的奖励配置")
                 available_ranks = sorted(self._build_rank_pack_mapping(config).keys())
                 if not available_ranks:
                     available_ranks = sorted(
@@ -1189,26 +1276,17 @@ class RewardPackVerification:
                     )
                 self.logger.warning(f"该榜单可用的排名: {available_ranks}")
         else:
-            self.logger.warning(f"未找到榜单类型 {activity_type} 的配置")
-            # 列出所有可用的榜单类型
-            available_activity_types = list(activity_config_map.keys())
+            activity_type_name = f"未知({normalized_activity_type})"
+            self.logger.warning(f"未找到榜单类型 {normalized_activity_type} 的配置")
+            available_activity_types = list(self._build_activity_config_map(activity_reward_config).keys())
             self.logger.warning(f"可用的榜单类型: {available_activity_types}")
 
-        # 将结果存入缓存
         self._cache["expected_rewards"][cache_key] = expected_rewards
-        # 从活动配置中获取榜单类型名称
-        activity_type_name = "未知榜单"
-        # 从activity_type中提取rank_category
-        rank_category = str(activity_type).split("_")[0] if "_" in str(activity_type) else str(activity_type)
-        for config in activity_reward_config:
-            if isinstance(config, dict) and str(config.get("rank_category")) == rank_category:
-                activity_type_name = config.get("activityType_name", "未知榜单")
-                break
         self.logger.info(f"获取{activity_type_name}排名 {ranking} 应下发的奖励: {expected_rewards}")
         return expected_rewards
 
     def clear_user_rewards(self, ranking_data: List[Dict], activity_reward_config: List[Dict[str, Any]],
-                           filter_rank_types: Optional[List[int]] = None) -> None:
+                           filter_rank_types: Optional[List[str]] = None) -> None:
         """
         清除榜单用户奖励
 
@@ -1217,6 +1295,8 @@ class RewardPackVerification:
             activity_reward_config: 活动奖励配置
             filter_rank_types: 可选, 要清除的榜单类型列表
         """
+        normalized_filter_rank_types = self._normalize_filter_rank_types(filter_rank_types, activity_reward_config)
+
         # 获取用户预期奖励(使用缓存)
         user_expected_rewards = self.get_user_expected_rewards(ranking_data, activity_reward_config, filter_rank_types)
 
@@ -1236,7 +1316,7 @@ class RewardPackVerification:
             activity_type = user_data.get("rank_type")
 
             # 指定过滤条件, 只处理指定的榜单类型
-            if filter_rank_types and activity_type not in filter_rank_types:
+            if normalized_filter_rank_types is not None and activity_type not in normalized_filter_rank_types:
                 continue
 
             # 从缓存中获取用户应得奖励
@@ -1365,7 +1445,7 @@ class RewardPackVerification:
 
     @wait_with_jitter(base_delay = 2, jitter_factor = 0.3)
     def validate_reward_distribution(self, ranking_data: List[Dict], activity_reward_config: List[Dict[str, Any]],
-                                     filter_rank_types: Optional[List[int]] = None) -> Dict[str, Any]:
+                                     filter_rank_types: Optional[List[str]] = None) -> Dict[str, Any]:
         """
         验证奖励下发情况
 
@@ -1384,13 +1464,14 @@ class RewardPackVerification:
             "users_without_rewards": [],
             "reward_validation_details": []
         }
+        normalized_filter_rank_types = self._normalize_filter_rank_types(filter_rank_types, activity_reward_config)
 
         # 按用户ID分组处理, 过滤符合filter_rank_types的榜单数据
         user_ranking_dict = {}
         for data in ranking_data:
             rank_type = data.get("rank_type")
             # 检查是否需要过滤榜单类型
-            if filter_rank_types and rank_type not in filter_rank_types:
+            if normalized_filter_rank_types is not None and rank_type not in normalized_filter_rank_types:
                 continue
 
             user_id = data.get("user_id")
@@ -1420,19 +1501,11 @@ class RewardPackVerification:
 
         # 遍历每个用户进行验证
         for user_id, user_data_list in user_ranking_dict.items():
-            # 收集用户的所有排名信息
             user_rankings = []
             for user_data in user_data_list:
                 ranking = user_data.get("ranking")
                 rank_type = user_data.get("rank_type")
-                # 从活动配置中获取榜单类型名称
-                rank_type_name = f"未知({rank_type})"
-                # 从rank_type中提取rank_category
-                rank_category = rank_type
-                for config in activity_reward_config:
-                    if isinstance(config, dict) and config.get("rank_category") == rank_category:
-                        rank_type_name = config.get("activityType_name", f"未知({rank_type})")
-                        break
+                rank_type_name = self._get_activity_type_name_by_rank_type(rank_type, activity_reward_config)
                 user_rankings.append({
                     "rank": ranking,
                     "rank_type": rank_type,
@@ -1896,14 +1969,17 @@ class RewardPackVerification:
             # 4、获取活动定时任务
             scheduled_tasks = self.get_scheduled_tasks()
 
-            # 5、构建榜单类型到名称的映射
+            # 5、构建榜单唯一键到配置元信息的映射
             activity_type_map = {}
             for config in activity_reward_config_doc:
-                if isinstance(config, dict):
-                    rank_category = config.get("rank_category")
-                    activity_type_name = config.get("activityType_name")
-                    if rank_category and activity_type_name:
-                        activity_type_map[rank_category] = activity_type_name
+                if not isinstance(config, dict):
+                    continue
+                rank_key = self._build_rank_key(config)
+                activity_type_map[rank_key] = {
+                    "rank_category": self._safe_int(config.get("rank_category")),
+                    "activityType_name": config.get("activityType_name", ""),
+                    "rank_scope": self._get_rank_scope(config.get("activityType_name", "")),
+                }
             self.logger.info(f"活动榜单类型映射: {activity_type_map}")
 
             # 6、定时任务与榜单类型的映射
@@ -1913,19 +1989,15 @@ class RewardPackVerification:
                 task_name = task["taskName"]
                 task_id = task["taskId"]
                 task_rank_type_map[task_id] = []
-                # 根据taskId后缀匹配
                 if "@ACTIVITY_DAY_END" in task_id or "@ACTIVITY_END_DAY" in task_id:
-                    # 日榜任务
-                    for k, v in activity_type_map.items():
-                        if "日榜" in v:
-                            task_rank_type_map[task_id].append(k)
+                    for rank_key, rank_meta in activity_type_map.items():
+                        if rank_meta.get("rank_scope") == "day":
+                            task_rank_type_map[task_id].append(rank_key)
                 elif "@ACTIVITY_END" in task_id:
-                    # 总榜任务
-                    for k, v in activity_type_map.items():
-                        if "总榜" in v:
-                            task_rank_type_map[task_id].append(k)
+                    for rank_key, rank_meta in activity_type_map.items():
+                        if rank_meta.get("rank_scope") == "total":
+                            task_rank_type_map[task_id].append(rank_key)
 
-                # 匹配到榜单类型
                 if task_rank_type_map[task_id]:
                     new_scheduled_tasks.append(task)
                 else:
@@ -1944,14 +2016,10 @@ class RewardPackVerification:
                     self.logger.warning(f"无法识别定时任务 {task_name} 对应的榜单类型, 跳过执行")
                     continue
                 # 从活动配置中获取榜单类型名称
-                rank_type_names = []
-                for rank_type in rank_types:
-                    rank_type_name = "未知榜单"
-                    for config in activity_reward_config_doc:
-                        if isinstance(config, dict) and config.get("rank_category") == rank_type:
-                            rank_type_name = config.get("activityType_name", "未知榜单")
-                            break
-                    rank_type_names.append(rank_type_name)
+                rank_type_names = [
+                    self._get_activity_type_name_by_rank_type(rank_type, activity_reward_config_doc)
+                    for rank_type in rank_types
+                ]
 
                 # 6.1、获取活动榜单数据 - 用户排名及对应奖励
                 self.logger.info(f"获取 {"、".join(rank_type_names)} 榜单数据")

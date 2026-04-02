@@ -105,7 +105,7 @@ class MySQLClient:
             else:
                 raise ValueError("SSH连接需要密码或私钥文件")
 
-            logger.info(f"正在通过SSH连接到 {self.ssh_config['ssh_host']}:{self.ssh_config['ssh_port']}")
+            logger.debug(f"正在通过SSH连接到 {self.ssh_config['ssh_host']}:{self.ssh_config['ssh_port']}")
             self.ssh_client.connect(**ssh_connect_config)
 
             # 获取一个可用的本地端口
@@ -122,7 +122,7 @@ class MySQLClient:
             # 等待端口转发建立
             time.sleep(1)
 
-            logger.info(f"SSH隧道创建成功,将远程 {self.mysql_config['host']}:{self.mysql_config['port']} 映射到本地端口 {self.local_port}")
+            logger.debug(f"SSH隧道创建成功,将远程 {self.mysql_config['host']}:{self.mysql_config['port']} 映射到本地端口 {self.local_port}")
 
         except Exception as e:
             logger.error(f"创建SSH隧道失败: {str(e)}")
@@ -380,7 +380,7 @@ class ConnectionPool:
             except Exception as e:
                 logger.error(f"初始化连接池失败: {str(e)}")
 
-        logger.info(f"MySQL连接池初始化完成,初始连接数: {self.current_connections}")
+        logger.debug(f"MySQL连接池初始化完成,初始连接数: {self.current_connections}")
 
     def _create_connection(self):
         """
