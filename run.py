@@ -12,6 +12,8 @@ OmniTest项目入口文件,提供命令行接口运行不同类型的测试,包�
 import argparse
 import os
 import sys
+from dataclasses import dataclass
+from typing import Optional
 
 # 确保项目根目录在sys.path中
 project_root = os.path.dirname(os.path.abspath(__file__))
@@ -24,6 +26,158 @@ from utils.reporting import allure_report
 from utils.packaging import requirements_manager
 from utils.logger import logger
 
+
+@dataclass(frozen = True)
+class ExecutionRequest:
+    command: str
+    test_dir: Optional[str] = None
+    test_file: Optional[str] = None
+    markers: Optional[str] = None
+    num_workers: int = 2
+    html_report: bool = False
+    users: int = 100
+    spawn_rate: int = 10
+    run_time: str = '5m'
+    auto_clean: bool = True
+    auto_report: bool = True
+    report_generate: bool = True
+    report_open: bool = True
+    package_name: Optional[str] = None
+    package_version: Optional[str] = None
+
+
+def execute_request(request: "ExecutionRequest", runner: "TestRunner", include_side_effects: bool = True) -> int:
+    invalid_code = getattr(TestRunner, 'INVALID_TEST_TARGET_EXIT_CODE', 4)
+
+    if request.command == 'all':
+        if include_side_effects and request.auto_clean:
+            runner.clean_reports()
+        exit_code = runner.run_all_tests()
+        if include_side_effects and request.auto_report:
+            runner.generate_allure_report()
+            runner.generate_report_index()
+        return exit_code
+
+    if request.command == 'api':
+        if include_side_effects and request.auto_clean:
+            runner.clean_reports()
+        exit_code = runner.run_api_tests(request.test_dir, request.test_file, request.markers)
+        if include_side_effects and request.auto_report and exit_code != invalid_code:
+            runner.generate_allure_report()
+            runner.generate_report_index()
+        return exit_code
+
+    if request.command == 'web':
+        if include_side_effects and request.auto_clean:
+            runner.clean_reports()
+        exit_code = runner.run_web_tests(request.test_dir, request.test_file, request.markers)
+        if include_side_effects and request.auto_report and exit_code != invalid_code:
+            runner.generate_allure_report()
+            runner.generate_report_index()
+        return exit_code
+
+    if request.command == 'app':
+        if include_side_effects and request.auto_clean:
+            runner.clean_reports()
+        exit_code = runner.run_app_tests(request.test_dir, request.test_file, request.markers)
+        if include_side_effects and request.auto_report and exit_code != invalid_code:
+            runner.generate_allure_report()
+            runner.generate_report_index()
+        return exit_code
+
+    if request.command == 'parallel':
+        if include_side_effects and request.auto_clean:
+            runner.clean_reports()
+        exit_code = runner.run_parallel_tests(
+            request.test_dir,
+            request.test_file,
+            request.markers,
+            request.num_workers,
+            request.html_report,
+        )
+        if include_side_effects and request.auto_report and exit_code != invalid_code:
+            runner.generate_allure_report()
+            runner.generate_report_index()
+        return exit_code
+
+    if request.command == 'performance':
+        return runner.run_performance_tests(request.test_file, request.users, request.spawn_rate, request.run_time)
+
+    if request.command == 'report':
+        if include_side_effects and request.report_generate:
+            runner.generate_allure_report()
+            runner.generate_report_index()
+        if include_side_effects and request.report_open:
+            runner.open_allure_report()
+        return 0
+
+    if request.command == 'clean':
+        if include_side_effects:
+            runner.clean_reports()
+        return 0
+
+    if request.command == 'package-update-req':
+        success = runner.update_requirements()
+        return 0 if success else 1
+
+    if request.command == 'package-add':
+        success = runner.add_package_to_requirements(request.package_name, request.package_version)
+        return 0 if success else 1
+
+    raise ValueError(f'不支持的命令: {request.command}')
+
+
+def build_execution_request(args: argparse.Namespace) -> Optional[ExecutionRequest]:
+    if args.command == 'all':
+        return ExecutionRequest(command = 'all')
+    if args.command == 'api':
+        return ExecutionRequest(command = 'api', test_dir = args.dir, test_file = args.file, markers = args.markers)
+    if args.command == 'web':
+        return ExecutionRequest(command = 'web', test_dir = args.dir, test_file = args.file, markers = args.markers)
+    if args.command == 'app':
+        return ExecutionRequest(command = 'app', test_dir = args.dir, test_file = args.file, markers = args.markers)
+    if args.command == 'parallel':
+        return ExecutionRequest(
+            command = 'parallel',
+            test_dir = args.dir,
+            test_file = args.file,
+            markers = args.markers,
+            num_workers = args.workers,
+            html_report = args.html,
+        )
+    if args.command == 'performance':
+        return ExecutionRequest(
+            command = 'performance',
+            test_file = args.file,
+            users = args.users,
+            spawn_rate = args.spawn_rate,
+            run_time = args.run_time,
+            auto_clean = False,
+            auto_report = False,
+        )
+    if args.command == 'report':
+        return ExecutionRequest(
+            command = 'report',
+            auto_clean = False,
+            auto_report = False,
+            report_generate = args.generate or not args.open,
+            report_open = args.open or not args.generate,
+        )
+    if args.command == 'clean':
+        return ExecutionRequest(command = 'clean', auto_clean = False, auto_report = False)
+    if args.command == 'package':
+        if args.pkg_command == 'update-req':
+            return ExecutionRequest(command = 'package-update-req', auto_clean = False, auto_report = False)
+        if args.pkg_command == 'add':
+            return ExecutionRequest(
+                command = 'package-add',
+                auto_clean = False,
+                auto_report = False,
+                package_name = args.package,
+                package_version = args.version,
+            )
+    return None
+
 class TestRunner:
     """
     为了向后兼容保留的测试运行器类.
@@ -32,8 +186,25 @@ class TestRunner:
     INVALID_TEST_TARGET_EXIT_CODE = test_runner.INVALID_TEST_TARGET_EXIT_CODE
 
     @staticmethod
-    def clean_reports() -> None:
+    def clean_reports(days_to_keep: int = 7) -> None:
+        """
+        清理测试报告
+
+        Args:
+            days_to_keep: 保留多少天的报告，默认7天
+        """
+        test_runner.clean_reports(days_to_keep)
         logger.info("新测试报告目录已准备好(保留历史报告)")
+
+    @staticmethod
+    def generate_report_index() -> str:
+        """
+        生成报告索引页面
+
+        Returns:
+            str: 索引页面路径
+        """
+        return test_runner.generate_report_index()
 
     @staticmethod
     def run_api_tests(test_dir: str = None, test_file: str = None, markers: str = None) -> int:
@@ -81,7 +252,7 @@ class TestRunner:
 def parse_arguments():
     """
     解析命令行参数
-    
+
     Returns:
         argparse.Namespace: 解析后的参数
     """
@@ -159,66 +330,9 @@ def main():
     # 初始化运行器
     runner = TestRunner()
 
-    # 处理不同命令
-    if args.command == 'all':
-        runner.clean_reports()
-        exit_code = runner.run_all_tests()
-        runner.generate_allure_report()
-        sys.exit(exit_code)
-
-    elif args.command == 'api':
-        runner.clean_reports()
-        exit_code = runner.run_api_tests(args.dir, args.file, args.markers)
-        if exit_code != runner.INVALID_TEST_TARGET_EXIT_CODE:
-            runner.generate_allure_report()
-        sys.exit(exit_code)
-
-    elif args.command == 'web':
-        runner.clean_reports()
-        exit_code = runner.run_web_tests(args.dir, args.file, args.markers)
-        if exit_code != runner.INVALID_TEST_TARGET_EXIT_CODE:
-            runner.generate_allure_report()
-        sys.exit(exit_code)
-
-    elif args.command == 'app':
-        runner.clean_reports()
-        exit_code = runner.run_app_tests(args.dir, args.file, args.markers)
-        if exit_code != runner.INVALID_TEST_TARGET_EXIT_CODE:
-            runner.generate_allure_report()
-        sys.exit(exit_code)
-
-    elif args.command == 'parallel':
-        runner.clean_reports()
-        exit_code = runner.run_parallel_tests(
-            args.dir, args.file, args.markers, args.workers, args.html)
-        if exit_code != runner.INVALID_TEST_TARGET_EXIT_CODE:
-            runner.generate_allure_report()
-        # 发送测试报告到企微/邮箱/飞书
-        # notification_util.send_report_via_email()
-        sys.exit(exit_code)
-
-    elif args.command == 'performance':
-        exit_code = runner.run_performance_tests(args.file, args.users, args.spawn_rate, args.run_time)
-        sys.exit(exit_code)
-
-    elif args.command == 'report':
-        if args.generate or not args.open:
-            runner.generate_allure_report()
-        if args.open or not args.generate:
-            runner.open_allure_report()
-        sys.exit(0)
-
-    elif args.command == 'clean':
-        runner.clean_reports()
-        sys.exit(0)
-
-    elif args.command == 'package':
-        if args.pkg_command == 'update-req':
-            success = runner.update_requirements()
-            sys.exit(0 if success else 1)
-        elif args.pkg_command == 'add':
-            success = runner.add_package_to_requirements(args.package, args.version)
-            sys.exit(0 if success else 1)
+    request = build_execution_request(args)
+    if request is not None:
+        sys.exit(execute_request(request, runner))
 
     else:
         # 如果没有指定命令,显示帮助信息
