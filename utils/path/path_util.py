@@ -10,6 +10,7 @@ Description:
 """
 
 import os
+import threading
 from datetime import datetime
 
 
@@ -18,6 +19,7 @@ class PathUtil:
 
     # 存储当前测试运行的时间文件夹名称
     _current_test_run_dir = None
+    _run_dir_lock = threading.Lock()
 
     @staticmethod
     def get_test_run_dir() -> str:
@@ -28,7 +30,9 @@ class PathUtil:
             str: 时间文件夹名称
         """
         if PathUtil._current_test_run_dir is None:
-            PathUtil._current_test_run_dir = datetime.now().strftime("%Y%m%d_%H%M")
+            with PathUtil._run_dir_lock:
+                if PathUtil._current_test_run_dir is None:
+                    PathUtil._current_test_run_dir = datetime.now().strftime("%Y%m%d_%H%M")
         return PathUtil._current_test_run_dir
 
     @staticmethod
@@ -39,7 +43,8 @@ class PathUtil:
         Args:
             dir_name: 时间文件夹名称
         """
-        PathUtil._current_test_run_dir = dir_name
+        with PathUtil._run_dir_lock:
+            PathUtil._current_test_run_dir = dir_name
 
     @staticmethod
     def get_project_root() -> str:
@@ -153,7 +158,7 @@ class PathUtil:
         """
         获取当前测试运行的报告目录路径(带时间文件夹)
         如果目录不存在则创建
-        
+
         Returns:
             str: 当前测试报告目录的绝对路径
         """
@@ -161,6 +166,20 @@ class PathUtil:
         current_reports_dir = os.path.join(PathUtil.get_reports_dir(), test_run_dir)
         PathUtil.ensure_dir_exists(current_reports_dir)
         return current_reports_dir
+
+    @staticmethod
+    def get_current_run_context(create_dirs: bool = True) -> dict[str, str]:
+        """获取当前测试运行上下文"""
+        run_id = PathUtil.get_test_run_dir()
+        reports_dir = PathUtil.get_reports_dir() if create_dirs else os.path.join(PathUtil.get_project_root(), 'reports')
+        run_root = os.path.join(reports_dir, run_id)
+        return {
+            'run_id': run_id,
+            'run_root': run_root,
+            'allure_results_dir': os.path.join(run_root, 'allure-results'),
+            'allure_report_dir': os.path.join(run_root, 'allure-report'),
+            'screenshots_dir': os.path.join(run_root, 'screenshots'),
+        }
 
     @staticmethod
     def get_allure_results_dir(use_time_folder: bool = True) -> str:
@@ -324,7 +343,7 @@ class PathUtil:
         return os.path.isdir(dir_path)
 
     @staticmethod
-    def join_path(*paths) -> str:
+    def join_path(*paths: str) -> str:
         """
         连接多个路径部分
         
