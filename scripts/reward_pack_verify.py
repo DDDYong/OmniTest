@@ -121,6 +121,87 @@ class RewardPackVerification:
             )
         return None
 
+    @staticmethod
+    def _is_save_princess_daily_rank(activity_type_name: str) -> bool:
+        """是否为拯救公主活动的日榜"""
+        normalized_name = str(activity_type_name or "").strip()
+        return "拯救公主" in normalized_name and "日榜" in normalized_name
+
+    def _query_save_princess_group_rows(self, stage: str) -> List[Dict]:
+        """查询拯救公主活动中成功拯救的阵营"""
+        query = """
+            SELECT groupId, groupName, stage, captainUserId, scoreSum, activityType, activityId
+            FROM `kong_test`.`activity_group`
+            WHERE activityId = %s AND stage = %s
+            ORDER BY groupId ASC
+        """
+        return self.db.execute_query(query, (self.activity_number, stage))
+
+    def _resolve_save_princess_sources(self, stage: str) -> Optional[Dict[str, Any]]:
+        """解析拯救公主活动的source映射与成功/未成功阵营source"""
+        group_rows = self._query_save_princess_group_rows(stage)
+        if not group_rows:
+            return None
+
+        ordered_groups = sorted(group_rows, key = lambda item: int(item.get("groupId", 0)))
+        group_id_to_source = {
+            int(group.get("groupId")): index for index, group in enumerate(ordered_groups, start = 1)
+        }
+        success_group = max(group_rows, key = lambda item: int(item.get("scoreSum", 0)))
+        success_group_id = int(success_group.get("groupId"))
+        success_source = group_id_to_source.get(success_group_id)
+        if not success_source:
+            return None
+
+        all_sources = list(range(1, len(ordered_groups) + 1))
+        failed_sources = [source for source in all_sources if source != success_source]
+        source_mapping = {source: group_id for group_id, source in group_id_to_source.items()}
+        return {
+            "source_mapping": source_mapping,
+            "success_group_id": success_group_id,
+            "success_source": success_source,
+            "failed_sources": failed_sources,
+        }
+
+    def _query_save_princess_ranking_data(self, rank_category: str, stage: str, rank_coverage: int,
+                                          activity_type_name: str) -> List[Dict]:
+        """按拯救公主活动规则查询榜单获奖用户"""
+        source_context = self._resolve_save_princess_sources(stage)
+        if not source_context:
+            self.logger.warning(f"活动[{self.activity_number}] stage[{stage}] 未查询到成功拯救阵营")
+            return []
+
+        success_group_id = source_context["success_group_id"]
+        success_source = source_context["success_source"]
+        failed_sources = source_context["failed_sources"]
+        source_mapping = source_context["source_mapping"]
+        self.logger.info(
+            f"拯救公主阵营source映射: {source_mapping}, 成功阵营groupId={success_group_id}, success_source={success_source}"
+        )
+
+        if "成功拯救日榜" in activity_type_name:
+            target_sources = [success_source]
+        elif "未拯救日榜" in activity_type_name:
+            target_sources = failed_sources
+        else:
+            self.logger.warning(f"未知的拯救公主日榜类型: {activity_type_name}")
+            return []
+
+        if not target_sources:
+            self.logger.warning(f"活动[{self.activity_number}] stage[{stage}] 未解析到可用source")
+            return []
+
+        placeholders = ", ".join(["%s"] * len(target_sources))
+        query = f"""
+            SELECT number, userId, intimateId, category, stage, year, month, day, value
+            FROM `kong_test`.`activity_rank`
+            WHERE number = %s AND category = %s AND stage = %s
+              AND source IN ({placeholders})
+            ORDER BY value DESC LIMIT %s
+        """
+        params = (self.activity_number, rank_category, stage, *target_sources, rank_coverage)
+        return self.db.execute_query(query, params)
+
     def _normalize_filter_rank_types(self, filter_rank_types: Optional[List[Any]],
                                      activity_reward_config: List[Dict[str, Any]]) -> Optional[List[str]]:
         """兼容旧的 rank_category 过滤参数, 统一转换为复合键列表"""
@@ -710,18 +791,39 @@ class RewardPackVerification:
             self.logger.info(f"处理榜单配置: {activity_type_name}, 阶段={stage}, TopN={rank_coverage}")
 
             try:
-                raw_data = self._query_ranking_data(rank_category, stage, rank_coverage)
+                raw_data = self._query_ranking_data(rank_category, stage, rank_coverage, activity_type_name)
 
                 if len(raw_data) < rank_coverage:
-                    self.logger.warning(f"现有数据不足TopN({rank_coverage}), 当前只有{len(raw_data)}条, 需要补足数据")
-                    missing_count = rank_coverage - len(raw_data)
-                    inserted_count = self._insert_test_ranking_data(rank_category, stage, missing_count)
-
-                    if inserted_count > 0:
-                        self.logger.info(f"成功插入{inserted_count}条测试数据, 重新查询榜单数据")
-                        raw_data = self._query_ranking_data(rank_category, stage, rank_coverage)
+                    if self._is_save_princess_daily_rank(activity_type_name):
+                        if "成功拯救日榜" in activity_type_name:
+                            self.logger.warning(
+                                f"成功拯救日榜现有数据不足TopN({rank_coverage}), 当前只有{len(raw_data)}条, 开始补数"
+                            )
+                            missing_count = rank_coverage - len(raw_data)
+                            inserted_count = self._insert_test_ranking_data(
+                                rank_category, stage, missing_count, activity_type_name
+                            )
+                            if inserted_count > 0:
+                                self.logger.info(f"成功插入{inserted_count}条测试数据, 重新查询榜单数据")
+                                raw_data = self._query_ranking_data(rank_category, stage, rank_coverage, activity_type_name)
+                            else:
+                                self.logger.warning("成功拯救日榜补数失败, 使用现有数据进行处理")
+                        else:
+                            self.logger.warning(
+                                f"拯救公主日榜现有数据不足TopN({rank_coverage}), 当前只有{len(raw_data)}条, 不做自动补数"
+                            )
                     else:
-                        self.logger.warning("复制数据失败, 使用现有数据进行处理")
+                        self.logger.warning(f"现有数据不足TopN({rank_coverage}), 当前只有{len(raw_data)}条, 需要补足数据")
+                        missing_count = rank_coverage - len(raw_data)
+                        inserted_count = self._insert_test_ranking_data(
+                            rank_category, stage, missing_count, activity_type_name
+                        )
+
+                        if inserted_count > 0:
+                            self.logger.info(f"成功插入{inserted_count}条测试数据, 重新查询榜单数据")
+                            raw_data = self._query_ranking_data(rank_category, stage, rank_coverage, activity_type_name)
+                        else:
+                            self.logger.warning("复制数据失败, 使用现有数据进行处理")
 
                 if raw_data:
                     ranked_data = self._process_ranking_data(raw_data, rank_key, activity_type_name)
@@ -957,7 +1059,8 @@ class RewardPackVerification:
 
         return user_expected_rewards
 
-    def _query_ranking_data(self, rank_category: str, stage: str, rank_coverage: int) -> List[Dict]:
+    def _query_ranking_data(self, rank_category: str, stage: str, rank_coverage: int,
+                            activity_type_name: str = "") -> List[Dict]:
         """
         查询榜单数据
 
@@ -965,10 +1068,14 @@ class RewardPackVerification:
             rank_category: 榜单分类
             stage: 活动阶段(赛段/日期), 默认前一天
             rank_coverage: 要获取的榜单Top N用户, 默认10
+            activity_type_name: 榜单名称
 
         Returns:
             List[Dict]: 格式化后的榜单数据
         """
+        if self._is_save_princess_daily_rank(activity_type_name):
+            return self._query_save_princess_ranking_data(rank_category, stage, rank_coverage, activity_type_name)
+
         query = """
             SELECT number, userId, intimateId, category, stage, year, month, day, value
             FROM `kong_test`.`activity_rank`
@@ -977,7 +1084,8 @@ class RewardPackVerification:
         """
         return self.db.execute_query(query, (self.activity_number, rank_category, stage, rank_coverage))
 
-    def _insert_test_ranking_data(self, ranking_category: str, stage: str, count: int) -> int:
+    def _insert_test_ranking_data(self, ranking_category: str, stage: str, count: int,
+                                  activity_type_name: str = "") -> int:
         """
         插入测试榜单数据
 
@@ -985,18 +1093,35 @@ class RewardPackVerification:
             ranking_category: 榜单分类
             stage: 活动阶段(赛段/日期), 默认前一天, 20260119表示日榜
             count: 要插入的测试数据数量
+            activity_type_name: 榜单名称
 
         Returns:
             int: 成功插入的测试数据数量
         """
         # 从满足条件的榜单数据中取一条数据作为模板
         inserted_count = 0
+        source_filter = None
+        if self._is_save_princess_daily_rank(activity_type_name) and "成功拯救日榜" in str(activity_type_name):
+            source_context = self._resolve_save_princess_sources(stage)
+            if not source_context:
+                self.logger.warning("成功拯救日榜补数失败: 未解析到阵营source信息")
+                return 0
+            source_filter = source_context["success_source"]
 
-        existing_users_query = """
-                    SELECT * FROM `kong_test`.`activity_rank` 
-                    WHERE number = %s and category = %s order by id desc
-                """
-        existing_users = self.db.execute_query(existing_users_query, (self.activity_number, ranking_category))
+        if source_filter is not None:
+            existing_users_query = """
+                        SELECT * FROM `kong_test`.`activity_rank` 
+                        WHERE number = %s and category = %s and stage = %s and source = %s order by id desc
+                    """
+            existing_users = self.db.execute_query(
+                existing_users_query, (self.activity_number, ranking_category, stage, source_filter)
+            )
+        else:
+            existing_users_query = """
+                        SELECT * FROM `kong_test`.`activity_rank` 
+                        WHERE number = %s and category = %s order by id desc
+                    """
+            existing_users = self.db.execute_query(existing_users_query, (self.activity_number, ranking_category))
         template_data = existing_users[0] if existing_users else None
         if not template_data:
             self.logger.warning("未找到符合条件的模板数据, 无法进行复制")
@@ -1022,13 +1147,24 @@ class RewardPackVerification:
 
         # 同类型榜单的日榜/总榜
         # 检查同一类型的其他榜单是否有数据
-        other_stage_query = """
-                        SELECT * FROM `kong_test`.`activity_rank` 
-                        WHERE number = %s and category = %s and day = %s
-                        ORDER BY id DESC LIMIT %s
-                   """
-        other_stage_data = self.db.execute_query(other_stage_query, (self.activity_number, ranking_category,
-                                                                     -1 if len(stage) == 8 else 0, count))
+        if source_filter is not None:
+            other_stage_query = """
+                            SELECT * FROM `kong_test`.`activity_rank` 
+                            WHERE number = %s and category = %s and day = %s and source = %s
+                            ORDER BY id DESC LIMIT %s
+                       """
+            other_stage_data = self.db.execute_query(
+                other_stage_query, (self.activity_number, ranking_category, -1 if len(stage) == 8 else 0, source_filter,
+                                    count)
+            )
+        else:
+            other_stage_query = """
+                            SELECT * FROM `kong_test`.`activity_rank` 
+                            WHERE number = %s and category = %s and day = %s
+                            ORDER BY id DESC LIMIT %s
+                       """
+            other_stage_data = self.db.execute_query(other_stage_query, (self.activity_number, ranking_category,
+                                                                         -1 if len(stage) == 8 else 0, count))
 
         # 同一类型的其他榜单有数据
         if other_stage_data:
@@ -1056,7 +1192,8 @@ class RewardPackVerification:
                             template_data["value2"],
                             template_data["value3"], template_data["value4"], template_data["value5"],
                             template_data["value6"], template_data["value7"], template_data["valueTime"],
-                            template_data["source"], template_data["display"], template_data["completed"],
+                            source_filter if source_filter is not None else template_data["source"],
+                            template_data["display"], template_data["completed"],
                             template_data["created"], template_data["updated"]
 
                         )
@@ -1162,7 +1299,8 @@ class RewardPackVerification:
                             template_data["value"], template_data["value1"], template_data["value2"],
                             template_data["value3"], template_data["value4"], template_data["value5"],
                             template_data["value6"], template_data["value7"], template_data["valueTime"],
-                            template_data["source"], template_data["display"], template_data["completed"],
+                            source_filter if source_filter is not None else template_data["source"],
+                            template_data["display"], template_data["completed"],
                             template_data["created"], template_data["updated"]
                         )
                     )
@@ -2095,8 +2233,8 @@ def main():
 
     # 创建验证器
     validator = RewardPackVerification(
-        activity_number = 1061,
-        activity_config_path = "test_activity/2026_april_fools_reward_config.yaml",
+        activity_number = 1062,
+        activity_config_path = "test_activity/2026_save_princess_reward_config.yaml",
     )
 
     # 执行验证

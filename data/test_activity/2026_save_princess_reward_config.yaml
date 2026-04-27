@@ -1,0 +1,744 @@
+# 2026拯救公主活动奖励配置（基于 reward_template.yaml 结构）
+
+- activityType_name: 拯救公主（未拯救日榜）
+  rank_category: 5
+  rank_coverage: 3
+  reward_details:
+    - rank: 1
+      rewardPackId: 1044
+      rewardPackName: 未拯救日榜冠军奖励包
+    - rank: 2
+      rewardPackId: 1045
+      rewardPackName: 未拯救日榜亚军奖励包
+    - rank: 3
+      rewardPackId: 1046
+      rewardPackName: 未拯救日榜季军奖励包
+  reward_packs:
+    - rewardPackId: 1044
+      rewardPackName: 未拯救日榜冠军奖励包
+      rewards:
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104565
+          rewardCount: 7
+          unit: 天
+          reward_desc: 不朽战魂称号
+          sex: 0
+          actor: 0
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2928
+          rewardCount: 7
+          unit: 天
+          reward_desc: 座驾
+          sex: 0
+          actor: 0
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2929
+          rewardCount: 7
+          unit: 天
+          reward_desc: 房间气泡
+          sex: 0
+          actor: 0
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2930
+          rewardCount: 7
+          unit: 天
+          reward_desc: 私聊气泡
+          sex: 0
+          actor: 0
+
+    - rewardPackId: 1045
+      rewardPackName: 未拯救日榜亚军奖励包
+      rewards:
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104566
+          rewardCount: 5
+          unit: 天
+          reward_desc: 铁血忠勇称号
+          sex: 0
+          actor: 0
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2928
+          rewardCount: 5
+          unit: 天
+          reward_desc: 座驾
+          sex: 0
+          actor: 0
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2929
+          rewardCount: 5
+          unit: 天
+          reward_desc: 房间气泡
+          sex: 0
+          actor: 0
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2930
+          rewardCount: 5
+          unit: 天
+          reward_desc: 私聊气泡
+          sex: 0
+          actor: 0
+
+    - rewardPackId: 1046
+      rewardPackName: 未拯救日榜季军奖励包
+      rewards:
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104567
+          rewardCount: 3
+          unit: 天
+          reward_desc: 末路勇者称号
+          sex: 0
+          actor: 0
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2928
+          rewardCount: 3
+          unit: 天
+          reward_desc: 座驾
+          sex: 0
+          actor: 0
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2929
+          rewardCount: 3
+          unit: 天
+          reward_desc: 房间气泡
+          sex: 0
+          actor: 0
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2930
+          rewardCount: 3
+          unit: 天
+          reward_desc: 私聊气泡
+          sex: 0
+          actor: 0
+
+- activityType_name: 拯救公主（成功拯救日榜）
+  rank_category: 5
+  rank_coverage: 20
+  reward_details:
+    - rank: 1
+      rewardPackId: 1047
+      rewardPackName: 成功拯救日榜冠军奖励包
+    - rank: 2
+      rewardPackId: 1048
+      rewardPackName: 成功拯救日榜亚军奖励包
+    - rank: 3
+      rewardPackId: 1049
+      rewardPackName: 成功拯救日榜季军奖励包
+    - rank: 4
+      rewardPackId: 1050
+      rewardPackName: 成功拯救日榜4-20名奖励包
+    - rank: 5
+      rewardPackId: 1050
+      rewardPackName: 成功拯救日榜4-20名奖励包
+    - rank: 6
+      rewardPackId: 1050
+      rewardPackName: 成功拯救日榜4-20名奖励包
+    - rank: 7
+      rewardPackId: 1050
+      rewardPackName: 成功拯救日榜4-20名奖励包
+    - rank: 8
+      rewardPackId: 1050
+      rewardPackName: 成功拯救日榜4-20名奖励包
+    - rank: 9
+      rewardPackId: 1050
+      rewardPackName: 成功拯救日榜4-20名奖励包
+    - rank: 10
+      rewardPackId: 1050
+      rewardPackName: 成功拯救日榜4-20名奖励包
+    - rank: 11
+      rewardPackId: 1050
+      rewardPackName: 成功拯救日榜4-20名奖励包
+    - rank: 12
+      rewardPackId: 1050
+      rewardPackName: 成功拯救日榜4-20名奖励包
+    - rank: 13
+      rewardPackId: 1050
+      rewardPackName: 成功拯救日榜4-20名奖励包
+    - rank: 14
+      rewardPackId: 1050
+      rewardPackName: 成功拯救日榜4-20名奖励包
+    - rank: 15
+      rewardPackId: 1050
+      rewardPackName: 成功拯救日榜4-20名奖励包
+    - rank: 16
+      rewardPackId: 1050
+      rewardPackName: 成功拯救日榜4-20名奖励包
+    - rank: 17
+      rewardPackId: 1050
+      rewardPackName: 成功拯救日榜4-20名奖励包
+    - rank: 18
+      rewardPackId: 1050
+      rewardPackName: 成功拯救日榜4-20名奖励包
+    - rank: 19
+      rewardPackId: 1050
+      rewardPackName: 成功拯救日榜4-20名奖励包
+    - rank: 20
+      rewardPackId: 1050
+      rewardPackName: 成功拯救日榜4-20名奖励包
+  reward_packs:
+    - rewardPackId: 1047
+      rewardPackName: 成功拯救日榜冠军奖励包
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 691
+          rewardCount: 1
+          unit: 个
+          reward_desc: 勋章永久
+          sex: 0
+          actor: 0
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104568
+          rewardCount: 7
+          unit: 天
+          reward_desc: 称号女冠军（Day1）
+          sex: 2
+          actor: 0
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104571
+          rewardCount: 7
+          unit: 天
+          reward_desc: 称号男冠军（Day1）
+          sex: 1
+          actor: 0
+        - rewardType: 10
+          rewardType_name: MAIN_PAGE_EFFECTS
+          rewardId: 2948
+          rewardCount: 7
+          unit: 天
+          reward_desc: 主页特效
+          sex: 0
+          actor: 0
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2931
+          rewardCount: 7
+          unit: 天
+          reward_desc: 座驾
+          sex: 0
+          actor: 0
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2932
+          rewardCount: 7
+          unit: 天
+          reward_desc: 房间气泡
+          sex: 0
+          actor: 0
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2933
+          rewardCount: 7
+          unit: 天
+          reward_desc: 私聊气泡
+          sex: 0
+          actor: 0
+
+    - rewardPackId: 1048
+      rewardPackName: 成功拯救日榜亚军奖励包
+      rewards:
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104569
+          rewardCount: 5
+          unit: 天
+          reward_desc: 称号女亚军（Day1）
+          sex: 2
+          actor: 0
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104572
+          rewardCount: 5
+          unit: 天
+          reward_desc: 称号男亚军（Day1）
+          sex: 1
+          actor: 0
+        - rewardType: 10
+          rewardType_name: MAIN_PAGE_EFFECTS
+          rewardId: 2949
+          rewardCount: 5
+          unit: 天
+          reward_desc: 主页特效
+          sex: 0
+          actor: 0
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2931
+          rewardCount: 5
+          unit: 天
+          reward_desc: 座驾
+          sex: 0
+          actor: 0
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2932
+          rewardCount: 5
+          unit: 天
+          reward_desc: 房间气泡
+          sex: 0
+          actor: 0
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2933
+          rewardCount: 5
+          unit: 天
+          reward_desc: 私聊气泡
+          sex: 0
+          actor: 0
+
+    - rewardPackId: 1049
+      rewardPackName: 成功拯救日榜季军奖励包
+      rewards:
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104570
+          rewardCount: 3
+          unit: 天
+          reward_desc: 称号女季军（Day1）
+          sex: 2
+          actor: 0
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104573
+          rewardCount: 3
+          unit: 天
+          reward_desc: 称号男季军（Day1）
+          sex: 1
+          actor: 0
+        - rewardType: 10
+          rewardType_name: MAIN_PAGE_EFFECTS
+          rewardId: 2949
+          rewardCount: 3
+          unit: 天
+          reward_desc: 主页特效
+          sex: 0
+          actor: 0
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2931
+          rewardCount: 3
+          unit: 天
+          reward_desc: 座驾
+          sex: 0
+          actor: 0
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2932
+          rewardCount: 3
+          unit: 天
+          reward_desc: 房间气泡
+          sex: 0
+          actor: 0
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2933
+          rewardCount: 3
+          unit: 天
+          reward_desc: 私聊气泡
+          sex: 0
+          actor: 0
+
+    - rewardPackId: 1050
+      rewardPackName: 成功拯救日榜4-20名奖励包
+      rewards:
+        - rewardType: 10
+          rewardType_name: MAIN_PAGE_EFFECTS
+          rewardId: 2949
+          rewardCount: 1
+          unit: 天
+          reward_desc: 主页特效
+          sex: 0
+          actor: 0
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2932
+          rewardCount: 3
+          unit: 天
+          reward_desc: 房间气泡
+          sex: 0
+          actor: 0
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2933
+          rewardCount: 3
+          unit: 天
+          reward_desc: 私聊气泡
+          sex: 0
+          actor: 0
+
+  daily_special_rewards:
+    - day: Day1
+      princess: 白雪公主
+      title_female_champion: 104568
+      title_female_runner_up: 104569
+      title_female_third: 104570
+      title_male_champion: 104571
+      title_male_runner_up: 104572
+      title_male_third: 104573
+      main_page_effect_id: 2949
+    - day: Day2
+      princess: 贝儿公主
+      title_female_champion: 104574
+      title_female_runner_up: 104575
+      title_female_third: 104576
+      title_male_champion: 104577
+      title_male_runner_up: 104578
+      title_male_third: 104579
+      main_page_effect_id: 2949
+    - day: Day3
+      princess: 茉莉公主
+      title_female_champion: 104580
+      title_female_runner_up: 104581
+      title_female_third: 104582
+      title_male_champion: 104583
+      title_male_runner_up: 104584
+      title_male_third: 104585
+      main_page_effect_id: 2949
+    - day: Day4
+      princess: 美人鱼公主
+      title_female_champion: 104586
+      title_female_runner_up: 104587
+      title_female_third: 104588
+      title_male_champion: 104589
+      title_male_runner_up: 104590
+      title_male_third: 104591
+      main_page_effect_id: 2949
+    - day: Day5
+      princess: 睡美人公主
+      title_female_champion: 104592
+      title_female_runner_up: 104593
+      title_female_third: 104594
+      title_male_champion: 104595
+      title_male_runner_up: 104596
+      title_male_third: 104597
+      main_page_effect_id: 2949
+    - day: Day6
+      princess: 灰姑娘公主
+      title_female_champion: 104598
+      title_female_runner_up: 104599
+      title_female_third: 104600
+      title_male_champion: 104601
+      title_male_runner_up: 104602
+      title_male_third: 104603
+      main_page_effect_id: 2949
+    - day: Day7
+      princess: 艾莎公主
+      title_female_champion: 104604
+      title_female_runner_up: 104605
+      title_female_third: 104606
+      title_male_champion: 104607
+      title_male_runner_up: 104608
+      title_male_third: 104609
+      main_page_effect_id: 2949
+
+- activityType_name: 拯救公主（战力总榜）
+  rank_category: 5
+  rank_coverage: 10
+  reward_details:
+    - rank: 1
+      rewardPackId: 1051
+      rewardPackName: 总榜冠军奖励包
+    - rank: 2
+      rewardPackId: 1052
+      rewardPackName: 总榜亚军奖励包
+    - rank: 3
+      rewardPackId: 1053
+      rewardPackName: 总榜季军奖励包
+    - rank: 4
+      rewardPackId: 1054
+      rewardPackName: 总榜4-10名奖励包
+    - rank: 5
+      rewardPackId: 1054
+      rewardPackName: 总榜4-10名奖励包
+    - rank: 6
+      rewardPackId: 1054
+      rewardPackName: 总榜4-10名奖励包
+    - rank: 7
+      rewardPackId: 1054
+      rewardPackName: 总榜4-10名奖励包
+    - rank: 8
+      rewardPackId: 1054
+      rewardPackName: 总榜4-10名奖励包
+    - rank: 9
+      rewardPackId: 1054
+      rewardPackName: 总榜4-10名奖励包
+    - rank: 10
+      rewardPackId: 1054
+      rewardPackName: 总榜4-10名奖励包
+  reward_packs:
+    - rewardPackId: 1051
+      rewardPackName: 总榜冠军奖励包
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 692
+          rewardCount: 1
+          unit: 个
+          reward_desc: 勋章永久
+          sex: 0
+          actor: 0
+        - rewardType: 6
+          rewardType_name: BRIGHT_NUMBER
+          rewardId: 746
+          rewardCount: 1
+          unit: 个
+          reward_desc: 五位自选靓号
+          sex: 0
+          actor: 0
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104610
+          rewardCount: 30
+          unit: 天
+          reward_desc: 战神冠军称号
+          sex: 0
+          actor: 0
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          rewardCount: 90
+          unit: 天
+          reward_desc: 超级会员
+          sex: 0
+          actor: 0
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2934
+          rewardCount: 30
+          unit: 天
+          reward_desc: 座驾
+          sex: 0
+          actor: 0
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2938
+          rewardCount: 30
+          unit: 天
+          reward_desc: 头像框
+          sex: 0
+          actor: 0
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2942
+          rewardCount: 30
+          unit: 天
+          reward_desc: 私聊气泡
+          sex: 0
+          actor: 0
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2946
+          rewardCount: 30
+          unit: 天
+          reward_desc: 房间气泡
+          sex: 0
+          actor: 0
+
+    - rewardPackId: 1052
+      rewardPackName: 总榜亚军奖励包
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 693
+          rewardCount: 1
+          unit: 个
+          reward_desc: 勋章永久
+          sex: 0
+          actor: 0
+        - rewardType: 6
+          rewardType_name: BRIGHT_NUMBER
+          rewardId: 1357
+          rewardCount: 1
+          unit: 个
+          reward_desc: 六位自选靓号
+          sex: 0
+          actor: 0
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104611
+          rewardCount: 20
+          unit: 天
+          reward_desc: 战神亚军称号
+          sex: 0
+          actor: 0
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          rewardCount: 60
+          unit: 天
+          reward_desc: 超级会员
+          sex: 0
+          actor: 0
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2935
+          rewardCount: 20
+          unit: 天
+          reward_desc: 座驾
+          sex: 0
+          actor: 0
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2939
+          rewardCount: 20
+          unit: 天
+          reward_desc: 头像框
+          sex: 0
+          actor: 0
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2943
+          rewardCount: 20
+          unit: 天
+          reward_desc: 私聊气泡
+          sex: 0
+          actor: 0
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2947
+          rewardCount: 20
+          unit: 天
+          reward_desc: 房间气泡
+          sex: 0
+          actor: 0
+
+    - rewardPackId: 1053
+      rewardPackName: 总榜季军奖励包
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 694
+          rewardCount: 1
+          unit: 个
+          reward_desc: 勋章永久
+          sex: 0
+          actor: 0
+        - rewardType: 6
+          rewardType_name: BRIGHT_NUMBER
+          rewardId: 1001620
+          rewardCount: 1
+          unit: 个
+          reward_desc: 七位自选靓号
+          sex: 0
+          actor: 0
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104612
+          rewardCount: 15
+          unit: 天
+          reward_desc: 战神季军称号
+          sex: 0
+          actor: 0
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          rewardCount: 30
+          unit: 天
+          reward_desc: 超级会员
+          sex: 0
+          actor: 0
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2936
+          rewardCount: 15
+          unit: 天
+          reward_desc: 座驾
+          sex: 0
+          actor: 0
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2940
+          rewardCount: 15
+          unit: 天
+          reward_desc: 头像框
+          sex: 0
+          actor: 0
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2944
+          rewardCount: 15
+          unit: 天
+          reward_desc: 私聊气泡
+          sex: 0
+          actor: 0
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2948
+          rewardCount: 15
+          unit: 天
+          reward_desc: 房间气泡
+          sex: 0
+          actor: 0
+
+    - rewardPackId: 1054
+      rewardPackName: 总榜4-10名奖励包
+      rewards:
+        - rewardType: 1
+          rewardType_name: MEDAL
+          rewardId: 695
+          rewardCount: 1
+          unit: 个
+          reward_desc: 勋章永久
+          sex: 0
+          actor: 0
+        - rewardType: 15
+          rewardType_name: TITLE
+          rewardId: 104613
+          rewardCount: 10
+          unit: 天
+          reward_desc: 战神十强称号
+          sex: 0
+          actor: 0
+        - rewardType: 5
+          rewardType_name: SUPER_VIP
+          rewardId: 0
+          rewardCount: 10
+          unit: 天
+          reward_desc: 超级会员
+          sex: 0
+          actor: 0
+        - rewardType: 3
+          rewardType_name: RIDE
+          rewardId: 2937
+          rewardCount: 10
+          unit: 天
+          reward_desc: 座驾
+          sex: 0
+          actor: 0
+        - rewardType: 2
+          rewardType_name: AVATAR_COVER
+          rewardId: 2941
+          rewardCount: 10
+          unit: 天
+          reward_desc: 头像框
+          sex: 0
+          actor: 0
+        - rewardType: 12
+          rewardType_name: IM_BUBBLE
+          rewardId: 2956
+          rewardCount: 10
+          unit: 天
+          reward_desc: 私聊气泡
+          sex: 0
+          actor: 0
+        - rewardType: 9
+          rewardType_name: CHATROOM_BUBBLE
+          rewardId: 2949
+          rewardCount: 10
+          unit: 天
+          reward_desc: 房间气泡
+          sex: 0
+          actor: 0
